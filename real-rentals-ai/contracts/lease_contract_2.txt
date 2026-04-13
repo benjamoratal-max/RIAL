@@ -1,0 +1,13 @@
+
+      CONTRATO DE ALQUILER
+
+      Propiedad: Casa en las Afueras
+      Ubicación: Zona Norte, Buenos Aires
+      Inquilino: Usuario de Prueba (test@example.com)
+      Duración: 18 meses
+
+      Fecha de inicio: 6/8/2025
+      Fecha de generación del contrato: 6/8/2025
+
+      Este contrato fue generado automáticamente por la plataforma AI Broker.
+      

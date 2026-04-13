@@ -1,0 +1,637 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  // Roles de la plataforma:
+  // - tenant: inquilino/renter
+  // - broker_applicant: se está postulando como broker, aún no aprobado
+  // - broker: broker verificado
+  // - broker_admin: admin/manager dentro de una brokerage
+  // - team_member: miembro de equipo/coordinator
+  // - compliance_admin: admin interno de Rial para verificación y compliance
+  // - admin: super admin técnico (hereda permisos globales)
+  role      String    @default("tenant")
+  // Verificación de cuenta (requerida para comprar/alquilar/vender)
+  verified           Boolean   @default(false) // Verificado por email O documento
+  verifiedAt         DateTime?
+  verificationMethod String?   // "email" | "document" | "both"
+  // Verificación de email
+  emailVerified      Boolean   @default(false)
+  emailVerifiedAt    DateTime?
+  emailVerificationCode String?
+  emailVerificationCodeExpires DateTime?
+  // 2FA
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorMethod    String?   // "email" (SMS removido)
+  twoFactorSecret    String?   // Para TOTP (opcional, futuro)
+  // Limpieza de emails no válidos
+  emailValidated     Boolean   @default(false)
+  emailValidationAttempts Int  @default(0)
+  emailLastValidated DateTime?
+  contracts Contract[]
+  bookings  Booking[]
+  reviews   Review[]
+  leaseRequests LeaseRequest[]
+  ownedProperties Property[]
+  notifications Notification[]
+  sentMessages Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  payments Payment[]
+  alerts    Alert[]
+  verification Verification?
+  searches  PropertySearch[]
+  emailVerificationCodes EmailVerificationCode[]
+  twoFactorCodes TwoFactorCode[]
+  aiInteractions AIInteraction[]
+
+  // Perfil de broker (si aplica)
+  brokerProfile BrokerProfile?
+
+  // Relaciones operativas/compliance
+  incidentReports ComplianceIncident[] @relation("IncidentReporter")
+  incidentFlags   ComplianceIncident[] @relation("IncidentUser")
+  suspensions     Suspension[]
+  auditLogs       AuditLog[]
+
+  renterLeads     Lead[]              @relation("RenterLeads")
+  brokerLeads     Lead[]              @relation("BrokerLeads")
+  leadActivities  LeadActivity[]
+  brokerShowings  Showing[]           @relation("BrokerShowings")
+  renterShowings  Showing[]           @relation("RenterShowings")
+}
+
+model Listing {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String
+  price       Float
+  isForRent   Boolean   @default(true)
+  isForSale   Boolean   @default(true)
+  available   Boolean   @default(true)
+  contracts   Contract[]
+}
+
+model Contract {
+  id             Int      @id @default(autoincrement())
+  user           User     @relation(fields: [userId], references: [id])
+  userId         Int
+  listing        Listing  @relation(fields: [listingId], references: [id])
+  listingId      Int
+  type           String   // "alquiler" o "compra"
+  startDate      DateTime
+  durationMonths Int?     // Solo si es alquiler
+  createdAt      DateTime @default(now())
+}
+
+model Booking {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  propertyId Int
+  startDate  DateTime
+  endDate    DateTime
+  user       User     @relation(fields: [userId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id])
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  rating     Int
+  comment    String
+  userId     Int
+  propertyId Int
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Property {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  location    String   @default("No especificada")
+  price       Float
+  available   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  owner       User?    @relation(fields: [ownerId], references: [id])
+  ownerId     Int?
+  bookings    Booking[]
+  reviews     Review[]
+  images      Image[]
+  leaseRequests LeaseRequest[]
+  payments    Payment[]
+  views       PropertyView[]
+  duplicateAlerts PropertyDuplicateAlert[]  @relation("DuplicateOf")
+  suspectedDuplicates PropertyDuplicateAlert[] @relation("SuspectedDuplicate")
+  leads       Lead[]
+  showings    Showing[]
+  suspensions Suspension[]
+  bedrooms    Int?
+  rooms       Int?
+  bathrooms   Int?
+  area        Float?   // m²
+  propertyType String? // apartment, house, studio, etc.
+  verified    Boolean  @default(false)
+
+  @@index([location])
+  @@index([price])
+  @@index([bedrooms])
+  @@index([rooms])
+  @@index([bathrooms])
+  @@index([propertyType])
+  @@index([verified])
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model PropertyDuplicateAlert {
+  id                    Int      @id @default(autoincrement())
+  propertyId            Int      // propiedad que se acaba de crear/actualizar
+  suspectedDuplicateOfId Int      // propiedad con la que coincide
+  similarityScore       Float    // 0-1
+  createdAt             DateTime @default(now())
+
+  property              Property @relation("SuspectedDuplicate", fields: [propertyId], references: [id])
+  suspectedDuplicateOf  Property @relation("DuplicateOf", fields: [suspectedDuplicateOfId], references: [id])
+
+  @@index([propertyId])
+  @@index([suspectedDuplicateOfId])
+}
+
+model Image {
+  id         Int      @id @default(autoincrement())
+  url        String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId Int
+}
+
+model LeaseRequest {
+  id                 Int       @id @default(autoincrement())
+  userId             Int
+  propertyId         Int
+  durationMonths     Int
+  status             String    @default("pending") // pending | approved | rejected
+  createdAt          DateTime  @default(now())
+  riskScore          Int?      // 0-100, mayor = más riesgo
+  redFlags           String?   // JSON array: ["email_desechable", "sin_verificar", ...]
+  ownerRespondedAt   DateTime? // para follow-up y priorización
+
+  user               User      @relation(fields: [userId], references: [id])
+  property           Property  @relation(fields: [propertyId], references: [id])
+  leaseContract      LeaseContract?
+
+  @@index([propertyId])
+  @@index([userId])
+  @@index([status])
+  @@index([propertyId, status])
+}
+
+model LeaseContract {
+  id            Int          @id @default(autoincrement())
+  leaseRequestId Int          @unique
+  pdfUrl        String?
+  createdAt     DateTime      @default(now())
+
+  leaseRequest  LeaseRequest  @relation(fields: [leaseRequestId], references: [id])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      String   @default("info") // info, success, warning, error
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  senderId  Int
+  receiverId Int
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver  User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([receiverId, read])
+  @@index([createdAt])
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  propertyId    Int
+  amount        Float
+  currency      String   @default("USD")
+  status        String   @default("pending") // pending, completed, failed, refunded
+  paymentMethod String   // stripe, paypal, bank_transfer
+  transactionId String?
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id])
+  property      Property @relation(fields: [propertyId], references: [id])
+}
+
+model Alert {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  type          String   // price_drop, availability, new_property, custom
+  location      String?
+  minPrice      Float?
+  maxPrice      Float?
+  propertyId    Int?     // Si es alerta específica de una propiedad
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model Verification {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  type          String   // "identity" (documento de identidad)
+  status        String   @default("pending") // pending, verified, rejected
+  documentUrl   String?
+  verifiedAt    DateTime?
+  verifiedBy    Int?     // Sistema automático (userId del sistema)
+  notes         String?
+  // Verificación automática
+  autoVerified  Boolean  @default(false)
+  verificationScore Float? // Score de confianza (0-1)
+  documentType  String?  // "dni" | "passport" | "driver_license"
+  // Datos extraídos del documento
+  extractedName String? // Nombre extraído del documento
+  extractedNumber String? // Número de documento
+  extractedBirthDate DateTime? // Fecha de nacimiento
+  extractedExpiryDate DateTime? // Fecha de vencimiento
+  extractedData String? // JSON completo con todos los datos extraídos
+  // Validación de edad
+  isAdult       Boolean? // true si es mayor de edad
+  age           Int?     // Edad calculada
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model EmailVerificationCode {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  code      String
+  type      String   // "email_verification" | "2fa_email"
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId, type])
+  @@index([code])
+  @@index([expiresAt])
+}
+
+model TwoFactorCode {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  code      String
+  method    String   // "email" | "sms"
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([code])
+  @@index([expiresAt])
+}
+
+model PropertyView {
+  id            Int      @id @default(autoincrement())
+  propertyId    Int
+  userId        Int?
+  ipAddress     String?
+  userAgent     String?
+  viewedAt      DateTime @default(now())
+  
+  property      Property @relation(fields: [propertyId], references: [id])
+}
+
+model PropertySearch {
+  id            Int      @id @default(autoincrement())
+  userId        Int?
+  query         String
+  filters       String? // JSON string de filtros
+  resultsCount  Int
+  searchedAt    DateTime @default(now())
+  
+  user          User?    @relation(fields: [userId], references: [id])
+}
+
+/// Incidentes / flags reportados en propiedades, leads o usuarios
+model ComplianceIncident {
+  id          Int      @id @default(autoincrement())
+  type        String   // listing_flag, lead_flag, user_flag, other
+  severity    String   // low, medium, high, critical
+  status      String   @default("open") // open, in_review, resolved, dismissed
+  propertyId  Int?
+  leadId      Int?
+  userId      Int?
+  reporterId  Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reporter    User?    @relation("IncidentReporter", fields: [reporterId], references: [id])
+  user        User?    @relation("IncidentUser", fields: [userId], references: [id])
+
+  @@index([type, status])
+  @@index([propertyId])
+  @@index([leadId])
+  @@index([userId])
+}
+
+/// Suspensiones de cuentas o listings
+model Suspension {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  propertyId  Int?
+  reason      String
+  status      String   @default("active") // active, lifted
+  createdAt   DateTime @default(now())
+  liftedAt    DateTime?
+
+  user        User?    @relation(fields: [userId], references: [id])
+  property    Property? @relation(fields: [propertyId], references: [id])
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([status])
+}
+
+/// Log de auditoría de acciones sensibles (compliance, seguridad)
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  actorId     Int?
+  action      String   // broker_approved, broker_suspended, property_flagged, etc.
+  entityType  String   // user, property, lead, broker_profile, system
+  entityId    Int?
+  metadata    String?  // JSON string con detalles
+  createdAt   DateTime @default(now())
+
+  actor       User?    @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+/// Lead operativo para brokers (pipeline de leasing)
+model Lead {
+  id              Int       @id @default(autoincrement())
+  renterId        Int?      // usuario inquilino/prospecto (User.id)
+  brokerId        Int?      // usuario broker dueño del lead (User.id)
+  propertyId      Int?      // propiedad asociada (Property.id)
+  source          String    // listing, chat, referral, owner_submission, manual, etc.
+  stage           String    @default("new_inquiry") // Ver etapas sugeridas en producto
+  urgency         String?   // low | medium | high
+  intentScore     Int?      // 0-100, IA
+  probability     Int?      // 0-100, probabilidad de cierre (IA/manual)
+  nextStep        String?   // próxima acción sugerida/definida
+  nextStepDueAt   DateTime?
+  lastInteractionAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Datos de contexto básicos
+  name            String?
+  email           String?
+  phone           String?
+  moveInDate      DateTime?
+  leaseTermMonths Int?
+  notes           String?
+
+  renter          User?     @relation("RenterLeads", fields: [renterId], references: [id])
+  broker          User?     @relation("BrokerLeads", fields: [brokerId], references: [id])
+  property        Property? @relation(fields: [propertyId], references: [id])
+  activities      LeadActivity[]
+  documents       LeadDocument[]
+  showings        Showing[]
+
+  @@index([brokerId, stage])
+  @@index([propertyId])
+  @@index([renterId])
+  @@index([createdAt])
+}
+
+/// Historial de actividades dentro de un lead (mensajes, cambios de etapa, tareas)
+model LeadActivity {
+  id          Int      @id @default(autoincrement())
+  leadId      Int
+  actorId     Int?     // user que realizó la acción (broker, team_member, sistema)
+  type        String   // note, status_change, message, task, system
+  description String
+  fromStage   String?
+  toStage     String?
+  createdAt   DateTime @default(now())
+
+  lead        Lead     @relation(fields: [leadId], references: [id])
+  actor       User?    @relation(fields: [actorId], references: [id])
+
+  @@index([leadId])
+  @@index([actorId])
+}
+
+/// Documentos asociados a un lead (aplicación, comprobantes, etc.)
+model LeadDocument {
+  id          Int      @id @default(autoincrement())
+  leadId      Int
+  type        String   // id, income_proof, employment, reference, pet, other
+  status      String   @default("pending") // pending | received | approved | rejected
+  url         String?
+  metadata    String?  // JSON con detalles (ej. parseo OCR)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lead        Lead     @relation(fields: [leadId], references: [id])
+
+  @@index([leadId, type])
+  @@index([status])
+}
+
+/// Coordinación de visitas (showings) asociadas a leads
+model Showing {
+  id           Int      @id @default(autoincrement())
+  leadId       Int?
+  propertyId   Int
+  brokerId     Int?     // broker asignado para la visita
+  renterId     Int?     // usuario que asiste
+  scheduledAt  DateTime
+  status       String   @default("proposed") // proposed | scheduled | completed | cancelled | no_show
+  visitType    String   @default("in_person") // in_person | virtual
+  notes        String?
+  feedback     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lead         Lead?    @relation(fields: [leadId], references: [id])
+  property     Property @relation(fields: [propertyId], references: [id])
+  broker       User?    @relation("BrokerShowings", fields: [brokerId], references: [id])
+  renter       User?    @relation("RenterShowings", fields: [renterId], references: [id])
+
+  @@index([brokerId])
+  @@index([renterId])
+  @@index([propertyId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+model AIConfigVersion {
+  id            String    @id @default(cuid())
+  version       Int       @default(1)
+  configType    String    // 'prompt', 'rule', 'threshold', 'parameter'
+  configKey     String    // Clave única de la configuración
+  configValue   String    // JSON string con el valor
+  previousValue String?   // JSON string con valor anterior (para rollback)
+  changeReason  String?   // Razón del cambio (feedback, pattern, etc.)
+  validationStatus String @default("pending") // 'pending', 'validated', 'rejected'
+  testResults   String?   // JSON string con resultados de tests
+  appliedAt     DateTime?
+  rolledBackAt  DateTime?
+  isActive      Boolean   @default(false)
+  safetyScore   Float?    // Puntuación de seguridad (0-1)
+  changeSource  String    @default("auto") // 'auto', 'manual', 'feedback'
+  metadata      String?   // JSON string con metadata adicional
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@unique([configType, configKey, version])
+  @@index([configType, configKey])
+  @@index([isActive])
+  @@index([validationStatus])
+  @@index([safetyScore])
+}
+
+model AIInteraction {
+  id            String    @id @default(cuid())
+  userId        Int?
+  question      String
+  answer        String
+  helpful       Boolean?
+  improvedAnswer String?
+  category      String    @default("general")
+  intent        String?
+  metadata      String?   // JSON string
+  knowledgeId   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User?     @relation(fields: [userId], references: [id])
+  
+  @@index([category])
+  @@index([helpful])
+  @@index([userId])
+  @@index([knowledgeId])
+}
+
+model AIRule {
+  id            String    @id @default(cuid())
+  ruleName      String
+  pattern       String    // Patrón de pregunta/respuesta
+  response      String    // Respuesta o template
+  confidence    Float     @default(0.5) // 0-1
+  usageCount    Int       @default(0)
+  successRate   Float     @default(0.0) // 0-1
+  isActive      Boolean   @default(true)
+  isAutoGenerated Boolean  @default(false)
+  generatedFrom String?   // ID de interacción que generó esta regla
+  metadata      String?   // JSON string
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([isActive])
+  @@index([confidence])
+  @@index([successRate])
+  @@index([isAutoGenerated])
+}
+
+/// Perfil y verificación de brokers
+model BrokerProfile {
+  id                   Int       @id @default(autoincrement())
+  user                 User      @relation(fields: [userId], references: [id])
+  userId               Int       @unique
+
+  // Datos básicos de broker
+  fullName             String
+  phone                String?
+  market               String?   // Estado / mercado donde opera
+  brokerageName        String?
+  position             String?   // Cargo dentro de la brokerage
+  businessAddress      String?
+
+  // Datos de licencia
+  licenseNumber        String?
+  licenseState         String?
+  licenseType          String?
+  licenseExpiration    DateTime?
+  brokerOfRecord       String?
+
+  // Estado de verificación interna
+  verificationStatus   String    @default("pending_review") // pending_review | approved | rejected | more_info | expired | suspended
+  verifiedAt           DateTime?
+  verifiedBy           Int?
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Historial de verificación
+  verificationLogs     BrokerVerificationLog[]
+
+  @@index([verificationStatus])
+  @@index([licenseExpiration])
+}
+
+model BrokerVerificationLog {
+  id                Int            @id @default(autoincrement())
+  brokerProfile     BrokerProfile  @relation(fields: [brokerProfileId], references: [id])
+  brokerProfileId   Int
+
+  action            String         // created | submitted | approved | rejected | more_info_requested | expired | suspended | reactivated
+  previousStatus    String?
+  newStatus         String
+  reason            String?
+
+  requestedById     Int?           // userId que originó el cambio (opcional)
+  reviewedById      Int?           // compliance_admin que revisó
+
+  createdAt         DateTime       @default(now())
+
+  @@index([brokerProfileId])
+  @@index([newStatus])
+}

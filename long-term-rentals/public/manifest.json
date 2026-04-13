@@ -1,0 +1,29 @@
+{
+  "name": "RIAL App",
+  "short_name": "RIAL",
+  "description": "RIAL App (Rentals Intelligence & Lifestyle) conecta inquilinos con propiedades premium y workflows inteligentes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "lifestyle", "travel"],
+  "lang": "es",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "features": [
+    "Cross Platform",
+    "fast",
+    "simple"
+  ]
+}
