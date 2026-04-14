@@ -104,8 +104,8 @@ app.use(cors({
     if (origin && config.corsOrigins.includes(origin)) {
       callback(null, true);
     } else if (!origin) {
-      // En producción, rechazar requests sin origen
-      callback(new Error('CORS: Origen no permitido'));
+      // Permitir requests sin Origin (health checks, server-to-server, navegación directa a la URL del backend)
+      callback(null, true);
     } else {
       callback(new Error('CORS: Origen no permitido'));
     }
