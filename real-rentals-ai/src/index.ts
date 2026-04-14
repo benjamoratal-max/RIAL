@@ -54,7 +54,7 @@ app.use(compression({
 
 // Configurar CORS con orígenes permitidos específicos
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // En desarrollo, permitir cualquier origen local (localhost o IPs locales)
     if (!config.isProduction) {
       if (!origin) {
