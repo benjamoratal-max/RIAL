@@ -24,7 +24,7 @@ export class APIError extends Error {
     this.status = status;
     this.code = code;
     this.details = details;
-    Error.captureStackTrace(this, this.constructor);
+    (Error as any).captureStackTrace?.(this, this.constructor);
   }
 }
 

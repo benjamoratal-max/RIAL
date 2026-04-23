@@ -1,20 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Proxy al backend: usar 127.0.0.1 cuando corren en la misma máquina (más fiable que IP de red)
-// VITE_API_HOST solo si el backend está en otra máquina
-const API_HOST = process.env.VITE_API_HOST || '127.0.0.1'
+// Proxy al backend: usar 127.0.0.1 cuando corren en la misma máquina.
+// En producción (Vercel), esta configuración de dev server no se utiliza.
+const API_HOST = '127.0.0.1'
 const API_TARGET = `http://${API_HOST}:3000`
 
 // Evitar spam en terminal: quitar el log por defecto de Vite y solo avisar una vez + responder al cliente
-function configureProxySilent(prefix: string) {
+function configureProxySilent(_prefix: string) {
   let alreadyLogged = false
   return (proxy: any) => {
     proxy.removeAllListeners('error') // quita el log de Vite que imprime cada error
     proxy.on('error', (err: any, _req: any, res: any) => {
       if (err?.code === 'ECONNREFUSED' && !alreadyLogged) {
         alreadyLogged = true
-        console.warn(`[vite] ${prefix} no disponible en ${API_HOST}:3000. Las peticiones fallarán hasta que inicies el backend. (Este aviso solo se muestra una vez).`)
       }
       if (res && !res.headersSent) {
         res.writeHead(502, { 'Content-Type': 'application/json' })
