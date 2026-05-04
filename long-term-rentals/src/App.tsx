@@ -965,6 +965,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState<PropertySummary[]>([])
   const [total, setTotal] = useState(0)
+  const [propertiesError, setPropertiesError] = useState<string | null>(null)
   const [assistantCatalog, setAssistantCatalog] = useState<any[]>([])
   const [openId, setOpenId] = useState<number | null>(null)
 
@@ -1088,6 +1089,7 @@ export default function App() {
     activeFilters.pageSize = activeFilters.pageSize || 12
     
     setLoading(true)
+    setPropertiesError(null)
     try {
       const qs = new URLSearchParams()
       if (activeFilters.query) qs.set('query', activeFilters.query)
@@ -1127,6 +1129,7 @@ export default function App() {
         loadAssistantCatalog()
       }
     } catch (e: any) {
+      setPropertiesError(getErrorMessage(e))
       setItems([])
       setTotal(0)
       if (import.meta.env.DEV) {
@@ -1638,6 +1641,10 @@ export default function App() {
         {loading ? (
           <div className="flex justify-center py-12">
             <LoadingSpinner size="lg" text={t('app.loadingProperties')} />
+          </div>
+        ) : propertiesError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4 text-sm text-red-700 dark:text-red-300">
+            {propertiesError}
           </div>
         ) : showMap ? (
           <div className="h-[600px] rounded-2xl overflow-hidden">

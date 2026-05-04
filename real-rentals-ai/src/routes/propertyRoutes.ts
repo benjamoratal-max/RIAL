@@ -37,6 +37,17 @@ async function ensureRealMiamiSeed(force = false) {
   await seedingInFlight;
 }
 
+async function ensureRealMiamiSeedSafe(force = false) {
+  try {
+    await ensureRealMiamiSeed(force);
+  } catch (error) {
+    // No bloquear el listado público si falla el proveedor externo o la inserción.
+    logger.warn('No se pudo sincronizar Miami en background; se continúa con datos existentes', 'Property', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 type StructuredSearch = {
   roomsExact?: number;
   bathroomsExact?: number;
@@ -166,7 +177,7 @@ router.get('/', searchLimiter, asyncHandler(async (req, res) => {
     if (shouldTryRealSeed(location, query)) {
       const currentCount = await prisma.property.count();
       if (currentCount < 40) {
-        await ensureRealMiamiSeed();
+        await ensureRealMiamiSeedSafe();
       }
     }
 
@@ -470,7 +481,7 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
   if (shouldTryRealSeed(location, query)) {
     const currentCount = await prisma.property.count();
     if (currentCount < 40) {
-      await ensureRealMiamiSeed();
+      await ensureRealMiamiSeedSafe();
     }
   }
 
