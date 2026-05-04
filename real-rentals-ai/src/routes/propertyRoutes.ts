@@ -613,9 +613,12 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
     : [];
   const ownerMap = new Map(owners.map((u) => [u.id, u]));
 
-  // Traer información de perfil de broker (para badge y datos en el listing)
-  const brokerProfiles = ownerIdSet.size
-    ? await (prisma as any).brokerProfile.findMany({
+  // Traer información de perfil de broker (para badge y datos en el listing).
+  // En algunos entornos legacy la tabla puede no existir aún; no bloquear el listado.
+  let brokerProfiles: any[] = [];
+  if (ownerIdSet.size) {
+    try {
+      brokerProfiles = await (prisma as any).brokerProfile.findMany({
         where: { userId: { in: Array.from(ownerIdSet) } },
         select: {
           userId: true,
@@ -625,8 +628,14 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
           licenseExpiration: true,
           verificationStatus: true,
         },
-      })
-    : [];
+      });
+    } catch (error) {
+      logger.warn('No se pudo consultar brokerProfile; se continúa sin badge de broker', 'Property', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      brokerProfiles = [];
+    }
+  }
   const brokerProfileMap = new Map(
     brokerProfiles.map((bp: any) => [bp.userId, bp])
   );
