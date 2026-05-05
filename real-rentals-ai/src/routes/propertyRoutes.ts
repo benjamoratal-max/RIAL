@@ -765,9 +765,12 @@ router.get('/:id/summary', async (req, res) => {
     });
 
     let owner: { id: number; name: string } | null = null;
-    // Obtener ownerId vía SQL crudo para evitar discrepancias de tipos del cliente
-    const rows = await prisma.$queryRaw<{ ownerId: number | null }[]>`SELECT ownerId FROM Property WHERE id = ${propertyId}`;
-    const ownerId = rows[0]?.ownerId ?? null;
+    // Evitar SQL crudo para mantener compatibilidad entre SQLite/PostgreSQL.
+    const ownerRecord = await (prisma.property as any).findUnique({
+      where: { id: propertyId },
+      select: { ownerId: true },
+    });
+    const ownerId = ownerRecord?.ownerId ?? null;
     if (ownerId) {
       const ownerRow = await prisma.user.findUnique({
         where: { id: ownerId },
