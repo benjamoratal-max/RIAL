@@ -16,6 +16,26 @@ type NormalizedListing = {
   verified: boolean;
 };
 
+function normalizeAddressKey(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/,/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim();
+}
+
+function listingQualityScore(listing: NormalizedListing): number {
+  let score = 0;
+  if (listing.imageUrls.length > 0) score += 5;
+  if (listing.area != null) score += 2;
+  if (listing.propertyType) score += 2;
+  if (listing.bedrooms != null) score += 1;
+  if (listing.bathrooms != null) score += 1;
+  if (listing.description && !listing.description.toLowerCase().includes('open data')) score += 1;
+  return score;
+}
+
 function toNumber(value: any): number | null {
   if (value == null || value === '') return null;
   const n = Number(value);
@@ -157,15 +177,15 @@ async function fetchArcgisMiami(limit = 120): Promise<NormalizedListing[]> {
 }
 
 function dedupeListings(rows: NormalizedListing[]): NormalizedListing[] {
-  const seen = new Set<string>();
-  const out: NormalizedListing[] = [];
+  const byKey = new Map<string, NormalizedListing>();
   for (const row of rows) {
-    const key = `${row.title.toLowerCase()}|${row.location.toLowerCase()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(row);
+    const key = `${normalizeAddressKey(row.title)}|${normalizeAddressKey(row.location)}`;
+    const current = byKey.get(key);
+    if (!current || listingQualityScore(row) > listingQualityScore(current)) {
+      byKey.set(key, row);
+    }
   }
-  return out;
+  return Array.from(byKey.values());
 }
 
 export async function syncMiamiRealListings(target = 120): Promise<{ imported: number; updated: number; totalFetched: number }> {
@@ -235,5 +255,85 @@ export async function syncMiamiRealListings(target = 120): Promise<{ imported: n
     updated,
   });
   return { imported, updated, totalFetched: merged.length };
+}
+
+export async function enrichMiamiListingsFromRentcast(limit = 300): Promise<{ matched: number; updated: number; imagesAdded: number; rentcastRows: number }> {
+  const rentcastRows = await fetchRentcastMiami(limit);
+  if (rentcastRows.length === 0) {
+    return { matched: 0, updated: 0, imagesAdded: 0, rentcastRows: 0 };
+  }
+
+  const byAddress = new Map<string, NormalizedListing>();
+  for (const row of rentcastRows) {
+    byAddress.set(normalizeAddressKey(row.title), row);
+  }
+
+  const existing = await (prisma.property as any).findMany({
+    where: {
+      OR: [
+        { location: { contains: 'Miami' } },
+        { title: { contains: 'NW' } },
+        { title: { contains: 'NE' } },
+        { title: { contains: 'SW' } },
+        { title: { contains: 'SE' } },
+      ],
+    },
+    select: {
+      id: true,
+      title: true,
+      location: true,
+      description: true,
+      bedrooms: true,
+      bathrooms: true,
+      rooms: true,
+      area: true,
+      propertyType: true,
+      images: { select: { url: true } },
+    },
+  });
+
+  let matched = 0;
+  let updated = 0;
+  let imagesAdded = 0;
+
+  for (const prop of existing) {
+    const titleKey = normalizeAddressKey(String(prop.title || ''));
+    const locationFirstPart = String(prop.location || '').split(',')[0] || '';
+    const locationKey = normalizeAddressKey(locationFirstPart);
+    const source = byAddress.get(titleKey) || byAddress.get(locationKey);
+    if (!source) continue;
+
+    matched++;
+    const data: any = {};
+    if (source.description && (!prop.description || prop.description.toLowerCase().includes('open data'))) data.description = source.description;
+    if (source.bedrooms != null && prop.bedrooms == null) data.bedrooms = source.bedrooms;
+    if (source.bathrooms != null && prop.bathrooms == null) data.bathrooms = source.bathrooms;
+    if (source.rooms != null && prop.rooms == null) data.rooms = source.rooms;
+    if (source.area != null && prop.area == null) data.area = source.area;
+    if (source.propertyType && !prop.propertyType) data.propertyType = source.propertyType;
+    data.verified = true;
+
+    if (Object.keys(data).length > 0) {
+      await prisma.property.update({ where: { id: prop.id }, data });
+      updated++;
+    }
+
+    const existingImagesCount = Array.isArray(prop.images) ? prop.images.length : 0;
+    if (existingImagesCount === 0 && source.imageUrls.length > 0) {
+      await prisma.image.createMany({
+        data: source.imageUrls.map((url) => ({ propertyId: prop.id, url })),
+      });
+      imagesAdded += source.imageUrls.length;
+    }
+  }
+
+  logger.info('Enriquecimiento Miami desde RentCast completado', 'RealListings', {
+    rentcastRows: rentcastRows.length,
+    matched,
+    updated,
+    imagesAdded,
+  });
+
+  return { matched, updated, imagesAdded, rentcastRows: rentcastRows.length };
 }
 

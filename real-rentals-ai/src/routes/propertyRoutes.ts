@@ -11,7 +11,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { cache, CacheKeys } from '../utils/cache';
 import { getSuggestedPricing } from '../services/pricingService';
 import { checkDuplicateProperty, saveDuplicateAlerts, getDuplicateAlertsForProperty } from '../services/duplicateDetectionService';
-import { syncMiamiRealListings } from '../services/realListingsService';
+import { enrichMiamiListingsFromRentcast, syncMiamiRealListings } from '../services/realListingsService';
 
 const router = express.Router();
 let lastRealSeedAt = 0;
@@ -133,6 +133,15 @@ router.post('/sync/miami', auth, asyncHandler(async (req: AuthRequest, res) => {
   }
   const result = await syncMiamiRealListings(180);
   lastRealSeedAt = Date.now();
+  cache.clear();
+  res.json({ ok: true, ...result });
+}));
+
+router.post('/sync/miami/enrich', auth, asyncHandler(async (req: AuthRequest, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Solo admin puede enriquecer listings reales' });
+  }
+  const result = await enrichMiamiListingsFromRentcast(400);
   cache.clear();
   res.json({ ok: true, ...result });
 }));
@@ -777,8 +786,14 @@ router.get('/:id/summary', async (req, res) => {
       select: {
         id: true,
         title: true,
+        description: true,
         location: true,
         price: true,
+        bedrooms: true,
+        rooms: true,
+        bathrooms: true,
+        area: true,
+        propertyType: true,
         images: true,
       },
     });
