@@ -114,6 +114,19 @@ function buildAmenityHints(text?: string | null) {
   return amenities;
 }
 
+function normalizePropertyType(rawType?: string | null) {
+  const value = String(rawType || '').toLowerCase().trim();
+  if (!value) return 'apartment';
+
+  const houseTokens = ['house', 'single family', 'single_family', 'villa', 'townhouse', 'duplex', 'home'];
+  if (houseTokens.some((token) => value.includes(token))) return 'house';
+
+  const apartmentTokens = ['apartment', 'apt', 'condo', 'condominium', 'studio', 'loft', 'unit'];
+  if (apartmentTokens.some((token) => value.includes(token))) return 'apartment';
+
+  return value;
+}
+
 router.post('/sync/miami', auth, asyncHandler(async (req: AuthRequest, res) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Solo admin puede sincronizar listings reales' });
@@ -839,12 +852,12 @@ router.get('/:id/summary', async (req, res) => {
     const bedrooms = (propertyBase as any).bedrooms ?? (propertyBase as any).rooms ?? 1;
     const bathrooms = (propertyBase as any).bathrooms ?? 1;
     const area = (propertyBase as any).area ?? 75;
-    const propertyType = (propertyBase as any).propertyType ?? 'apartment';
+    const propertyType = normalizePropertyType((propertyBase as any).propertyType);
     const amenityHints = buildAmenityHints((propertyBase as any).description);
 
     const property = {
       ...(propertyBase as any),
-      subtitle: (propertyBase as any).propertyType ? String((propertyBase as any).propertyType).toUpperCase() : 'MIAMI LISTING',
+      subtitle: propertyType === 'house' ? 'HOUSE' : propertyType === 'apartment' ? 'APARTMENT' : propertyType.toUpperCase(),
       neighborhood: locationParts.city,
       city: locationParts.city,
       country: locationParts.stateOrCountry === 'FL' ? 'USA' : locationParts.stateOrCountry,

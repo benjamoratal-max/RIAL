@@ -258,6 +258,8 @@ function PropertyDetail({ id, onClose, token, user }: any) {
   const formatMoney = (value?: number) => (typeof value === 'number' ? moneyFormatter.format(value) : t('common.consult'))
   const rentAvailable = property.availableFor?.includes('rent')
   const buyAvailable = property.availableFor?.includes('buy')
+  const normalizedType = String(property.type || (property as any).propertyType || '').toLowerCase()
+  const isHouseLike = ['house', 'casa', 'townhouse', 'villa'].some((term) => normalizedType.includes(term))
 
   const statCards = [
     { label: t('propertyDetail.monthlyPrice'), value: `${formatMoney(property.price)} ${t('propertyDetail.perMonth')}` },
@@ -272,9 +274,15 @@ function PropertyDetail({ id, onClose, token, user }: any) {
   ]
 
   const amenityGroups = [
-    { title: t('propertyDetail.insideApt'), items: property.amenities || [] },
-    { title: t('propertyDetail.buildingAmenities'), items: property.buildingAmenities || [] },
-    { title: t('propertyDetail.security'), items: property.safety || [] }
+    {
+      title: isHouseLike ? 'Dentro de la casa' : t('propertyDetail.insideApt'),
+      items: property.amenities || [],
+    },
+    {
+      title: isHouseLike ? 'Amenidades exteriores' : t('propertyDetail.buildingAmenities'),
+      items: property.buildingAmenities || [],
+    },
+    { title: t('propertyDetail.security'), items: property.safety || [] },
   ]
 
   const detailFacts = [
