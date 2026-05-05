@@ -89,6 +89,31 @@ function shouldTryRealSeed(location: any, query: any) {
   return /miami|fl|florida|331\d{2}/.test(text);
 }
 
+function extractLocationParts(location?: string | null) {
+  const parts = String(location || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const city = parts.length >= 2 ? parts[1] : 'Miami';
+  const stateOrCountry = parts.length >= 3 ? parts[2] : 'FL';
+  return { city, stateOrCountry };
+}
+
+function buildAmenityHints(text?: string | null) {
+  const source = String(text || '').toLowerCase();
+  const has = (term: string) => source.includes(term);
+  const amenities: string[] = [];
+  if (has('pool') || has('piscina')) amenities.push('Pool');
+  if (has('gym') || has('gimnasio')) amenities.push('Gym');
+  if (has('parking') || has('garage') || has('cochera')) amenities.push('Parking');
+  if (has('balcony') || has('balcon')) amenities.push('Balcony');
+  if (has('elevator') || has('ascensor')) amenities.push('Elevator');
+  if (has('air conditioning') || has('aire acondicionado')) amenities.push('Air conditioning');
+  if (has('pet friendly') || has('mascota')) amenities.push('Pet friendly');
+  return amenities;
+}
+
 router.post('/sync/miami', auth, asyncHandler(async (req: AuthRequest, res) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Solo admin puede sincronizar listings reales' });
@@ -810,7 +835,44 @@ router.get('/:id/summary', async (req, res) => {
       ? propertyBase.images.map((img: any) => typeof img === 'string' ? img : img.url)
       : [];
     
-    const property = { ...propertyBase, images: imageUrls, owner, broker } as any;
+    const locationParts = extractLocationParts((propertyBase as any).location);
+    const bedrooms = (propertyBase as any).bedrooms ?? (propertyBase as any).rooms ?? 1;
+    const bathrooms = (propertyBase as any).bathrooms ?? 1;
+    const area = (propertyBase as any).area ?? 75;
+    const propertyType = (propertyBase as any).propertyType ?? 'apartment';
+    const amenityHints = buildAmenityHints((propertyBase as any).description);
+
+    const property = {
+      ...(propertyBase as any),
+      subtitle: (propertyBase as any).propertyType ? String((propertyBase as any).propertyType).toUpperCase() : 'MIAMI LISTING',
+      neighborhood: locationParts.city,
+      city: locationParts.city,
+      country: locationParts.stateOrCountry === 'FL' ? 'USA' : locationParts.stateOrCountry,
+      currency: 'USD',
+      bedrooms,
+      rooms: (propertyBase as any).rooms ?? bedrooms,
+      beds: bedrooms,
+      bathrooms,
+      area,
+      type: propertyType,
+      availableNow: isAvailable,
+      availableFor: ['rent'],
+      salePrice: null,
+      deposit: Math.max(500, Math.round(Number((propertyBase as any).price || 0) * 0.5)),
+      hoa: null,
+      yearBuilt: null,
+      parking: amenityHints.includes('Parking') ? 1 : 0,
+      amenities: amenityHints,
+      buildingAmenities: amenityHints.filter((a) => ['Pool', 'Gym', 'Elevator'].includes(a)),
+      safety: ['Smoke detectors'],
+      highlights: [
+        'Verified listing',
+        'Miami market data',
+      ],
+      images: imageUrls,
+      owner,
+      broker,
+    } as any;
 
     const result = {
       property,
