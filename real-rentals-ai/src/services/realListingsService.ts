@@ -16,6 +16,34 @@ type NormalizedListing = {
   verified: boolean;
 };
 
+function toImageUrl(value: any): string | null {
+  if (typeof value === 'string' && /^https?:\/\//i.test(value)) return value;
+  if (value && typeof value === 'object') {
+    const candidates = [value.url, value.href, value.src, value.imageUrl, value.photoUrl];
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && /^https?:\/\//i.test(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+function extractImageUrls(raw: any): string[] {
+  const buckets: any[] = [];
+  if (Array.isArray(raw?.photos)) buckets.push(...raw.photos);
+  if (Array.isArray(raw?.images)) buckets.push(...raw.images);
+  if (Array.isArray(raw?.media)) buckets.push(...raw.media);
+  if (raw?.primaryPhotoUrl) buckets.push(raw.primaryPhotoUrl);
+  if (raw?.photoUrl) buckets.push(raw.photoUrl);
+  if (raw?.imageUrl) buckets.push(raw.imageUrl);
+  if (raw?.thumbnailUrl) buckets.push(raw.thumbnailUrl);
+
+  const urls = buckets
+    .map(toImageUrl)
+    .filter((url): url is string => Boolean(url));
+
+  return Array.from(new Set(urls));
+}
+
 function normalizeAddressKey(value: string): string {
   return value
     .toLowerCase()
@@ -66,15 +94,7 @@ function normalizeRentcastListing(raw: any): NormalizedListing | null {
   const rooms = bedrooms != null ? bedrooms + 1 : null;
   const area = toNumber(raw?.squareFootage ?? raw?.livingArea ?? raw?.sqft);
 
-  const photos = Array.isArray(raw?.photos)
-    ? raw.photos
-    : Array.isArray(raw?.images)
-    ? raw.images
-    : [];
-
-  const imageUrls = photos
-    .map((p: any) => (typeof p === 'string' ? p : p?.url))
-    .filter((u: any) => typeof u === 'string' && /^https?:\/\//i.test(u));
+  const imageUrls = extractImageUrls(raw);
 
   const title = cleanText(raw?.formattedAddress || raw?.addressLine1 || raw?.address, `Miami Listing ${raw?.id ?? ''}`.trim());
   const description = cleanText(
@@ -335,11 +355,15 @@ export async function enrichMiamiListingsFromRentcast(limit = 300): Promise<{ ma
     }
 
     const existingImagesCount = Array.isArray(prop.images) ? prop.images.length : 0;
-    if (existingImagesCount === 0 && source.imageUrls.length > 0) {
+    if (source.imageUrls.length > 0) {
+      const existingImageSet = new Set((prop.images || []).map((img: any) => String(img.url || '').trim()).filter(Boolean));
+      const missingUrls = source.imageUrls.filter((url) => !existingImageSet.has(url));
+      if (missingUrls.length === 0) continue;
+
       await prisma.image.createMany({
-        data: source.imageUrls.map((url) => ({ propertyId: prop.id, url })),
+        data: missingUrls.map((url) => ({ propertyId: prop.id, url })),
       });
-      imagesAdded += source.imageUrls.length;
+      imagesAdded += missingUrls.length;
     }
   }
 
