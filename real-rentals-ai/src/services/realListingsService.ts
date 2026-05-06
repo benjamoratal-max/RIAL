@@ -113,11 +113,26 @@ async function fetchRentcastMiami(limit = 80): Promise<NormalizedListing[]> {
       headers: { 'X-Api-Key': apiKey },
     });
     if (!res.ok) {
-      logger.warn(`RentCast respondió ${res.status}`, 'RealListings');
+      let bodySnippet = '';
+      try {
+        bodySnippet = (await res.text()).slice(0, 300);
+      } catch {
+        bodySnippet = '';
+      }
+      logger.warn(`RentCast respondió ${res.status}`, 'RealListings', { bodySnippet });
       return [];
     }
     const data = await res.json();
-    const rows = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+    const rows =
+      Array.isArray(data)
+        ? data
+        : Array.isArray(data?.results)
+        ? data.results
+        : Array.isArray((data as any)?.data)
+        ? (data as any).data
+        : Array.isArray((data as any)?.listings)
+        ? (data as any).listings
+        : [];
     return rows.map(normalizeRentcastListing).filter(Boolean) as NormalizedListing[];
   } catch (error) {
     logger.error('Error consultando RentCast', 'RealListings', error as Error);
