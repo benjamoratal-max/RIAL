@@ -57,8 +57,9 @@ function normalizeRentcastListing(raw: any): NormalizedListing | null {
   ].filter(Boolean);
   const location = cleanText(addressParts.join(', '), 'Miami, FL');
 
-  const price = toNumber(raw?.price ?? raw?.rent ?? raw?.listingPrice);
-  if (!price || price <= 0) return null;
+  const parsedPrice = toNumber(raw?.price ?? raw?.rent ?? raw?.listingPrice);
+  // RentCast puede devolver listings sin precio publicado; no descartarlos para enriquecer campos.
+  const price = parsedPrice && parsedPrice > 0 ? parsedPrice : 1800;
 
   const bedrooms = toNumber(raw?.bedrooms ?? raw?.beds);
   const bathrooms = toNumber(raw?.bathrooms ?? raw?.baths);
