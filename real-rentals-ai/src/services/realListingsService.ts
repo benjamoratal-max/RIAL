@@ -505,23 +505,38 @@ function buildAiImageUrl(prompt: string, seed: string): string {
   return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=640&seed=${encodeURIComponent(seed)}&model=flux&nologo=true`;
 }
 
-function buildFallbackImageUrl(propertyId: number): string {
-  return `https://picsum.photos/seed/rial-miami-${propertyId}/1024/640`;
+function buildStrictRealEstatePrompt(prop: {
+  propertyType?: string | null;
+  title?: string | null;
+  location?: string | null;
+}): string {
+  const type = normalizeTypeForPrompt(prop.propertyType);
+  const propertyFocus = type.includes('apartment')
+    ? 'front exterior photo of a modern apartment building in Miami'
+    : 'front exterior photo of a modern detached house in Miami';
+
+  return [
+    'ultra realistic professional real estate listing photo',
+    propertyFocus,
+    'daylight, clean facade, architecture photography, high detail',
+    'street level perspective, wide angle lens',
+    'no people, no text, no logo, no watermark, not abstract',
+    String(prop.location || '').slice(0, 80),
+    String(prop.title || '').slice(0, 60),
+  ]
+    .filter(Boolean)
+    .join(', ');
 }
 
-async function resolveStableImageUrl(primaryUrl: string, fallbackUrl: string): Promise<string> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const response = await fetch(primaryUrl, { signal: controller.signal });
-    clearTimeout(timeout);
-
-    const contentType = response.headers.get('content-type') || '';
-    if (response.ok && contentType.includes('image')) return primaryUrl;
-    return fallbackUrl;
-  } catch {
-    return fallbackUrl;
-  }
+function buildStrictFallbackAiImageUrl(prop: {
+  id: number;
+  propertyType?: string | null;
+  title?: string | null;
+  location?: string | null;
+}): string {
+  const strictPrompt = buildStrictRealEstatePrompt(prop);
+  const encoded = encodeURIComponent(strictPrompt);
+  return `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=640&seed=${encodeURIComponent(`miami-strict-${prop.id}`)}&model=flux&nologo=true`;
 }
 
 export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number }> {
@@ -559,7 +574,7 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Pro
     const currentImages = Array.isArray(prop.images) ? prop.images : [];
     const hasNonAiImages = currentImages.some((img: any) => {
       const url = String(img?.url || '');
-      return !url.includes('image.pollinations.ai/prompt/') && !url.includes('picsum.photos/seed/rial-miami-');
+      return !url.includes('image.pollinations.ai/prompt/');
     });
     // Mantener intactas imágenes no-IA/subidas manualmente.
     if (hasNonAiImages) {
@@ -578,16 +593,20 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Pro
     const prompt = `${buildAiMiamiPrompt(prop)}, ${typeHint}, ${variant}`;
     const seed = `miami-${prop.id}-${simpleHash(String(prop.title || 'property'))}`;
     const primaryImageUrl = buildAiImageUrl(prompt, seed);
-    const fallbackImageUrl = buildFallbackImageUrl(prop.id);
-    const finalImageUrl = await resolveStableImageUrl(primaryImageUrl, fallbackImageUrl);
+    const strictFallbackImageUrl = buildStrictFallbackAiImageUrl(prop);
 
-    // Si tenía imágenes IA previas/fallback previos, se reemplazan por una sola imagen estable y única.
+    // Si tenía imágenes IA previas, las reemplazamos por 2 variantes IA estrictamente inmobiliarias.
     if (currentImages.length > 0) {
       await prisma.image.deleteMany({ where: { propertyId: prop.id } });
     }
-    await prisma.image.create({ data: { propertyId: prop.id, url: finalImageUrl } });
+    await prisma.image.createMany({
+      data: [
+        { propertyId: prop.id, url: primaryImageUrl },
+        { propertyId: prop.id, url: strictFallbackImageUrl },
+      ],
+    });
     processed++;
-    imagesAdded++;
+    imagesAdded += 2;
   }
 
   logger.info('Enriquecimiento con imágenes IA (demo) completado', 'RealListings', {
