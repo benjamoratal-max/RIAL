@@ -483,10 +483,45 @@ function buildAiMiamiPrompt(property: {
     .join(', ');
 }
 
+function simpleHash(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function normalizeTypeForPrompt(propertyType?: string | null): string {
+  const value = String(propertyType || '').toLowerCase();
+  if (value.includes('house') || value.includes('villa') || value.includes('single')) return 'modern house';
+  if (value.includes('condo') || value.includes('apartment') || value.includes('studio')) return 'modern apartment building';
+  return 'modern residential property';
+}
+
 function buildAiImageUrl(prompt: string, seed: string): string {
   const encodedPrompt = encodeURIComponent(prompt);
   // Pollinations es gratuito y no requiere API key para imágenes básicas.
   return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=640&seed=${encodeURIComponent(seed)}&model=flux&nologo=true`;
+}
+
+function buildFallbackImageUrl(propertyId: number): string {
+  return `https://picsum.photos/seed/rial-miami-${propertyId}/1024/640`;
+}
+
+async function resolveStableImageUrl(primaryUrl: string, fallbackUrl: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(primaryUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    const contentType = response.headers.get('content-type') || '';
+    if (response.ok && contentType.includes('image')) return primaryUrl;
+    return fallbackUrl;
+  } catch {
+    return fallbackUrl;
+  }
 }
 
 export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number }> {
@@ -522,15 +557,35 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Pro
 
   for (const prop of properties) {
     const currentImages = Array.isArray(prop.images) ? prop.images : [];
-    // Política demo estable: si ya hay una imagen, no reemplazar ni regenerar.
-    if (currentImages.length > 0) {
+    const hasNonAiImages = currentImages.some((img: any) => {
+      const url = String(img?.url || '');
+      return !url.includes('image.pollinations.ai/prompt/') && !url.includes('picsum.photos/seed/rial-miami-');
+    });
+    // Mantener intactas imágenes no-IA/subidas manualmente.
+    if (hasNonAiImages) {
       skippedWithImages++;
       continue;
     }
 
-    const prompt = buildAiMiamiPrompt(prop);
-    const imageUrl = buildAiImageUrl(prompt, `miami-${prop.id}`);
-    await prisma.image.create({ data: { propertyId: prop.id, url: imageUrl } });
+    const typeHint = normalizeTypeForPrompt(prop.propertyType);
+    const styleVariants = [
+      'contemporary architecture, realistic materials, clean landscaping',
+      'tropical modern facade, palm trees, sunny weather',
+      'urban residential design, natural lighting, high realism',
+      'coastal luxury style, Miami ambience, sharp details',
+    ];
+    const variant = styleVariants[simpleHash(`${prop.id}-${prop.title || ''}`) % styleVariants.length];
+    const prompt = `${buildAiMiamiPrompt(prop)}, ${typeHint}, ${variant}`;
+    const seed = `miami-${prop.id}-${simpleHash(String(prop.title || 'property'))}`;
+    const primaryImageUrl = buildAiImageUrl(prompt, seed);
+    const fallbackImageUrl = buildFallbackImageUrl(prop.id);
+    const finalImageUrl = await resolveStableImageUrl(primaryImageUrl, fallbackImageUrl);
+
+    // Si tenía imágenes IA previas/fallback previos, se reemplazan por una sola imagen estable y única.
+    if (currentImages.length > 0) {
+      await prisma.image.deleteMany({ where: { propertyId: prop.id } });
+    }
+    await prisma.image.create({ data: { propertyId: prop.id, url: finalImageUrl } });
     processed++;
     imagesAdded++;
   }
