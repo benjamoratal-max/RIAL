@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { MapPin, Star, Heart, Share2, Calendar, Home, Bed, Bath, GitCompare } from 'lucide-react'
@@ -23,6 +23,17 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
   const { property, averageRating, reviewsCount, isAvailable } = item
   const { favorites, toggleFavorite } = useFavorites(token)
   const isFavorite = favorites.includes(property.id)
+  const images = useMemo(
+    () => (Array.isArray(property.images) ? property.images.filter(Boolean) : []),
+    [property.images]
+  )
+  const [imageIndex, setImageIndex] = useState(0)
+
+  useEffect(() => {
+    setImageIndex(0)
+  }, [property.id, images.length])
+
+  const currentImage = images[imageIndex] || null
 
   const handleToggleComparison = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -86,6 +97,13 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
     [property.id, t]
   )
 
+  const handleImageError = useCallback(() => {
+    setImageIndex((prev) => {
+      if (prev >= images.length - 1) return prev
+      return prev + 1
+    })
+  }, [images.length])
+
   return (
     <motion.div 
       className="rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
@@ -95,13 +113,14 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
       layout
     >
       <div className="relative aspect-[16/10] bg-gray-100 dark:bg-gray-700 overflow-hidden">
-        {property.images?.[0] ? (
+        {currentImage ? (
           <motion.img 
-            src={property.images[0]} 
+            src={currentImage}
             alt={property.title}
             loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             whileHover={{ scale: 1.05 }}
+            onError={handleImageError}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">

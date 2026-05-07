@@ -127,6 +127,13 @@ function normalizePropertyType(rawType?: string | null) {
   return value;
 }
 
+function orderImagesForReliability(urls: string[]): string[] {
+  const unique = Array.from(new Set((urls || []).map((u) => String(u || '').trim()).filter(Boolean)));
+  const nonAi = unique.filter((u) => !u.includes('image.pollinations.ai/prompt/'));
+  const ai = unique.filter((u) => u.includes('image.pollinations.ai/prompt/'));
+  return [...nonAi, ...ai];
+}
+
 router.post('/sync/miami', auth, asyncHandler(async (req: AuthRequest, res) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Solo admin puede sincronizar listings reales' });
@@ -712,10 +719,11 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
     const imageUrls = Array.isArray(p.images)
       ? p.images.map((img: any) => typeof img === 'string' ? img : img.url)
       : [];
+    const orderedImageUrls = orderImagesForReliability(imageUrls);
     return {
       property: {
         ...p,
-        images: imageUrls,
+        images: orderedImageUrls,
         owner,
         broker: brokerProfile
           ? {
@@ -880,6 +888,7 @@ router.get('/:id/summary', async (req, res) => {
     const imageUrls = Array.isArray(propertyBase.images) 
       ? propertyBase.images.map((img: any) => typeof img === 'string' ? img : img.url)
       : [];
+    const orderedImageUrls = orderImagesForReliability(imageUrls);
     
     const locationParts = extractLocationParts((propertyBase as any).location);
     const bedrooms = (propertyBase as any).bedrooms ?? (propertyBase as any).rooms ?? 1;
@@ -915,7 +924,7 @@ router.get('/:id/summary', async (req, res) => {
         'Verified listing',
         'Miami market data',
       ],
-      images: imageUrls,
+      images: orderedImageUrls,
       owner,
       broker,
     } as any;

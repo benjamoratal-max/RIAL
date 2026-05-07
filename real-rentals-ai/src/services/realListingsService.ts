@@ -539,6 +539,35 @@ function buildStrictFallbackAiImageUrl(prop: {
   return `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=640&seed=${encodeURIComponent(`miami-strict-${prop.id}`)}&model=flux&nologo=true`;
 }
 
+const DEMO_HOUSE_IMAGE_POOL = [
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1605146769289-440113cc3d00?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1560185007-cde436f6a4d0?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1600&q=80',
+];
+
+const DEMO_APARTMENT_IMAGE_POOL = [
+  'https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1493666438817-866a91353ca9?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80',
+  'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80',
+];
+
+function pickDeterministicDemoImage(prop: { id: number; propertyType?: string | null; title?: string | null }): string {
+  const normalizedType = normalizeTypeForPrompt(prop.propertyType);
+  const pool = normalizedType.includes('apartment') ? DEMO_APARTMENT_IMAGE_POOL : DEMO_HOUSE_IMAGE_POOL;
+  const idx = simpleHash(`${prop.id}-${prop.title || ''}-${normalizedType}`) % pool.length;
+  return pool[idx];
+}
+
 export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number }> {
   const properties = await (prisma.property as any).findMany({
     where: {
@@ -594,19 +623,21 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Pro
     const seed = `miami-${prop.id}-${simpleHash(String(prop.title || 'property'))}`;
     const primaryImageUrl = buildAiImageUrl(prompt, seed);
     const strictFallbackImageUrl = buildStrictFallbackAiImageUrl(prop);
+    const deterministicDemoImageUrl = pickDeterministicDemoImage(prop);
 
-    // Si tenía imágenes IA previas, las reemplazamos por 2 variantes IA estrictamente inmobiliarias.
+    // Si tenía imágenes IA previas, las reemplazamos por una imagen estable de demo + 2 variantes IA.
     if (currentImages.length > 0) {
       await prisma.image.deleteMany({ where: { propertyId: prop.id } });
     }
     await prisma.image.createMany({
       data: [
+        { propertyId: prop.id, url: deterministicDemoImageUrl },
         { propertyId: prop.id, url: primaryImageUrl },
         { propertyId: prop.id, url: strictFallbackImageUrl },
       ],
     });
     processed++;
-    imagesAdded += 2;
+    imagesAdded += 3;
   }
 
   logger.info('Enriquecimiento con imágenes IA (demo) completado', 'RealListings', {
