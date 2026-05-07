@@ -459,24 +459,24 @@ function buildAiMiamiPrompt(property: {
   area?: number | null;
   price?: number | null;
 }): string {
-  const type = property.propertyType || 'residential apartment';
-  const beds = property.bedrooms != null ? `${property.bedrooms} bedrooms` : '';
-  const baths = property.bathrooms != null ? `${property.bathrooms} bathrooms` : '';
+  const type = property.propertyType || 'residential home';
+  const beds = property.bedrooms != null ? `${property.bedrooms} bed` : '';
+  const baths = property.bathrooms != null ? `${property.bathrooms} bath` : '';
   const area = property.area != null ? `${Math.round(property.area)} sqm` : '';
-  const price = property.price != null ? `listed around USD ${Math.round(property.price)}` : '';
-  const baseDescription = String(property.description || '').slice(0, 220);
+  const location = String(property.location || 'Miami, Florida').slice(0, 80);
+  const hint = String(property.description || '').slice(0, 90);
 
   return [
-    'photorealistic real estate exterior photo, Miami Florida',
-    'daylight, clear sky, high quality, wide angle lens',
-    `${type}`,
+    'photorealistic exterior real estate photo',
+    'Miami Florida neighborhood',
+    'daylight, wide angle, high detail',
+    type,
     beds,
     baths,
     area,
-    price,
-    String(property.title || ''),
-    String(property.location || ''),
-    baseDescription,
+    location,
+    String(property.title || '').slice(0, 60),
+    hint,
     'no text, no watermark, no logo',
   ]
     .filter(Boolean)
@@ -486,7 +486,7 @@ function buildAiMiamiPrompt(property: {
 function buildAiImageUrl(prompt: string, seed: string): string {
   const encodedPrompt = encodeURIComponent(prompt);
   // Pollinations es gratuito y no requiere API key para imágenes básicas.
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&seed=${encodeURIComponent(seed)}&model=flux&nologo=true`;
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=640&seed=${encodeURIComponent(seed)}&model=flux&nologo=true`;
 }
 
 export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number }> {
@@ -521,20 +521,16 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Pro
   let skippedWithImages = 0;
 
   for (const prop of properties) {
-    const hasImages = Array.isArray(prop.images) && prop.images.length > 0;
-    if (hasImages) {
+    const currentImages = Array.isArray(prop.images) ? prop.images : [];
+    // Política demo estable: si ya hay una imagen, no reemplazar ni regenerar.
+    if (currentImages.length > 0) {
       skippedWithImages++;
       continue;
     }
 
     const prompt = buildAiMiamiPrompt(prop);
     const imageUrl = buildAiImageUrl(prompt, `miami-${prop.id}`);
-    await prisma.image.create({
-      data: {
-        propertyId: prop.id,
-        url: imageUrl,
-      },
-    });
+    await prisma.image.create({ data: { propertyId: prop.id, url: imageUrl } });
     processed++;
     imagesAdded++;
   }

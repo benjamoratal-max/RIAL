@@ -47,7 +47,6 @@ import {
 const FavoritesSystem = lazy(() => import('./components/FavoritesSystem').then(m => ({ default: m.FavoritesSystem })))
 const AdvancedFilters = lazy(() => import('./components/AdvancedFilters').then(m => ({ default: m.AdvancedFilters })))
 const ImageGallery = lazy(() => import('./components/ImageGallery').then(m => ({ default: m.ImageGallery })))
-const PhotoTour = lazy(() => import('./components/PhotoTour').then(m => ({ default: m.PhotoTour })))
 const InteractiveMap = lazy(() => import('./components/InteractiveMap').then(m => ({ default: m.InteractiveMap })))
 const UserProfile = lazy(() => import('./components/UserProfile').then(m => ({ default: m.UserProfile })))
 const AlertSystem = lazy(() => import('./components/AlertSystem').then(m => ({ default: m.AlertSystem })))
@@ -376,22 +375,6 @@ function PropertyDetail({ id, onClose, token, user }: any) {
             />
           </Suspense>
         </motion.div>
-
-        {property.images?.length > 0 && (
-          <motion.div
-            className="mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12 }}
-          >
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              {t('propertyDetail.photoTour')}
-            </p>
-            <Suspense fallback={<div className="w-full aspect-video rounded-2xl bg-gray-200 dark:bg-gray-700 animate-pulse" />}>
-              <PhotoTour images={property.images} title={property.title} />
-            </Suspense>
-          </motion.div>
-        )}
 
         <motion.div 
           className="grid md:grid-cols-4 gap-3 mb-6"
