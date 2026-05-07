@@ -56,6 +56,7 @@ export const config = {
 
   // Integración de listings reales (RentCast)
   rentcastApiKey: getEnvVarOptional('RENTCAST_API_KEY'),
+  googleMapsApiKey: getEnvVarOptional('GOOGLE_MAPS_API_KEY'),
 
   // Entorno
   nodeEnv: getEnvVarOptional('NODE_ENV', 'development'),

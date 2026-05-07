@@ -377,3 +377,75 @@ export async function enrichMiamiListingsFromRentcast(limit = 300): Promise<{ ma
   return { matched, updated, imagesAdded, rentcastRows: rentcastRows.length };
 }
 
+function buildStreetViewUrl(address: string, apiKey: string): string {
+  const url = new URL('https://maps.googleapis.com/maps/api/streetview');
+  url.searchParams.set('size', '1200x800');
+  url.searchParams.set('location', address);
+  url.searchParams.set('fov', '80');
+  url.searchParams.set('pitch', '0');
+  url.searchParams.set('key', apiKey);
+  return url.toString();
+}
+
+export async function enrichMiamiListingsWithStreetView(limit = 250): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number; skippedNoApiKey: boolean }> {
+  const apiKey = config.googleMapsApiKey;
+  if (!apiKey) {
+    logger.warn('GOOGLE_MAPS_API_KEY no configurada; se omite enriquecimiento Street View', 'RealListings');
+    return { processed: 0, imagesAdded: 0, skippedWithImages: 0, skippedNoApiKey: true };
+  }
+
+  const properties = await (prisma.property as any).findMany({
+    where: {
+      OR: [
+        { location: { contains: 'Miami' } },
+        { title: { contains: 'NW' } },
+        { title: { contains: 'NE' } },
+        { title: { contains: 'SW' } },
+        { title: { contains: 'SE' } },
+      ],
+    },
+    take: limit,
+    orderBy: { id: 'asc' },
+    select: {
+      id: true,
+      title: true,
+      location: true,
+      images: { select: { url: true } },
+    },
+  });
+
+  let processed = 0;
+  let imagesAdded = 0;
+  let skippedWithImages = 0;
+
+  for (const prop of properties) {
+    const hasImages = Array.isArray(prop.images) && prop.images.length > 0;
+    if (hasImages) {
+      skippedWithImages++;
+      continue;
+    }
+
+    const addressCandidate = String(prop.location || prop.title || '').trim();
+    if (!addressCandidate) continue;
+
+    const streetViewUrl = buildStreetViewUrl(addressCandidate, apiKey);
+    await prisma.image.create({
+      data: {
+        propertyId: prop.id,
+        url: streetViewUrl,
+      },
+    });
+    imagesAdded++;
+    processed++;
+  }
+
+  logger.info('Enriquecimiento Street View completado', 'RealListings', {
+    processed,
+    imagesAdded,
+    skippedWithImages,
+    totalCandidates: properties.length,
+  });
+
+  return { processed, imagesAdded, skippedWithImages, skippedNoApiKey: false };
+}
+
