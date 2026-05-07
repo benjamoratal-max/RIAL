@@ -11,7 +11,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { cache, CacheKeys } from '../utils/cache';
 import { getSuggestedPricing } from '../services/pricingService';
 import { checkDuplicateProperty, saveDuplicateAlerts, getDuplicateAlertsForProperty } from '../services/duplicateDetectionService';
-import { enrichMiamiListingsFromRentcast, enrichMiamiListingsWithAIGeneratedPhotos, enrichMiamiListingsWithStreetView, resetMiamiListingsPhotosWithStreetView, syncMiamiRealListings } from '../services/realListingsService';
+import { enrichMiamiListingsFromRentcast, enrichMiamiListingsWithAIGeneratedPhotos, enrichMiamiListingsWithStreetView, resetMiamiListingsPhotosWithAIGenerated, syncMiamiRealListings } from '../services/realListingsService';
 
 const router = express.Router();
 let lastRealSeedAt = 0;
@@ -162,20 +162,20 @@ router.post('/sync/miami/photos/streetview', auth, asyncHandler(async (req: Auth
   res.json({ ok: true, ...result });
 }));
 
-router.post('/sync/miami/photos/streetview/reset', auth, asyncHandler(async (req: AuthRequest, res) => {
-  if (req.user?.role !== 'admin') {
-    return res.status(403).json({ error: 'Solo admin puede resetear fotos' });
-  }
-  const result = await resetMiamiListingsPhotosWithStreetView(600);
-  cache.clear();
-  res.json({ ok: true, ...result });
-}));
-
 router.post('/sync/miami/photos/ai', auth, asyncHandler(async (req: AuthRequest, res) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Solo admin puede enriquecer fotos IA' });
   }
   const result = await enrichMiamiListingsWithAIGeneratedPhotos(500);
+  cache.clear();
+  res.json({ ok: true, ...result });
+}));
+
+router.post('/sync/miami/photos/ai/reset', auth, asyncHandler(async (req: AuthRequest, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Solo admin puede resetear fotos IA' });
+  }
+  const result = await resetMiamiListingsPhotosWithAIGenerated(600);
   cache.clear();
   res.json({ ok: true, ...result });
 }));
