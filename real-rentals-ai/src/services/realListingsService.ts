@@ -387,12 +387,16 @@ function buildStreetViewUrl(address: string, apiKey: string): string {
   return url.toString();
 }
 
-export async function enrichMiamiListingsWithStreetView(limit = 250): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number; skippedNoApiKey: boolean }> {
+export async function enrichMiamiListingsWithStreetView(
+  limit = 250,
+  options?: { replaceExisting?: boolean }
+): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number; skippedNoApiKey: boolean }> {
   const apiKey = config.googleMapsApiKey;
   if (!apiKey) {
     logger.warn('GOOGLE_MAPS_API_KEY no configurada; se omite enriquecimiento Street View', 'RealListings');
     return { processed: 0, imagesAdded: 0, skippedWithImages: 0, skippedNoApiKey: true };
   }
+  const replaceExisting = Boolean(options?.replaceExisting);
 
   const properties = await (prisma.property as any).findMany({
     where: {
@@ -420,7 +424,7 @@ export async function enrichMiamiListingsWithStreetView(limit = 250): Promise<{ 
 
   for (const prop of properties) {
     const hasImages = Array.isArray(prop.images) && prop.images.length > 0;
-    if (hasImages) {
+    if (hasImages && !replaceExisting) {
       skippedWithImages++;
       continue;
     }
@@ -429,6 +433,9 @@ export async function enrichMiamiListingsWithStreetView(limit = 250): Promise<{ 
     if (!addressCandidate) continue;
 
     const streetViewUrl = buildStreetViewUrl(addressCandidate, apiKey);
+    if (hasImages && replaceExisting) {
+      await prisma.image.deleteMany({ where: { propertyId: prop.id } });
+    }
     await prisma.image.create({
       data: {
         propertyId: prop.id,
@@ -447,6 +454,15 @@ export async function enrichMiamiListingsWithStreetView(limit = 250): Promise<{ 
   });
 
   return { processed, imagesAdded, skippedWithImages, skippedNoApiKey: false };
+}
+
+export async function resetMiamiListingsPhotosWithStreetView(limit = 500): Promise<{
+  processed: number;
+  imagesAdded: number;
+  skippedWithImages: number;
+  skippedNoApiKey: boolean;
+}> {
+  return enrichMiamiListingsWithStreetView(limit, { replaceExisting: true });
 }
 
 function buildAiMiamiPrompt(property: {
