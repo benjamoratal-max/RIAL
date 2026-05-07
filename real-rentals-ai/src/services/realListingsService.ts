@@ -449,3 +449,103 @@ export async function enrichMiamiListingsWithStreetView(limit = 250): Promise<{ 
   return { processed, imagesAdded, skippedWithImages, skippedNoApiKey: false };
 }
 
+function buildAiMiamiPrompt(property: {
+  title?: string | null;
+  description?: string | null;
+  location?: string | null;
+  propertyType?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  area?: number | null;
+  price?: number | null;
+}): string {
+  const type = property.propertyType || 'residential apartment';
+  const beds = property.bedrooms != null ? `${property.bedrooms} bedrooms` : '';
+  const baths = property.bathrooms != null ? `${property.bathrooms} bathrooms` : '';
+  const area = property.area != null ? `${Math.round(property.area)} sqm` : '';
+  const price = property.price != null ? `listed around USD ${Math.round(property.price)}` : '';
+  const baseDescription = String(property.description || '').slice(0, 220);
+
+  return [
+    'photorealistic real estate exterior photo, Miami Florida',
+    'daylight, clear sky, high quality, wide angle lens',
+    `${type}`,
+    beds,
+    baths,
+    area,
+    price,
+    String(property.title || ''),
+    String(property.location || ''),
+    baseDescription,
+    'no text, no watermark, no logo',
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
+function buildAiImageUrl(prompt: string, seed: string): string {
+  const encodedPrompt = encodeURIComponent(prompt);
+  // Pollinations es gratuito y no requiere API key para imágenes básicas.
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&seed=${encodeURIComponent(seed)}&model=flux&nologo=true`;
+}
+
+export async function enrichMiamiListingsWithAIGeneratedPhotos(limit = 250): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number }> {
+  const properties = await (prisma.property as any).findMany({
+    where: {
+      OR: [
+        { location: { contains: 'Miami' } },
+        { title: { contains: 'NW' } },
+        { title: { contains: 'NE' } },
+        { title: { contains: 'SW' } },
+        { title: { contains: 'SE' } },
+      ],
+    },
+    take: limit,
+    orderBy: { id: 'asc' },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      location: true,
+      propertyType: true,
+      bedrooms: true,
+      bathrooms: true,
+      area: true,
+      price: true,
+      images: { select: { url: true } },
+    },
+  });
+
+  let processed = 0;
+  let imagesAdded = 0;
+  let skippedWithImages = 0;
+
+  for (const prop of properties) {
+    const hasImages = Array.isArray(prop.images) && prop.images.length > 0;
+    if (hasImages) {
+      skippedWithImages++;
+      continue;
+    }
+
+    const prompt = buildAiMiamiPrompt(prop);
+    const imageUrl = buildAiImageUrl(prompt, `miami-${prop.id}`);
+    await prisma.image.create({
+      data: {
+        propertyId: prop.id,
+        url: imageUrl,
+      },
+    });
+    processed++;
+    imagesAdded++;
+  }
+
+  logger.info('Enriquecimiento con imágenes IA (demo) completado', 'RealListings', {
+    processed,
+    imagesAdded,
+    skippedWithImages,
+    totalCandidates: properties.length,
+  });
+
+  return { processed, imagesAdded, skippedWithImages };
+}
+

@@ -11,7 +11,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { cache, CacheKeys } from '../utils/cache';
 import { getSuggestedPricing } from '../services/pricingService';
 import { checkDuplicateProperty, saveDuplicateAlerts, getDuplicateAlertsForProperty } from '../services/duplicateDetectionService';
-import { enrichMiamiListingsFromRentcast, enrichMiamiListingsWithStreetView, syncMiamiRealListings } from '../services/realListingsService';
+import { enrichMiamiListingsFromRentcast, enrichMiamiListingsWithAIGeneratedPhotos, enrichMiamiListingsWithStreetView, syncMiamiRealListings } from '../services/realListingsService';
 
 const router = express.Router();
 let lastRealSeedAt = 0;
@@ -151,6 +151,15 @@ router.post('/sync/miami/photos/streetview', auth, asyncHandler(async (req: Auth
     return res.status(403).json({ error: 'Solo admin puede enriquecer fotos' });
   }
   const result = await enrichMiamiListingsWithStreetView(400);
+  cache.clear();
+  res.json({ ok: true, ...result });
+}));
+
+router.post('/sync/miami/photos/ai', auth, asyncHandler(async (req: AuthRequest, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Solo admin puede enriquecer fotos IA' });
+  }
+  const result = await enrichMiamiListingsWithAIGeneratedPhotos(500);
   cache.clear();
   res.json({ ok: true, ...result });
 }));
