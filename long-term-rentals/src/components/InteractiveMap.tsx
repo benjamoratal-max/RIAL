@@ -40,6 +40,7 @@ type ResolvedProperty = Property & { latitude: number; longitude: number }
 
 const geocodeCache = new Map<string, { lat: number; lng: number }>()
 const GEO_CACHE_KEY = 'rial_geocode_cache_v1'
+const MAX_GEOCODE_CONCURRENCY = 8
 
 function readGeocodeCache() {
   try {
@@ -108,6 +109,69 @@ async function geocodeLocation(query: string): Promise<{ lat: number; lng: numbe
   }
 }
 
+function parseUsAddress(address: string): { street: string; city: string; state: string; postalcode?: string } | null {
+  const cleaned = sanitizeAddress(address)
+  // Ejemplo esperado: "134 NW 6 AVE, Miami, FL 33128"
+  const m = cleaned.match(/^(.+?),\s*([^,]+),\s*([A-Z]{2})(?:\s+(\d{5}))?/i)
+  if (!m) return null
+  return {
+    street: m[1].trim(),
+    city: m[2].trim(),
+    state: m[3].toUpperCase(),
+    postalcode: m[4] ? m[4].trim() : undefined,
+  }
+}
+
+async function geocodeUsStructured(address: string): Promise<{ lat: number; lng: number } | null> {
+  const parsed = parseUsAddress(address)
+  if (!parsed) return null
+  const key = `us:${parsed.street}|${parsed.city}|${parsed.state}|${parsed.postalcode || ''}`.toLowerCase()
+  const cached = geocodeCache.get(key)
+  if (cached) return cached
+  try {
+    const url = new URL('https://nominatim.openstreetmap.org/search')
+    url.searchParams.set('format', 'jsonv2')
+    url.searchParams.set('limit', '1')
+    url.searchParams.set('street', parsed.street)
+    url.searchParams.set('city', parsed.city)
+    url.searchParams.set('state', parsed.state)
+    if (parsed.postalcode) url.searchParams.set('postalcode', parsed.postalcode)
+    url.searchParams.set('country', 'USA')
+
+    const res = await fetch(url.toString())
+    if (!res.ok) return null
+    const rows = await res.json()
+    const first = Array.isArray(rows) ? rows[0] : null
+    const lat = Number(first?.lat)
+    const lng = Number(first?.lon)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+    const point = { lat, lng }
+    geocodeCache.set(key, point)
+    saveGeocodeCache()
+    return point
+  } catch {
+    return null
+  }
+}
+
+function getStructuredCacheKey(address: string): string | null {
+  const parsed = parseUsAddress(address)
+  if (!parsed) return null
+  return `us:${parsed.street}|${parsed.city}|${parsed.state}|${parsed.postalcode || ''}`.toLowerCase()
+}
+
+function getCachedPointForProperty(property: Property): { lat: number; lng: number } | null {
+  const structuredKey = getStructuredCacheKey(property.location)
+  if (structuredKey) {
+    const structuredCached = geocodeCache.get(structuredKey)
+    if (structuredCached) return structuredCached
+  }
+  const cachedCandidates = buildGeocodeCandidates(property)
+  return cachedCandidates
+    .map((candidate) => geocodeCache.get(candidate.trim().toLowerCase()))
+    .find(Boolean) || null
+}
+
 function simpleHash(input: string): number {
   let hash = 0
   for (let i = 0; i < input.length; i++) {
@@ -139,6 +203,8 @@ function buildGeocodeCandidates(property: Property): string[] {
 }
 
 async function geocodeProperty(property: Property): Promise<{ lat: number; lng: number } | null> {
+  const structured = await geocodeUsStructured(property.location)
+  if (structured) return normalizePointForAddress(structured, property.location)
   const candidates = buildGeocodeCandidates(property)
   for (const candidate of candidates) {
     const point = await geocodeLocation(candidate)
@@ -153,12 +219,12 @@ function normalizePointForAddress(point: { lat: number; lng: number }, address: 
   if (!isMiamiAddress) return point
 
   const hasStreetHint = /\b(nw|sw|ne|se|ave|avenue|st|street|rd|road|blvd)\b/i.test(normalizedAddress)
-  const looksOffshore = point.lng > -80.17
+  const looksOffshore = point.lng > -80.19
 
   if (!hasStreetHint || !looksOffshore) return point
 
   // Mantener latitud y desplazar hacia el oeste (zona urbana) cuando cae en bahía.
-  const correctedLng = Math.min(-80.20, point.lng - 0.05)
+  const correctedLng = Math.min(-80.205, point.lng - 0.06)
   return { lat: point.lat, lng: correctedLng }
 }
 
@@ -207,25 +273,52 @@ export function InteractiveMap({
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      setIsResolving(true)
-      const resolved: ResolvedProperty[] = []
-      for (const property of properties) {
+      const immediate: ResolvedProperty[] = properties.map((property) => {
         if (typeof property.latitude === 'number' && typeof property.longitude === 'number') {
-          resolved.push({ ...property, latitude: property.latitude, longitude: property.longitude })
-          continue
+          return { ...property, latitude: property.latitude, longitude: property.longitude }
         }
-        const point = await geocodeProperty(property)
-        if (point) {
-          resolved.push({ ...property, latitude: point.lat, longitude: point.lng })
-          continue
+        const cachedPoint = getCachedPointForProperty(property)
+        if (cachedPoint) {
+          const normalized = normalizePointForAddress(cachedPoint, property.location)
+          return { ...property, latitude: normalized.lat, longitude: normalized.lng }
         }
         const fallback = fallbackByCity(property.location, `${property.id}-${property.title}`)
-        resolved.push({ ...property, latitude: fallback.lat, longitude: fallback.lng })
+        return { ...property, latitude: fallback.lat, longitude: fallback.lng }
+      })
+
+      if (!cancelled) setResolvedProperties(immediate)
+
+      const pending = properties.filter((property) => {
+        if (typeof property.latitude === 'number' && typeof property.longitude === 'number') return false
+        return !getCachedPointForProperty(property)
+      })
+
+      if (pending.length === 0) {
+        if (!cancelled) setIsResolving(false)
+        return
       }
-      if (!cancelled) {
-        setResolvedProperties(resolved)
-        setIsResolving(false)
+
+      if (!cancelled) setIsResolving(true)
+      const resolvedMap = new Map<number, ResolvedProperty>(immediate.map((p) => [p.id, p]))
+      let cursor = 0
+
+      const worker = async () => {
+        while (!cancelled) {
+          const idx = cursor++
+          if (idx >= pending.length) return
+          const property = pending[idx]
+          const point = await geocodeProperty(property)
+          if (!point) continue
+          resolvedMap.set(property.id, { ...property, latitude: point.lat, longitude: point.lng })
+          if (!cancelled) {
+            setResolvedProperties(Array.from(resolvedMap.values()))
+          }
+        }
       }
+
+      const workers = Array.from({ length: Math.min(MAX_GEOCODE_CONCURRENCY, pending.length) }, () => worker())
+      await Promise.all(workers)
+      if (!cancelled) setIsResolving(false)
     })()
     return () => {
       cancelled = true
