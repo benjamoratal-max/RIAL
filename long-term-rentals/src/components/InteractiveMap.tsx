@@ -131,6 +131,7 @@ function buildGeocodeCandidates(property: Property): string[] {
   const candidates = [
     location,
     `${title}, ${location}`,
+    `${location}, Miami-Dade County, Florida, USA`,
     `${title}, Miami, FL, USA`,
     `${location}, USA`,
   ]
@@ -141,9 +142,24 @@ async function geocodeProperty(property: Property): Promise<{ lat: number; lng: 
   const candidates = buildGeocodeCandidates(property)
   for (const candidate of candidates) {
     const point = await geocodeLocation(candidate)
-    if (point) return point
+    if (point) return normalizePointForAddress(point, property.location)
   }
   return null
+}
+
+function normalizePointForAddress(point: { lat: number; lng: number }, address: string): { lat: number; lng: number } {
+  const normalizedAddress = sanitizeAddress(address).toLowerCase()
+  const isMiamiAddress = normalizedAddress.includes('miami') || /\bfl\b/.test(normalizedAddress)
+  if (!isMiamiAddress) return point
+
+  const hasStreetHint = /\b(nw|sw|ne|se|ave|avenue|st|street|rd|road|blvd)\b/i.test(normalizedAddress)
+  const looksOffshore = point.lng > -80.17
+
+  if (!hasStreetHint || !looksOffshore) return point
+
+  // Mantener latitud y desplazar hacia el oeste (zona urbana) cuando cae en bahía.
+  const correctedLng = Math.min(-80.20, point.lng - 0.05)
+  return { lat: point.lat, lng: correctedLng }
 }
 
 function fallbackByCity(address: string, seedText: string): { lat: number; lng: number } {
@@ -157,6 +173,14 @@ function fallbackByCity(address: string, seedText: string): { lat: number; lng: 
   else if (normalized.includes('lisboa')) base = { lat: 38.7223, lng: -9.1393 }
 
   const hash = simpleHash(`${normalized}|${seedText}`)
+
+  if (normalized.includes('miami')) {
+    // Fallback acotado a bbox mayormente en tierra para Miami.
+    const lat = 25.70 + ((hash % 1000) / 1000) * 0.20 // 25.70 - 25.90
+    const lng = -80.32 + (((hash / 1000) % 1000) / 1000) * 0.12 // -80.32 - -80.20
+    return { lat, lng }
+  }
+
   const latOffset = ((hash % 1000) / 1000 - 0.5) * 0.04
   const lngOffset = (((hash / 1000) % 1000) / 1000 - 0.5) * 0.04
   return { lat: base.lat + latOffset, lng: base.lng + lngOffset }
@@ -281,7 +305,7 @@ export function InteractiveMap({
         ))}
       </MapContainer>
 
-      {isResolving && (
+      {isResolving && resolvedProperties.length === 0 && (
         <div className="absolute bottom-4 left-4 z-[1000] rounded-lg bg-white/95 dark:bg-gray-800/95 px-3 py-2 text-xs shadow">
           Resolviendo ubicaciones reales...
         </div>
