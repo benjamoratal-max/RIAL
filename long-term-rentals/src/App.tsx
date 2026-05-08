@@ -114,8 +114,8 @@ const MOCK_CENTER = { lat: -34.6037, lng: -58.3816 }
 // Función eliminada - ahora usamos directamente getMockProperties
 
 function normalizeGeoProperty(property: any, index: number) {
-  const lat = typeof property.latitude === 'number' ? property.latitude : MOCK_CENTER.lat + index * 0.01
-  const lng = typeof property.longitude === 'number' ? property.longitude : MOCK_CENTER.lng + index * 0.01
+  const lat = typeof property.latitude === 'number' ? property.latitude : undefined
+  const lng = typeof property.longitude === 'number' ? property.longitude : undefined
   return { ...property, latitude: lat, longitude: lng }
 }
 
