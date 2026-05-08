@@ -108,6 +108,60 @@ async function geocodeLocation(query: string): Promise<{ lat: number; lng: numbe
   }
 }
 
+function simpleHash(input: string): number {
+  let hash = 0
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash << 5) - hash + input.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
+function sanitizeAddress(raw: string): string {
+  return String(raw || '')
+    .replace(/\b(\d{5})-\d{4}\b/g, '$1')
+    .replace(/\s+/g, ' ')
+    .replace(/,\s*,/g, ',')
+    .trim()
+}
+
+function buildGeocodeCandidates(property: Property): string[] {
+  const location = sanitizeAddress(property.location)
+  const title = sanitizeAddress(property.title)
+  const candidates = [
+    location,
+    `${title}, ${location}`,
+    `${title}, Miami, FL, USA`,
+    `${location}, USA`,
+  ]
+  return Array.from(new Set(candidates.filter(Boolean)))
+}
+
+async function geocodeProperty(property: Property): Promise<{ lat: number; lng: number } | null> {
+  const candidates = buildGeocodeCandidates(property)
+  for (const candidate of candidates) {
+    const point = await geocodeLocation(candidate)
+    if (point) return point
+  }
+  return null
+}
+
+function fallbackByCity(address: string, seedText: string): { lat: number; lng: number } {
+  const normalized = sanitizeAddress(address).toLowerCase()
+  let base = { lat: 25.7617, lng: -80.1918 } // Miami por defecto
+
+  if (normalized.includes('miami')) base = { lat: 25.7617, lng: -80.1918 }
+  else if (normalized.includes('buenos aires')) base = { lat: -34.6037, lng: -58.3816 }
+  else if (normalized.includes('madrid')) base = { lat: 40.4168, lng: -3.7038 }
+  else if (normalized.includes('barcelona')) base = { lat: 41.3851, lng: 2.1734 }
+  else if (normalized.includes('lisboa')) base = { lat: 38.7223, lng: -9.1393 }
+
+  const hash = simpleHash(`${normalized}|${seedText}`)
+  const latOffset = ((hash % 1000) / 1000 - 0.5) * 0.04
+  const lngOffset = (((hash / 1000) % 1000) / 1000 - 0.5) * 0.04
+  return { lat: base.lat + latOffset, lng: base.lng + lngOffset }
+}
+
 export function InteractiveMap({
   properties,
   onPropertyClick,
@@ -136,8 +190,13 @@ export function InteractiveMap({
           resolved.push({ ...property, latitude: property.latitude, longitude: property.longitude })
           continue
         }
-        const point = await geocodeLocation(property.location)
-        if (point) resolved.push({ ...property, latitude: point.lat, longitude: point.lng })
+        const point = await geocodeProperty(property)
+        if (point) {
+          resolved.push({ ...property, latitude: point.lat, longitude: point.lng })
+          continue
+        }
+        const fallback = fallbackByCity(property.location, `${property.id}-${property.title}`)
+        resolved.push({ ...property, latitude: fallback.lat, longitude: fallback.lng })
       }
       if (!cancelled) {
         setResolvedProperties(resolved)
