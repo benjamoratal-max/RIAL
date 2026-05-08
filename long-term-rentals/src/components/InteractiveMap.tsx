@@ -128,6 +128,36 @@ async function geocodeUsStructured(address: string): Promise<{ lat: number; lng:
   const key = `us:${parsed.street}|${parsed.city}|${parsed.state}|${parsed.postalcode || ''}`.toLowerCase()
   const cached = geocodeCache.get(key)
   if (cached) return cached
+
+  // 1) Intentar primero geocoder oficial de EE.UU. (más preciso para direcciones US).
+  try {
+    const singleLine = [parsed.street, parsed.city, parsed.state, parsed.postalcode].filter(Boolean).join(', ')
+    const censusUrl = new URL('https://geocoding.geo.census.gov/geocoder/locations/onelineaddress')
+    censusUrl.searchParams.set('address', singleLine)
+    censusUrl.searchParams.set('benchmark', 'Public_AR_Current')
+    censusUrl.searchParams.set('format', 'json')
+
+    const censusRes = await fetch(censusUrl.toString())
+    if (censusRes.ok) {
+      const data = await censusRes.json()
+      const matches = data?.result?.addressMatches
+      if (Array.isArray(matches) && matches.length > 0) {
+        const first = matches[0]
+        const lat = Number(first?.coordinates?.y)
+        const lng = Number(first?.coordinates?.x)
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          const point = { lat, lng }
+          geocodeCache.set(key, point)
+          saveGeocodeCache()
+          return point
+        }
+      }
+    }
+  } catch {
+    // Seguir con fallback si falla Census.
+  }
+
+  // 2) Fallback: Nominatim estructurado.
   try {
     const url = new URL('https://nominatim.openstreetmap.org/search')
     url.searchParams.set('format', 'jsonv2')
@@ -219,12 +249,13 @@ function normalizePointForAddress(point: { lat: number; lng: number }, address: 
   if (!isMiamiAddress) return point
 
   const hasStreetHint = /\b(nw|sw|ne|se|ave|avenue|st|street|rd|road|blvd)\b/i.test(normalizedAddress)
-  const looksOffshore = point.lng > -80.19
+  // En Miami/Biscayne, longitudes muy al este para direcciones urbanas suelen caer en agua.
+  const looksOffshore = point.lng > -80.185
 
   if (!hasStreetHint || !looksOffshore) return point
 
-  // Mantener latitud y desplazar hacia el oeste (zona urbana) cuando cae en bahía.
-  const correctedLng = Math.min(-80.205, point.lng - 0.06)
+  // Corrección conservadora para mantener coherencia con trama urbana.
+  const correctedLng = Math.min(-80.205, point.lng - 0.045)
   return { lat: point.lat, lng: correctedLng }
 }
 
