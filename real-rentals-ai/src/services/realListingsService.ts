@@ -559,19 +559,22 @@ function buildStrictFallbackAiImageUrl(prop: {
 
 export async function enrichMiamiListingsWithAIGeneratedPhotos(
   limit = 250,
-  options?: { replaceExisting?: boolean }
+  options?: { replaceExisting?: boolean; includeAllProperties?: boolean }
 ): Promise<{ processed: number; imagesAdded: number; skippedWithImages: number }> {
   const replaceExisting = Boolean(options?.replaceExisting);
+  const includeAllProperties = Boolean(options?.includeAllProperties);
   const properties = await (prisma.property as any).findMany({
-    where: {
-      OR: [
-        { location: { contains: 'Miami' } },
-        { title: { contains: 'NW' } },
-        { title: { contains: 'NE' } },
-        { title: { contains: 'SW' } },
-        { title: { contains: 'SE' } },
-      ],
-    },
+    where: includeAllProperties
+      ? {}
+      : {
+          OR: [
+            { location: { contains: 'Miami' } },
+            { title: { contains: 'NW' } },
+            { title: { contains: 'NE' } },
+            { title: { contains: 'SW' } },
+            { title: { contains: 'SE' } },
+          ],
+        },
     take: limit,
     orderBy: { id: 'asc' },
     select: {
@@ -617,6 +620,11 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(
     const primaryImageUrl = buildAiImageUrl(prompt, seed);
     const strictFallbackImageUrl = buildStrictFallbackAiImageUrl({ ...prop, variant: 'clean facade, empty street' });
     const strictAltImageUrl = buildStrictFallbackAiImageUrl({ ...prop, variant: 'twilight exterior lighting, high realism' });
+    const isApartment = normalizeTypeForPrompt(prop.propertyType).includes('apartment');
+    const flickrTag = isApartment ? 'apartment,building,architecture' : 'house,home,architecture';
+    // Fallback estable para garantizar cobertura visual si la IA externa falla/rate-limitea.
+    const stableFallbackUrl = `https://loremflickr.com/1024/640/${flickrTag}?lock=${prop.id}`;
+    const stableFallbackAltUrl = `https://loremflickr.com/1024/640/${flickrTag},exterior?lock=${prop.id + 10000}`;
 
     // En modo reset, reemplazar absolutamente todo. En modo normal, solo set IA previo.
     if (currentImages.length > 0 || replaceExisting) {
@@ -624,13 +632,15 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(
     }
     await prisma.image.createMany({
       data: [
+        { propertyId: prop.id, url: stableFallbackUrl },
+        { propertyId: prop.id, url: stableFallbackAltUrl },
         { propertyId: prop.id, url: primaryImageUrl },
         { propertyId: prop.id, url: strictFallbackImageUrl },
         { propertyId: prop.id, url: strictAltImageUrl },
       ],
     });
     processed++;
-    imagesAdded += 3;
+    imagesAdded += 5;
   }
 
   logger.info('Enriquecimiento con imágenes IA (demo) completado', 'RealListings', {
@@ -648,6 +658,6 @@ export async function resetMiamiListingsPhotosWithAIGenerated(limit = 500): Prom
   imagesAdded: number;
   skippedWithImages: number;
 }> {
-  return enrichMiamiListingsWithAIGeneratedPhotos(limit, { replaceExisting: true });
+  return enrichMiamiListingsWithAIGeneratedPhotos(limit, { replaceExisting: true, includeAllProperties: true });
 }
 
