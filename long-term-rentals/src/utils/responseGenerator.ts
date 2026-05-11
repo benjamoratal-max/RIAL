@@ -122,111 +122,171 @@ function generateSearchResponse(
   memory: ConversationMemory,
   context: IntentAnalysis['context']
 ): string {
-  let filtered = [...allProperties]
-  
-  // Aplicar filtros de ubicación
-  const searchLocations = entities.locations.length > 0 
-    ? entities.locations 
-    : context.references.previousLocations || []
-  
-  if (searchLocations.length > 0) {
-    filtered = filtered.filter(p => 
-      searchLocations.some(loc => 
-        p.location?.toLowerCase().includes(loc.toLowerCase()) ||
-        loc.toLowerCase().includes(p.location?.toLowerCase() || '')
-      )
-    )
-  }
-  
-  // Aplicar filtros de precio
-  const maxPrice = entities.requirements.maxPrice || 
-                   entities.prices.length > 0 ? Math.max(...entities.prices) :
-                   context.references.previousBudget?.max ||
-                   memory.userPreferences.budget?.max
-  
-  if (maxPrice) {
-    filtered = filtered.filter(p => (p.price || 0) <= maxPrice)
-  }
-  
+  const locationTargets = collectRecommendationLocationTargets(entities, memory, context)
+  const filterLocations =
+    locationTargets.length > 0
+      ? locationTargets
+      : entities.locations.length > 0
+        ? entities.locations
+        : context.references.previousLocations || []
+
+  const maxPrice =
+    entities.requirements.maxPrice ??
+    (entities.prices.length > 0 ? Math.max(...entities.prices) : undefined) ??
+    context.references.previousBudget?.max ??
+    memory.userPreferences.budget?.max
+
   const minPrice = entities.requirements.minPrice
-  if (minPrice) {
-    filtered = filtered.filter(p => (p.price || 0) >= minPrice)
-  }
-  
-  // Aplicar filtros de características
-  if (entities.features.length > 0) {
-    filtered = filtered.filter(p => {
-      const allAmenities = [
-        ...(p.amenities || []),
-        ...(p.buildingAmenities || []),
-        ...(p.safety || []),
-        ...(p.highlights || [])
-      ].map((a: string) => a.toLowerCase())
-      
-      return entities.features.every(feature => {
-        const featureLower = feature.toLowerCase()
-        return allAmenities.some((amenity: string) => 
-          amenity.includes(featureLower) || 
-          featureLower.includes(amenity)
-        )
+
+  const minBedrooms =
+    Math.max(memory.userPreferences.minBedrooms ?? 0, entities.requirements.bedrooms ?? 0) || undefined
+  const minBathrooms =
+    Math.max(memory.userPreferences.minBathrooms ?? 0, entities.requirements.bathrooms ?? 0) || undefined
+
+  function applySearchFilters(
+    includeFeatures: boolean,
+    priceMultiplier: number,
+    bedroomSlack: number,
+    bathroomSlack: number,
+    useLocationFilter: boolean
+  ): any[] {
+    let list = [...allProperties]
+
+    if (useLocationFilter && filterLocations.length > 0) {
+      list = list.filter((p) => locationMatchesAny(p.location, filterLocations))
+    }
+
+    const cap = maxPrice != null ? maxPrice * priceMultiplier : undefined
+    if (cap != null && cap > 0) {
+      list = list.filter((p) => (p.price || 0) <= cap)
+    }
+    if (minPrice) {
+      list = list.filter((p) => (p.price || 0) >= minPrice)
+    }
+
+    if (includeFeatures && entities.features.length > 0) {
+      list = list.filter((p) => {
+        const allAmenities = propertyAmenitiesLower(p)
+        return entities.features.every((feature) => {
+          const featureLower = feature.toLowerCase()
+          return allAmenities.some(
+            (amenity: string) => amenity.includes(featureLower) || featureLower.includes(amenity)
+          )
+        })
       })
-    })
+    }
+
+    const effMinBed =
+      minBedrooms != null ? Math.max(1, minBedrooms - bedroomSlack) : undefined
+    const effMinBath =
+      minBathrooms != null ? Math.max(1, minBathrooms - bathroomSlack) : undefined
+
+    if (effMinBed) {
+      list = list.filter((p) => (p.bedrooms || 0) >= effMinBed)
+    }
+    if (effMinBath) {
+      list = list.filter((p) => (p.bathrooms || 0) >= effMinBath)
+    }
+    return list
   }
-  
-  // Aplicar filtros de habitaciones/baños
-  if (entities.requirements.bedrooms) {
-    filtered = filtered.filter(p => (p.bedrooms || 0) >= entities.requirements.bedrooms!)
+
+  const noteParts: string[] = []
+  let filtered = applySearchFilters(true, 1, 0, 0, true)
+
+  if (filtered.length === 0 && entities.features.length > 0) {
+    filtered = applySearchFilters(false, 1, 0, 0, true)
+    if (filtered.length > 0) {
+      noteParts.push('sin exigir todas las características pedidas')
+    }
   }
-  
-  if (entities.requirements.bathrooms) {
-    filtered = filtered.filter(p => (p.bathrooms || 0) >= entities.requirements.bathrooms!)
-  }
-  
-  // Ordenar inteligentemente
-  filtered.sort((a, b) => {
-    const scoreA = (a.averageRating || 0) * 20 - (a.price || 0) / 1000
-    const scoreB = (b.averageRating || 0) * 20 - (b.price || 0) / 1000
-    return scoreB - scoreA
-  })
-  
+
   if (filtered.length === 0) {
+    filtered = applySearchFilters(false, 1.12, 1, 1, true)
+    if (filtered.length > 0) {
+      noteParts.push('presupuesto hasta +12% y mínimo de habitaciones/baños algo más flexible')
+      if (entities.features.length > 0) {
+        noteParts.push('sin exigir todas las características pedidas')
+      }
+    }
+  }
+
+  if (filtered.length === 0) {
+    filtered = applySearchFilters(false, 1.12, 1, 1, false)
+    if (filtered.length > 0) {
+      noteParts.push('sin filtrar por ubicación')
+    }
+  }
+
+  if (filtered.length === 0) {
+    filtered = [...allProperties]
+    if (allProperties.length > 0) {
+      noteParts.push('mostrando el catálogo completo ordenado por puntuación')
+    }
+  }
+
+  const relaxedNote =
+    noteParts.length > 0 ? `\n\nℹ️ **Nota:** ${noteParts.join('; ')}.` : ''
+
+  const featureTargets = collectRecommendationFeatureTargets(entities, memory)
+
+  const scored = filtered
+    .map((p) => {
+      const { total, breakdown } = scorePropertyForRecommendation(
+        p,
+        memory,
+        entities,
+        locationTargets.length > 0 ? locationTargets : filterLocations,
+        featureTargets,
+        minBedrooms,
+        minBathrooms,
+        maxPrice
+      )
+      return { ...p, searchScore: total, scoreBreakdown: breakdown }
+    })
+    .sort((a, b) => b.searchScore - a.searchScore)
+
+  if (scored.length === 0) {
     const suggestions: string[] = []
     if (maxPrice) suggestions.push(`aumentar tu presupuesto`)
-    if (searchLocations.length > 0) suggestions.push(`explorar otras ubicaciones`)
+    if (filterLocations.length > 0) suggestions.push(`explorar otras ubicaciones`)
     if (entities.features.length > 0) suggestions.push(`ser más flexible con las características`)
-    
-    return `No encontré propiedades que coincidan exactamente con tus criterios${searchLocations.length > 0 ? ` en ${searchLocations.join(', ')}` : ''}${maxPrice ? ` por menos de $${maxPrice.toLocaleString()}/mes` : ''}.
+
+    return `No encontré propiedades que coincidan exactamente con tus criterios${filterLocations.length > 0 ? ` en ${filterLocations.join(', ')}` : ''}${maxPrice ? ` por menos de $${maxPrice.toLocaleString()}/mes` : ''}.
 
 💡 **Sugerencias:**
-${suggestions.length > 0 ? suggestions.map(s => `• Considera ${s}`).join('\n') : '• Prueba con criterios más amplios'}
+${suggestions.length > 0 ? suggestions.map((s) => `• Considera ${s}`).join('\n') : '• Prueba con criterios más amplios'}
 • Puedo ayudarte a encontrar alternativas similares
 
 ¿Quieres que ajuste los filtros o busque opciones similares?`
   }
-  
-  // Guardar propiedades mencionadas
-  const mentionedIds = filtered.slice(0, 5).map(p => p.id)
-  memory.mentionedProperties = mentionedIds
-  
-  // Construir respuesta detallada
+
+  memory.mentionedProperties = scored.slice(0, 5).map((p) => p.id)
+
   const filtersSummary: string[] = []
-  if (searchLocations.length > 0) filtersSummary.push(`📍 ${searchLocations.join(', ')}`)
+  if (filterLocations.length > 0) filtersSummary.push(`📍 ${filterLocations.join(', ')}`)
   if (maxPrice) filtersSummary.push(`💰 Hasta $${maxPrice.toLocaleString()}/mes`)
-  if (entities.requirements.bedrooms) filtersSummary.push(`🛏️ ${entities.requirements.bedrooms}+ habitaciones`)
+  if (minBedrooms) filtersSummary.push(`🛏️ ${minBedrooms}+ habitaciones`)
   if (entities.features.length > 0) filtersSummary.push(`✨ ${entities.features.join(', ')}`)
-  
-  const propertiesList = filtered.slice(0, 5).map((p, i) => {
-    const features: string[] = []
-    if (p.bedrooms) features.push(`${p.bedrooms} hab`)
-    if (p.bathrooms) features.push(`${p.bathrooms} baños`)
-    if (p.area) features.push(`${p.area}m²`)
-    
+
+  const propertiesList = scored.slice(0, 5).map((p, i) => {
+    const featLine: string[] = []
+    if (p.bedrooms) featLine.push(`${p.bedrooms} hab`)
+    if (p.bathrooms) featLine.push(`${p.bathrooms} baños`)
+    if (p.area) featLine.push(`${p.area}m²`)
+    const breakdownLines = p.scoreBreakdown.map(
+      (b: ScoreBreakdown) => `     • ${b.label}: ${b.points}/${b.max}`
+    )
     return `${i + 1}. **${p.title || 'Sin título'}**
    📍 ${p.location || 'Ubicación no especificada'}
-   💰 $${(p.price || 0).toLocaleString()}/mes${features.length > 0 ? ` | ${features.join(' | ')}` : ''}${p.averageRating ? ` | ⭐ ${p.averageRating.toFixed(1)}/5` : ''}${p.isAvailable === false ? ' | ❌ Ocupada' : ' | ✅ Disponible'}`
+   💰 $${(p.price || 0).toLocaleString()}/mes${featLine.length > 0 ? ` | ${featLine.join(' | ')}` : ''}${p.averageRating ? ` | ⭐ ${p.averageRating.toFixed(1)}/5` : ''}${p.isAvailable === false ? ' | ❌ Ocupada' : ' | ✅ Disponible'}
+   🎯 **Puntuación (mismo criterio que recomendaciones):** ${p.searchScore}/110
+   📊 **Desglose:**
+${breakdownLines.join('\n')}`
   }).join('\n\n')
-  
-  return `Encontré **${filtered.length} propiedades**${filtersSummary.length > 0 ? ` que cumplen con:\n${filtersSummary.map(f => `   ${f}`).join('\n')}\n\n` : ':\n\n'}${propertiesList}${filtered.length > 5 ? `\n\n...y **${filtered.length - 5} más** disponibles.` : ''}
+
+  return `Encontré **${scored.length} propiedades**${filtersSummary.length > 0 ? ` que cumplen con:\n${filtersSummary.map((f) => `   ${f}`).join('\n')}\n\n` : ':\n\n'}${propertiesList}${scored.length > 5 ? `\n\n...y **${scored.length - 5} más** disponibles.` : ''}${relaxedNote}
+
+📊 **Orden:** resultados ordenados por la misma puntuación que uso en recomendaciones (presupuesto, calificación, disponibilidad, ubicación, amenities, habitaciones/baños e historial del chat).
 
 💡 **Próximos pasos:**
 • Puedo darte más detalles sobre cualquiera de estas propiedades
@@ -338,6 +398,157 @@ function generateComparisonRecommendation(comparison: any[]): string {
   }
 }
 
+function collectRecommendationLocationTargets(
+  entities: ExtractedEntities,
+  memory: ConversationMemory,
+  context: IntentAnalysis['context']
+): string[] {
+  const set = new Set<string>()
+  entities.locations.forEach((l) => set.add(l))
+  memory.userPreferences.preferredLocations?.forEach((l) => set.add(l))
+  memory.entities.locations.forEach((l) => set.add(l))
+  context.references.previousLocations?.forEach((l) => set.add(l))
+  return [...set].filter(Boolean)
+}
+
+function collectRecommendationFeatureTargets(entities: ExtractedEntities, memory: ConversationMemory): string[] {
+  const set = new Set<string>()
+  entities.features.forEach((f) => set.add(f))
+  memory.userPreferences.requiredFeatures?.forEach((f) => set.add(f))
+  memory.entities.features.forEach((f) => set.add(f))
+  return [...set].map((f) => f.toLowerCase())
+}
+
+function propertyAmenitiesLower(p: any): string[] {
+  return [
+    ...(p.amenities || []),
+    ...(p.buildingAmenities || []),
+    ...(p.safety || []),
+    ...(p.highlights || []),
+  ].map((a: string) => String(a).toLowerCase())
+}
+
+function locationMatchesAny(propertyLocation: string | null | undefined, targets: string[]): boolean {
+  if (!propertyLocation || targets.length === 0) return false
+  const pl = propertyLocation.toLowerCase()
+  return targets.some((t) => {
+    const tl = t.toLowerCase()
+    return pl.includes(tl) || tl.includes(pl)
+  })
+}
+
+type ScoreBreakdown = { label: string; points: number; max: number }
+
+function scorePropertyForRecommendation(
+  p: any,
+  memory: ConversationMemory,
+  entities: ExtractedEntities,
+  locationTargets: string[],
+  featureTargets: string[],
+  minBedrooms: number | undefined,
+  minBathrooms: number | undefined,
+  budgetMax: number | undefined
+): { total: number; breakdown: ScoreBreakdown[] } {
+  const breakdown: ScoreBreakdown[] = []
+  const mentioned = new Set(memory.mentionedProperties.map(Number))
+  const pid = Number(p.id)
+
+  // 1) Ajuste al presupuesto (0–25)
+  let budgetPts = 0
+  const maxBudget = budgetMax
+  const price = p.price || 0
+  if (maxBudget && maxBudget > 0) {
+    if (price <= 0) {
+      budgetPts = 8
+    } else if (price <= maxBudget) {
+      const ratio = price / maxBudget
+      budgetPts = Math.round(25 * (1 - Math.min(ratio, 1) * 0.85))
+      if (price <= maxBudget * 0.85) budgetPts = Math.min(25, budgetPts + 3)
+    } else {
+      budgetPts = 0
+    }
+  } else {
+    budgetPts = 12
+  }
+  breakdown.push({ label: 'Presupuesto / precio', points: budgetPts, max: 25 })
+
+  // 2) Calificación (0–20)
+  const rating = Math.min(Math.max(p.averageRating || 0, 0), 5)
+  const ratingPts = Math.round((rating / 5) * 20)
+  breakdown.push({ label: 'Calificación', points: ratingPts, max: 20 })
+
+  // 3) Disponibilidad (0–15)
+  const availPts = p.isAvailable !== false ? 15 : 0
+  breakdown.push({ label: 'Disponibilidad', points: availPts, max: 15 })
+
+  // 4) Ubicación alineada con tu búsqueda (0–20)
+  let locPts = 0
+  if (locationTargets.length > 0) {
+    if (locationMatchesAny(p.location, locationTargets)) locPts = 20
+    else locPts = 4
+  } else {
+    locPts = 10
+  }
+  breakdown.push({ label: 'Ubicación', points: locPts, max: 20 })
+
+  // 5) Amenities / features pedidas (0–15)
+  let featPts = 0
+  if (featureTargets.length > 0) {
+    const am = propertyAmenitiesLower(p)
+    const hits = featureTargets.filter((f) => am.some((a) => a.includes(f) || f.includes(a)))
+    featPts = Math.round((hits.length / featureTargets.length) * 15)
+  } else {
+    featPts = 8
+  }
+  breakdown.push({ label: 'Características pedidas', points: featPts, max: 15 })
+
+  // 6) Habitaciones / baños mínimos (0–10)
+  let roomPts = 10
+  if (minBedrooms != null && (p.bedrooms || 0) < minBedrooms) roomPts -= 6
+  if (minBathrooms != null && (p.bathrooms || 0) < minBathrooms) roomPts -= 4
+  roomPts = Math.max(0, roomPts)
+  breakdown.push({ label: 'Habitaciones / baños', points: roomPts, max: 10 })
+
+  // 7) Memoria del chat: propiedades que ya miraste (0–5)
+  let memPts = 0
+  if (mentioned.has(pid)) memPts += 4
+  const recentIntents = memory.conversationHistory.slice(-4).map((h) => h.intent)
+  if (recentIntents.includes('search') || recentIntents.includes('property_details')) memPts += 1
+  memPts = Math.min(5, memPts)
+  breakdown.push({ label: 'Historial en el chat', points: memPts, max: 5 })
+
+  const total = breakdown.reduce((s, b) => s + b.points, 0)
+  return { total, breakdown }
+}
+
+function filterRecommendCandidates(
+  allProperties: any[],
+  preferences: ConversationMemory['userPreferences'],
+  entities: ExtractedEntities,
+  strict: boolean
+): any[] {
+  let list = [...allProperties]
+  const budgetMax = preferences.budget?.max ?? entities.requirements.maxPrice
+  const minBed = Math.max(preferences.minBedrooms ?? 0, entities.requirements.bedrooms ?? 0) || undefined
+  const minBath = Math.max(preferences.minBathrooms ?? 0, entities.requirements.bathrooms ?? 0) || undefined
+
+  if (budgetMax) {
+    list = list.filter((p) => (p.price || 0) <= budgetMax * (strict ? 1 : 1.12))
+  }
+  if (minBed) {
+    list = list.filter((p) => (p.bedrooms || 0) >= (strict ? minBed : Math.max(1, minBed - 1)))
+  }
+  if (minBath) {
+    list = list.filter((p) => (p.bathrooms || 0) >= (strict ? minBath : Math.max(1, minBath - 1)))
+  }
+  if (strict && preferences.preferredLocations && preferences.preferredLocations.length > 0) {
+    list = list.filter((p) =>
+      preferences.preferredLocations!.some((loc) => p.location?.toLowerCase().includes(loc.toLowerCase()))
+    )
+  }
+  return list
+}
+
 /**
  * Generar respuesta de recomendación personalizada
  */
@@ -347,69 +558,46 @@ function generateRecommendResponse(
   memory: ConversationMemory,
   context: IntentAnalysis['context']
 ): string {
-  let candidates = [...allProperties]
-  
-  // Aplicar preferencias del usuario
   const preferences = memory.userPreferences
-  if (preferences.budget) {
-    candidates = candidates.filter(p => (p.price || 0) <= preferences.budget!.max)
-  }
-  if (preferences.minBedrooms) {
-    candidates = candidates.filter(p => (p.bedrooms || 0) >= preferences.minBedrooms!)
-  }
-  if (preferences.minBathrooms) {
-    candidates = candidates.filter(p => (p.bathrooms || 0) >= preferences.minBathrooms!)
-  }
-  if (preferences.preferredLocations && preferences.preferredLocations.length > 0) {
-    candidates = candidates.filter(p => 
-      preferences.preferredLocations!.some(loc => 
-        p.location?.toLowerCase().includes(loc.toLowerCase())
-      )
-    )
-  }
-  
-  // Calcular score de recomendación
-  const scored = candidates.map(p => {
-    let score = 0
-    
-    // Score de precio (más bajo es mejor si está dentro del presupuesto)
-    if (preferences.budget) {
-      const priceRatio = (p.price || 0) / preferences.budget.max
-      score += (1 - Math.min(priceRatio, 1)) * 30
-    } else {
-      score += 15 // Score neutral si no hay presupuesto
+  const locationTargets = collectRecommendationLocationTargets(entities, memory, context)
+  const featureTargets = collectRecommendationFeatureTargets(entities, memory)
+  const minBedrooms = Math.max(preferences.minBedrooms ?? 0, entities.requirements.bedrooms ?? 0) || undefined
+  const minBathrooms = Math.max(preferences.minBathrooms ?? 0, entities.requirements.bathrooms ?? 0) || undefined
+  const budgetMax = preferences.budget?.max ?? entities.requirements.maxPrice
+
+  let candidates = filterRecommendCandidates(allProperties, preferences, entities, true)
+  let relaxedNote = ''
+  if (candidates.length < 3) {
+    const relaxed = filterRecommendCandidates(allProperties, preferences, entities, false)
+    if (relaxed.length > candidates.length) {
+      candidates = relaxed
+      relaxedNote =
+        '\n\nℹ️ **Nota:** amplié un poco los criterios (precio o habitaciones) porque con el filtro estricto había pocas opciones.'
     }
-    
-    // Score de calificación
-    score += (p.averageRating || 0) * 20
-    
-    // Score de disponibilidad
-    if (p.isAvailable !== false) score += 20
-    
-    // Score de ubicación (si hay preferencias)
-    if (preferences.preferredLocations && preferences.preferredLocations.length > 0) {
-      const matchesLocation = preferences.preferredLocations.some(loc =>
-        p.location?.toLowerCase().includes(loc.toLowerCase())
+  }
+  if (candidates.length === 0) {
+    candidates = [...allProperties]
+    relaxedNote =
+      '\n\nℹ️ **Nota:** no había coincidencias con tus filtros guardados; te muestro las mejores opciones generales del catálogo.'
+  }
+
+  const scored = candidates
+    .map((p) => {
+      const { total, breakdown } = scorePropertyForRecommendation(
+        p,
+        memory,
+        entities,
+        locationTargets,
+        featureTargets,
+        minBedrooms,
+        minBathrooms,
+        budgetMax
       )
-      if (matchesLocation) score += 20
-    }
-    
-    // Score de características (si hay preferencias)
-    if (preferences.requiredFeatures && preferences.requiredFeatures.length > 0) {
-      const allAmenities = [
-        ...(p.amenities || []),
-        ...(p.buildingAmenities || [])
-      ].map((a: string) => a.toLowerCase())
-      
-      const matchingFeatures = preferences.requiredFeatures.filter(f =>
-        allAmenities.some(a => a.includes(f.toLowerCase()))
-      )
-      score += (matchingFeatures.length / preferences.requiredFeatures.length) * 10
-    }
-    
-    return { ...p, score }
-  }).sort((a, b) => b.score - a.score).slice(0, 3)
-  
+      return { ...p, score: total, scoreBreakdown: breakdown }
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+
   if (scored.length === 0) {
     return `No tengo suficientes propiedades que coincidan con tus preferencias para hacer una recomendación personalizada.
 
@@ -421,29 +609,43 @@ function generateRecommendResponse(
 
 Con esa información puedo darte recomendaciones más precisas.`
   }
-  
-  memory.mentionedProperties = scored.map(p => p.id)
-  
+
+  memory.mentionedProperties = scored.map((p) => p.id)
+
   const recommendations = scored.map((p, i) => {
-    const reasons: string[] = []
-    if (p.averageRating && p.averageRating >= 4) reasons.push('excelente calificación')
-    if (p.price && preferences.budget && p.price <= preferences.budget.max * 0.8) reasons.push('precio accesible')
-    if (p.isAvailable !== false) reasons.push('disponible ahora')
-    
+    const lines = p.scoreBreakdown.map(
+      (b: ScoreBreakdown) => `     • ${b.label}: ${b.points}/${b.max}`
+    )
     return `${i + 1}. **${p.title || 'Sin título'}**
    📍 ${p.location || 'Ubicación no especificada'}
    💰 $${(p.price || 0).toLocaleString()}/mes
    ⭐ ${(p.averageRating || 0).toFixed(1)}/5
-   🎯 Score: ${Math.round(p.score)}/100${reasons.length > 0 ? `\n   ✨ ${reasons.join(', ')}` : ''}`
+   🎯 **Puntuación total:** ${p.score}/110
+   📊 **Desglose:**
+${lines.join('\n')}`
   }).join('\n\n')
-  
+
   const contextInfo: string[] = []
-  if (preferences.budget) contextInfo.push(`presupuesto de hasta $${preferences.budget.max.toLocaleString()}`)
-  if (preferences.preferredLocations && preferences.preferredLocations.length > 0) {
-    contextInfo.push(`interés en ${preferences.preferredLocations.join(', ')}`)
+  if (preferences.budget || budgetMax) {
+    contextInfo.push(
+      `presupuesto de hasta $${(preferences.budget?.max ?? budgetMax ?? 0).toLocaleString()}`
+    )
   }
-  
-  return `Basándome en${contextInfo.length > 0 ? ` tu ${contextInfo.join(' y tu ')}` : ' las propiedades disponibles'}, te recomiendo estas **3 opciones**:\n\n${recommendations}\n\n💡 **¿Por qué estas?**\nHe seleccionado estas propiedades porque combinan buen precio, calificaciones positivas y disponibilidad. La primera opción tiene el mejor balance general según tus preferencias.\n\n¿Quieres más detalles sobre alguna de estas recomendaciones?`
+  if (locationTargets.length > 0) {
+    contextInfo.push(`interés en ${locationTargets.slice(0, 4).join(', ')}`)
+  }
+  if (featureTargets.length > 0) {
+    contextInfo.push(`características: ${featureTargets.slice(0, 5).join(', ')}`)
+  }
+
+  return `Basándome en${contextInfo.length > 0 ? ` tu ${contextInfo.join(' y tu ')}` : ' las propiedades disponibles'}, te recomiendo estas **${scored.length} opciones** (ordenadas por puntuación):${relaxedNote}
+
+${recommendations}
+
+💡 **¿Por qué estas?**
+Cada fila incluye un **desglose** (suma máxima 110): priorizo precio dentro de tu rango, calificación, disponibilidad, ubicación alineada con lo que comentaste, coincidencia con amenities pedidas, habitaciones/baños, y un pequeño boost si **ya viste** esa propiedad en el chat.
+
+¿Quieres más detalles sobre alguna de estas recomendaciones?`
 }
 
 // Continuaré con las demás funciones de generación de respuestas...
