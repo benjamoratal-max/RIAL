@@ -12,6 +12,7 @@ import { cache, CacheKeys } from '../utils/cache';
 import { getSuggestedPricing } from '../services/pricingService';
 import { checkDuplicateProperty, saveDuplicateAlerts, getDuplicateAlertsForProperty } from '../services/duplicateDetectionService';
 import { enrichMiamiListingsFromRentcast, enrichMiamiListingsWithAIGeneratedPhotos, enrichMiamiListingsWithStreetView, resetMiamiListingsPhotosWithAIGenerated, syncMiamiRealListings } from '../services/realListingsService';
+import { parsePropertySearchQuery } from '../utils/searchQueryParser';
 
 const router = express.Router();
 let lastRealSeedAt = 0;
@@ -46,41 +47,6 @@ async function ensureRealMiamiSeedSafe(force = false) {
       error: error instanceof Error ? error.message : String(error),
     });
   }
-}
-
-type StructuredSearch = {
-  roomsExact?: number;
-  bathroomsExact?: number;
-  amenityTerms: string[];
-};
-
-function parseStructuredSearch(queryText: string | undefined): StructuredSearch {
-  const q = (queryText || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const roomsMatch = q.match(/(\d+)\s*(ambientes?|amb|rooms?)/);
-  const bathroomsMatch = q.match(/(\d+)\s*(banos?|bano|baños?|baño|bathrooms?|baths?)/);
-
-  const amenityLexicon: Array<{ canonical: string; terms: string[] }> = [
-    { canonical: 'pool', terms: ['pool', 'piscina', 'pileta'] },
-    { canonical: 'gym', terms: ['gym', 'gimnasio', 'fitness'] },
-    { canonical: 'parking', terms: ['parking', 'estacionamiento', 'cochera', 'garage'] },
-    { canonical: 'wifi', terms: ['wifi', 'wi-fi', 'internet'] },
-    { canonical: 'air conditioning', terms: ['air conditioning', 'aire acondicionado', 'ac', 'climatizacion'] },
-    { canonical: 'heating', terms: ['heating', 'calefaccion'] },
-    { canonical: 'balcony', terms: ['balcony', 'balcon'] },
-    { canonical: 'elevator', terms: ['elevator', 'ascensor'] },
-    { canonical: 'furnished', terms: ['furnished', 'amueblado', 'amoblado'] },
-    { canonical: 'pet friendly', terms: ['pet friendly', 'mascotas', 'mascota', 'pet'] },
-  ];
-
-  const amenityTerms = amenityLexicon
-    .filter(({ terms }) => terms.some((term) => q.includes(term)))
-    .map(({ canonical }) => canonical);
-
-  return {
-    roomsExact: roomsMatch ? Number(roomsMatch[1]) : undefined,
-    bathroomsExact: bathroomsMatch ? Number(bathroomsMatch[1]) : undefined,
-    amenityTerms: Array.from(new Set(amenityTerms)),
-  };
 }
 
 function shouldTryRealSeed(location: any, query: any) {
@@ -281,15 +247,16 @@ router.get('/', searchLimiter, asyncHandler(async (req, res) => {
       if (minPrice) where.price.gte = Number(minPrice);
       if (maxPrice) where.price.lte = Number(maxPrice);
     }
-    if (bedrooms) where.bedrooms = Number(bedrooms);
+    if (bedrooms != null) where.bedrooms = Number(bedrooms);
     if (rooms != null) where.rooms = Number(rooms);
-    if (bathrooms) where.bathrooms = Number(bathrooms);
+    if (bathrooms != null) where.bathrooms = Number(bathrooms);
     if (propertyType) where.propertyType = propertyType;
     if (verified === true) where.verified = true;
 
-    const structured = parseStructuredSearch(query);
-    if (structured.roomsExact != null) where.rooms = structured.roomsExact;
-    if (structured.bathroomsExact != null) where.bathrooms = structured.bathroomsExact;
+    const parsed = parsePropertySearchQuery(query);
+    if (rooms == null && parsed.roomsExact != null) where.rooms = parsed.roomsExact;
+    if (bedrooms == null && parsed.bedroomsExact != null) where.bedrooms = parsed.bedroomsExact;
+    if (bathrooms == null && parsed.bathroomsExact != null) where.bathrooms = parsed.bathroomsExact;
 
     const amenityFilters = Array.isArray(amenities)
       ? amenities
@@ -298,19 +265,21 @@ router.get('/', searchLimiter, asyncHandler(async (req, res) => {
       : [];
     const requiredAmenities = Array.from(new Set([
       ...amenityFilters.map((a: string) => String(a).toLowerCase()),
-      ...structured.amenityTerms,
+      ...parsed.amenityTerms.map((a) => a.toLowerCase()),
     ]));
     
-    // Búsqueda semántica por texto (título, descripción, ubicación)
+    // Texto libre: cada token debe aparecer en título, descripción o ubicación (AND).
     const andClauses: any[] = [];
-    if (query) {
-      andClauses.push({
-        OR: [
-        { title: { contains: query } },
-        { description: { contains: query } },
-        { location: { contains: query } },
-        ],
-      });
+    if (query && parsed.textTokens.length > 0) {
+      for (const token of parsed.textTokens) {
+        andClauses.push({
+          OR: [
+            { title: { contains: token } },
+            { description: { contains: token } },
+            { location: { contains: token } },
+          ],
+        });
+      }
     }
 
     if (requiredAmenities.length) {
@@ -584,14 +553,19 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
     if (maxPrice != null && maxPrice !== '') where.price.lte = Number(maxPrice);
   }
   if (bedrooms != null && bedrooms !== '') where.bedrooms = Number(bedrooms);
-  if (rooms != null) where.rooms = Number(rooms);
+  if (rooms != null && rooms !== '') where.rooms = Number(rooms);
   if (bathrooms != null && bathrooms !== '') where.bathrooms = Number(bathrooms);
   if (propertyType) where.propertyType = propertyType;
   if (verified === true || verified === 'true') where.verified = true;
 
-  const structured = parseStructuredSearch(query);
-  if (structured.roomsExact != null) where.rooms = structured.roomsExact;
-  if (structured.bathroomsExact != null) where.bathrooms = structured.bathroomsExact;
+  const parsedMetrics = parsePropertySearchQuery(query);
+  if ((rooms == null || rooms === '') && parsedMetrics.roomsExact != null) where.rooms = parsedMetrics.roomsExact;
+  if ((bedrooms == null || bedrooms === '') && parsedMetrics.bedroomsExact != null) {
+    where.bedrooms = parsedMetrics.bedroomsExact;
+  }
+  if ((bathrooms == null || bathrooms === '') && parsedMetrics.bathroomsExact != null) {
+    where.bathrooms = parsedMetrics.bathroomsExact;
+  }
 
   const amenityFilters = Array.isArray(amenities)
     ? amenities
@@ -600,18 +574,20 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
     : [];
   const requiredAmenities = Array.from(new Set([
     ...amenityFilters.map((a: string) => String(a).toLowerCase()),
-    ...structured.amenityTerms,
+    ...parsedMetrics.amenityTerms.map((a) => a.toLowerCase()),
   ]));
 
   const andClauses: any[] = [];
-  if (query) {
-    andClauses.push({
-      OR: [
-        { title: { contains: query } },
-        { description: { contains: query } },
-        { location: { contains: query } },
-      ],
-    });
+  if (query && parsedMetrics.textTokens.length > 0) {
+    for (const token of parsedMetrics.textTokens) {
+      andClauses.push({
+        OR: [
+          { title: { contains: token } },
+          { description: { contains: token } },
+          { location: { contains: token } },
+        ],
+      });
+    }
   }
   if (requiredAmenities.length) {
     requiredAmenities.forEach((term) => {

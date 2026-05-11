@@ -1,3 +1,5 @@
+import { parsePropertySearchQuery } from '../utils/searchQueryParser'
+
 type TransactionMode = 'rent' | 'buy'
 
 export interface PropertyReview {
@@ -2032,6 +2034,10 @@ const SEARCH_SYNONYMS: Record<string, string[]> = {
   recoleta: ['recoleta'],
   caba: ['buenos aires', 'caba', 'capital federal'],
   centro: ['centro', 'microcentro', 'city'],
+  house: ['casa', 'home', 'vivienda', 'chalet', 'duplex', 'townhouse'],
+  casa: ['house', 'home', 'vivienda', 'chalet'],
+  apartment: ['departamento', 'depto', 'flat', 'condo', 'unit'],
+  departamento: ['apartment', 'depto', 'flat'],
 }
 
 function expandQueryTerms(word: string): string[] {
@@ -2043,16 +2049,13 @@ function expandQueryTerms(word: string): string[] {
   return [...new Set(terms)]
 }
 
-function matchesQuery(property: PropertyData, query: string) {
-  if (!query) return true
-  const queryLower = query.toLowerCase().trim()
-  if (!queryLower) return true
-
+function buildHaystack(property: PropertyData) {
   const haystackRaw = [
     property.title.split('·')[0].trim(),
     property.title,
     property.subtitle,
     property.description,
+    property.descriptionEn || '',
     property.location,
     property.neighborhood,
     property.city,
@@ -2060,83 +2063,106 @@ function matchesQuery(property: PropertyData, query: string) {
     property.type,
     property.highlights.join(' '),
     property.amenities.join(' '),
-    property.buildingAmenities.join(' ')
+    property.buildingAmenities.join(' '),
   ].join(' ')
-  const haystack = removeAccents(haystackRaw.toLowerCase())
+  return removeAccents(haystackRaw.toLowerCase())
+}
+
+/** Cada token (con sinónimos) debe aparecer en el texto agregado de la propiedad (AND). */
+function matchesParsedTextTokens(property: PropertyData, tokens: string[]) {
+  if (!tokens.length) return true
+  const haystack = buildHaystack(property)
   const buildingName = removeAccents(property.title.split('·')[0].trim().toLowerCase())
   const locationNorm = removeAccents(property.location.toLowerCase())
   const neighborhoodNorm = removeAccents(property.neighborhood.toLowerCase())
   const cityNorm = removeAccents(property.city.toLowerCase())
 
-  const needles = queryLower.split(/\s+/).filter(Boolean)
-  if (!needles.length) return true
-
-  const fullQueryNorm = removeAccents(queryLower)
-  if (buildingName.includes(fullQueryNorm) || locationNorm.includes(fullQueryNorm) ||
-      neighborhoodNorm.includes(fullQueryNorm) || cityNorm.includes(fullQueryNorm)) {
-    return true
-  }
-
-  const allWordsMatch = needles.every((needle) => {
-    const terms = expandQueryTerms(needle)
-    return terms.some((term) => haystack.includes(term) || haystack.includes(removeAccents(term)))
+  return tokens.every((token) => {
+    const full = removeAccents(token.toLowerCase())
+    if (
+      buildingName.includes(full) ||
+      locationNorm.includes(full) ||
+      neighborhoodNorm.includes(full) ||
+      cityNorm.includes(full)
+    ) {
+      return true
+    }
+    const terms = expandQueryTerms(token)
+    return terms.some(
+      (term) => haystack.includes(term) || haystack.includes(removeAccents(term.toLowerCase()))
+    )
   })
-  return allWordsMatch
 }
 
-function parseStructuredQuery(query: string): {
-  roomsExact?: number
-  bathroomsExact?: number
-} {
-  const q = removeAccents((query || '').toLowerCase())
-  const roomsMatch = q.match(/(\d+)\s*(ambientes?|amb|rooms?)/)
-  const bathroomsMatch = q.match(/(\d+)\s*(banos?|bano|baños?|baño|bathrooms?|baths?)/)
-  return {
-    roomsExact: roomsMatch ? Number(roomsMatch[1]) : undefined,
-    bathroomsExact: bathroomsMatch ? Number(bathroomsMatch[1]) : undefined,
+function expandAmenityCanonical(canonical: string): string[] {
+  const key = canonical.toLowerCase()
+  const map: Record<string, string[]> = {
+    pool: ['pool', 'piscina', 'pileta'],
+    gym: ['gym', 'gimnasio', 'fitness'],
+    parking: ['parking', 'estacionamiento', 'cochera', 'garage'],
+    wifi: ['wifi', 'wi-fi', 'internet'],
+    'air conditioning': ['aire', 'ac', 'climat', 'air conditioning', 'climatización', 'climatizacion'],
+    heating: ['calefacción', 'calefaccion', 'heating'],
+    balcony: ['balcón', 'balcony', 'balcon'],
+    elevator: ['ascensor', 'elevator', 'elevador'],
+    furnished: ['amueblado', 'amoblado', 'furnished', 'muebles'],
+    'pet friendly': ['pet friendly', 'pet', 'mascota', 'mascotas'],
   }
+  return map[key] || [key]
 }
 
 export function filterMockProperties(filters: any) {
-  const structured = parseStructuredQuery(filters.query || '')
+  const parsed = parsePropertySearchQuery(filters.query || '')
   const filtered = mockPropertySummaries.filter(({ property, averageRating }) => {
     if (filters.location && !property.location.toLowerCase().includes(filters.location.toLowerCase())) return false
-    if (filters.query && !matchesQuery(property, filters.query)) return false
+    if (filters.query && !matchesParsedTextTokens(property, parsed.textTokens)) return false
     if (filters.minPrice && property.price < Number(filters.minPrice)) return false
     if (filters.maxPrice && property.price > Number(filters.maxPrice)) return false
-    if (filters.bedrooms && property.bedrooms !== Number(filters.bedrooms)) return false
-    if (filters.bathrooms && property.bathrooms !== Number(filters.bathrooms)) return false
+    if (filters.bedrooms != null && filters.bedrooms !== '' && property.bedrooms !== Number(filters.bedrooms)) return false
+    if (filters.bedrooms == null && parsed.bedroomsExact != null && property.bedrooms !== parsed.bedroomsExact) return false
+    if (filters.bathrooms != null && filters.bathrooms !== '' && property.bathrooms !== Number(filters.bathrooms)) return false
+    if (filters.bathrooms == null && parsed.bathroomsExact != null && property.bathrooms !== parsed.bathroomsExact) return false
     if (filters.propertyType && !property.type.toLowerCase().includes(filters.propertyType.toLowerCase())) return false
-    if (filters.rooms && property.rooms !== Number(filters.rooms)) return false
-    if (structured.roomsExact != null && property.rooms !== structured.roomsExact) return false
-    if (structured.bathroomsExact != null && property.bathrooms !== structured.bathroomsExact) return false
+    if (filters.rooms != null && filters.rooms !== '' && property.rooms !== Number(filters.rooms)) return false
+    if (filters.rooms == null && parsed.roomsExact != null && property.rooms !== parsed.roomsExact) return false
     if (filters.rating && averageRating < Number(filters.rating)) return false
     if (filters.verified && !property.verified) return false
-    if (filters.amenities?.length) {
-      const required = Array.isArray(filters.amenities) ? filters.amenities : [filters.amenities]
-      const hasAll = required.every((amenity: string) => {
-        const needle = amenity.toLowerCase().trim()
-        // Normalizar términos comunes
-        const normalizedNeedle = needle
-          .replace(/piscina/i, 'piscina')
-          .replace(/gimnasio/i, 'gimnasio')
-          .replace(/estacionamiento|parking|cochera/i, 'estacionamiento')
-          .replace(/wifi|wi-fi/i, 'wifi')
-          .replace(/aire acondicionado|ac|climatización/i, 'aire')
-          .replace(/calefacción|heating/i, 'calefacción')
-          .replace(/ascensor|elevator/i, 'ascensor')
-          .replace(/amueblado|furnished/i, 'amueblado')
-          .replace(/pet friendly|mascotas/i, 'pet')
-          .replace(/balcón|balcony/i, 'balcón')
-          .replace(/terraza|terrace/i, 'terraza')
-        
-        // Buscar en amenities y buildingAmenities
-        const allAmenities = [...property.amenities, ...property.buildingAmenities]
-        return allAmenities.some((a) => {
-          const amenityLower = a.toLowerCase()
-          return amenityLower.includes(needle) || amenityLower.includes(normalizedNeedle)
-        })
-      })
+
+    const chipAmenities = filters.amenities?.length
+      ? Array.isArray(filters.amenities)
+        ? filters.amenities
+        : [filters.amenities]
+      : []
+    const amenityGroups: string[][] = chipAmenities.map((amenity: string) => {
+      const needle = amenity.toLowerCase().trim()
+      const normalizedNeedle = needle
+        .replace(/piscina/i, 'piscina')
+        .replace(/gimnasio/i, 'gimnasio')
+        .replace(/estacionamiento|parking|cochera/i, 'estacionamiento')
+        .replace(/wifi|wi-fi/i, 'wifi')
+        .replace(/aire acondicionado|ac|climatización/i, 'aire')
+        .replace(/calefacción|heating/i, 'calefacción')
+        .replace(/ascensor|elevator/i, 'ascensor')
+        .replace(/amueblado|furnished/i, 'amueblado')
+        .replace(/pet friendly|mascotas/i, 'pet')
+        .replace(/balcón|balcony/i, 'balcón')
+        .replace(/terraza|terrace/i, 'terraza')
+      return [needle, normalizedNeedle].filter((v, i, a) => a.indexOf(v) === i)
+    })
+    for (const c of parsed.amenityTerms) {
+      amenityGroups.push(expandAmenityCanonical(c))
+    }
+
+    if (amenityGroups.length) {
+      const allAmenities = [...property.amenities, ...property.buildingAmenities]
+      const hasAll = amenityGroups.every((group) =>
+        group.some((needle) =>
+          allAmenities.some((a) => {
+            const amenityLower = a.toLowerCase()
+            return amenityLower.includes(needle)
+          })
+        )
+      )
       if (!hasAll) return false
     }
     return true
