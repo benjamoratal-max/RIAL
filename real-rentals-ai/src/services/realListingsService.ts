@@ -607,24 +607,41 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(
       continue;
     }
 
-    const typeHint = normalizeTypeForPrompt(prop.propertyType);
-    const styleVariants = [
-      'contemporary architecture, realistic materials, clean landscaping',
-      'tropical modern facade, palm trees, sunny weather',
-      'urban residential design, natural lighting, high realism',
-      'coastal luxury style, Miami ambience, sharp details',
+    const persistentHouseImages = [
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1613977257365-aaae5a9817ff?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1605146769289-440113cc3d00?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&w=1400&q=80',
     ];
-    const variant = styleVariants[simpleHash(`${prop.id}-${prop.title || ''}`) % styleVariants.length];
-    const prompt = `${buildAiMiamiPrompt(prop)}, ${typeHint}, ${variant}`;
-    const seed = `miami-${prop.id}-${simpleHash(String(prop.title || 'property'))}`;
-    const primaryImageUrl = buildAiImageUrl(prompt, seed);
-    const strictFallbackImageUrl = buildStrictFallbackAiImageUrl({ ...prop, variant: 'clean facade, empty street' });
-    const strictAltImageUrl = buildStrictFallbackAiImageUrl({ ...prop, variant: 'twilight exterior lighting, high realism' });
-    const isApartment = normalizeTypeForPrompt(prop.propertyType).includes('apartment');
-    const flickrTag = isApartment ? 'apartment,building,architecture' : 'house,home,architecture';
-    // Fallback estable para garantizar cobertura visual si la IA externa falla/rate-limitea.
-    const stableFallbackUrl = `https://loremflickr.com/1024/640/${flickrTag}?lock=${prop.id}`;
-    const stableFallbackAltUrl = `https://loremflickr.com/1024/640/${flickrTag},exterior?lock=${prop.id + 10000}`;
+    const persistentApartmentImages = [
+      'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1449844908441-8829872d2607?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1515263487990-61b07816b324?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1400&q=80',
+      'https://images.unsplash.com/photo-1464890100898-a385f744067f?auto=format&fit=crop&w=1400&q=80',
+    ];
+    const imagePool = normalizeTypeForPrompt(prop.propertyType).includes('apartment')
+      ? persistentApartmentImages
+      : persistentHouseImages;
+    const baseIdx = simpleHash(`${prop.id}-${prop.title || ''}`) % imagePool.length;
+    const stableImageUrl1 = imagePool[baseIdx];
+    const stableImageUrl2 = imagePool[(baseIdx + 5) % imagePool.length];
+    const stableImageUrl3 = imagePool[(baseIdx + 9) % imagePool.length];
 
     // En modo reset, reemplazar absolutamente todo. En modo normal, solo set IA previo.
     if (currentImages.length > 0 || replaceExisting) {
@@ -632,15 +649,13 @@ export async function enrichMiamiListingsWithAIGeneratedPhotos(
     }
     await prisma.image.createMany({
       data: [
-        { propertyId: prop.id, url: stableFallbackUrl },
-        { propertyId: prop.id, url: stableFallbackAltUrl },
-        { propertyId: prop.id, url: primaryImageUrl },
-        { propertyId: prop.id, url: strictFallbackImageUrl },
-        { propertyId: prop.id, url: strictAltImageUrl },
+        { propertyId: prop.id, url: stableImageUrl1 },
+        { propertyId: prop.id, url: stableImageUrl2 },
+        { propertyId: prop.id, url: stableImageUrl3 },
       ],
     });
     processed++;
-    imagesAdded += 5;
+    imagesAdded += 3;
   }
 
   logger.info('Enriquecimiento con imágenes IA (demo) completado', 'RealListings', {
