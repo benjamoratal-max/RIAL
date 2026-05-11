@@ -27,6 +27,27 @@ interface Message {
   }
 }
 
+type PendingAssistantAction =
+  | {
+      type: 'apply_filters'
+      payload: {
+        location?: string
+        minPrice?: number
+        maxPrice?: number
+        bedrooms?: number
+        bathrooms?: number
+        petsAllowed?: boolean
+        furnished?: boolean
+        parking?: boolean
+      }
+      summary: string
+    }
+  | {
+      type: 'open_property' | 'request_visit' | 'start_prequalification'
+      payload: { propertyId: number }
+      summary: string
+    }
+
 // Usar ConversationMemory del motor de IA
 
 interface AIAssistantProps {
@@ -76,6 +97,7 @@ export function AIAssistant({
   const [currentKnowledgeId, setCurrentKnowledgeId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const generativeAI = useRef<GenerativeAIService | null>(null)
+  const pendingActionRef = useRef<PendingAssistantAction | null>(null)
   const contextRef = useRef<ConversationMemory>({
     userPreferences: {},
     mentionedProperties: [],
@@ -87,6 +109,85 @@ export function AIAssistant({
       features: new Set()
     }
   })
+
+  function isConfirmationIntent(text: string): boolean {
+    const lower = text.toLowerCase()
+    return ['si', 'sí', 'dale', 'ok', 'okay', 'confirmo', 'confirmar', 'hazlo', 'do it', 'yes'].some((token) =>
+      lower.includes(token)
+    )
+  }
+
+  function isCancellationIntent(text: string): boolean {
+    const lower = text.toLowerCase()
+    return ['no', 'cancelar', 'cancela', 'stop', 'detener', 'no gracias', 'mejor no'].some((token) =>
+      lower.includes(token)
+    )
+  }
+
+  function mergeIntentWithMemory(intentAnalysis: ReturnType<typeof analyzeIntent>) {
+    const merged = {
+      ...intentAnalysis,
+      entities: {
+        ...intentAnalysis.entities,
+        locations: [...intentAnalysis.entities.locations],
+        features: [...intentAnalysis.entities.features],
+        prices: [...intentAnalysis.entities.prices],
+        requirements: { ...intentAnalysis.entities.requirements },
+      },
+    }
+
+    if (merged.entities.locations.length === 0 && contextRef.current.entities.locations.size > 0) {
+      merged.entities.locations = Array.from(contextRef.current.entities.locations).slice(-2)
+    }
+
+    if (merged.entities.features.length === 0 && contextRef.current.userPreferences.requiredFeatures?.length) {
+      merged.entities.features = contextRef.current.userPreferences.requiredFeatures.slice(-3)
+    }
+
+    if (!merged.entities.requirements.bedrooms && contextRef.current.userPreferences.minBedrooms) {
+      merged.entities.requirements.bedrooms = contextRef.current.userPreferences.minBedrooms
+    }
+
+    if (!merged.entities.requirements.bathrooms && contextRef.current.userPreferences.minBathrooms) {
+      merged.entities.requirements.bathrooms = contextRef.current.userPreferences.minBathrooms
+    }
+
+    if (
+      !merged.entities.requirements.maxPrice &&
+      merged.entities.prices.length === 0 &&
+      contextRef.current.userPreferences.budget?.max
+    ) {
+      merged.entities.requirements.maxPrice = contextRef.current.userPreferences.budget.max
+    }
+
+    if (
+      merged.entities.properties.length === 0 &&
+      contextRef.current.mentionedProperties.length > 0 &&
+      ['property_details', 'rental_process', 'requirements'].includes(merged.intent)
+    ) {
+      merged.entities.properties = [contextRef.current.mentionedProperties[0]]
+    }
+
+    return merged
+  }
+
+  function executePendingAction(action: PendingAssistantAction) {
+    if (action.type === 'apply_filters' && onSearchFiltersChange) {
+      onSearchFiltersChange(action.payload)
+      return
+    }
+    if (action.type === 'open_property' && onPropertyClick) {
+      onPropertyClick(action.payload.propertyId)
+      return
+    }
+    if (action.type === 'request_visit' && onRequestVisit) {
+      onRequestVisit(action.payload.propertyId)
+      return
+    }
+    if (action.type === 'start_prequalification' && onStartPrequalification) {
+      onStartPrequalification(action.payload.propertyId)
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -397,9 +498,24 @@ export function AIAssistant({
   // Función mejorada para razonar y generar respuesta inteligente (HÍBRIDA)
   async function processQuestion(question: string): Promise<string> {
     const allProperties = properties.map(item => item.property || item)
+
+    const pendingAction = pendingActionRef.current
+    if (pendingAction) {
+      if (isConfirmationIntent(question)) {
+        executePendingAction(pendingAction)
+        pendingActionRef.current = null
+        return `Perfecto, ya ejecuté esto: ${pendingAction.summary}. ¿Quieres que te ayude con otro ajuste?`
+      }
+      if (isCancellationIntent(question)) {
+        pendingActionRef.current = null
+        return 'Listo, cancelé esa acción. Si quieres, te propongo otra alternativa.'
+      }
+      return `Tengo una acción pendiente: ${pendingAction.summary}. ¿La confirmas? (responde "sí" para ejecutar o "no" para cancelar).`
+    }
     
     // Usar el nuevo motor de IA para análisis avanzado
-    const intentAnalysis = analyzeIntent(question, allProperties, contextRef.current)
+    const intentAnalysisBase = analyzeIntent(question, allProperties, contextRef.current)
+    const intentAnalysis = mergeIntentWithMemory(intentAnalysisBase)
     
     // ESTRATEGIA HÍBRIDA: Reglas para casos específicos, IA generativa para el resto
     
@@ -431,7 +547,7 @@ export function AIAssistant({
         const furnished = features.some(f => f.includes('amueblado') || f.includes('furnished'))
         const parking = features.some(f => f.includes('estacionamiento') || f.includes('parking') || f.includes('cochera'))
 
-        onSearchFiltersChange({
+        const pendingFilters = {
           location: primaryLocation,
           minPrice,
           maxPrice,
@@ -440,7 +556,34 @@ export function AIAssistant({
           petsAllowed,
           furnished,
           parking,
-        })
+        }
+
+        const hasAnyFilter =
+          Boolean(primaryLocation) ||
+          Boolean(minPrice) ||
+          Boolean(maxPrice) ||
+          Boolean(bedrooms) ||
+          Boolean(bathrooms) ||
+          Boolean(petsAllowed) ||
+          Boolean(furnished) ||
+          Boolean(parking)
+
+        if (hasAnyFilter) {
+          const summaryParts: string[] = []
+          if (primaryLocation) summaryParts.push(`ubicación: ${primaryLocation}`)
+          if (minPrice || maxPrice) summaryParts.push(`precio: ${minPrice ? `$${minPrice}` : 'sin mínimo'} - ${maxPrice ? `$${maxPrice}` : 'sin máximo'}`)
+          if (bedrooms) summaryParts.push(`${bedrooms}+ habitaciones`)
+          if (bathrooms) summaryParts.push(`${bathrooms}+ baños`)
+          if (petsAllowed) summaryParts.push('mascotas')
+          if (furnished) summaryParts.push('amueblado')
+          if (parking) summaryParts.push('estacionamiento')
+
+          pendingActionRef.current = {
+            type: 'apply_filters',
+            payload: pendingFilters,
+            summary: `aplicar filtros (${summaryParts.join(', ')})`,
+          }
+        }
       }
 
       const responseContext: ResponseContext = {
@@ -466,12 +609,24 @@ export function AIAssistant({
       ) {
         const targetId = intentAnalysis.entities.properties[0]
         if (onPropertyClick) {
-          onPropertyClick(targetId)
+          const selectedProperty = allProperties.find((p: any) => Number(p.id) === Number(targetId))
+          const propertyTitle = selectedProperty?.title || `#${targetId}`
+          pendingActionRef.current = {
+            type: 'open_property',
+            payload: { propertyId: targetId },
+            summary: `abrir la propiedad ${propertyTitle}`,
+          }
         }
         // Para solicitudes explícitas de visita o pre-calificación, usar callbacks específicos si existen
         const lower = question.toLowerCase()
         if (onRequestVisit && (lower.includes('visita') || lower.includes('ver departamento') || lower.includes('mostrar'))) {
-          onRequestVisit(targetId)
+          const selectedProperty = allProperties.find((p: any) => Number(p.id) === Number(targetId))
+          const propertyTitle = selectedProperty?.title || `#${targetId}`
+          pendingActionRef.current = {
+            type: 'request_visit',
+            payload: { propertyId: targetId },
+            summary: `iniciar solicitud de visita para ${propertyTitle}`,
+          }
         }
         if (
           onStartPrequalification &&
@@ -483,8 +638,18 @@ export function AIAssistant({
             lower.includes('elegible') ||
             lower.includes('elegibilidad'))
         ) {
-          onStartPrequalification(targetId)
+          const selectedProperty = allProperties.find((p: any) => Number(p.id) === Number(targetId))
+          const propertyTitle = selectedProperty?.title || `#${targetId}`
+          pendingActionRef.current = {
+            type: 'start_prequalification',
+            payload: { propertyId: targetId },
+            summary: `iniciar pre-calificación para ${propertyTitle}`,
+          }
         }
+      }
+
+      if (pendingActionRef.current) {
+        return `${response}\n\nAntes de ejecutar cambios en la app, ¿confirmas que lo haga? Acción: ${pendingActionRef.current.summary}.`
       }
 
       return response
