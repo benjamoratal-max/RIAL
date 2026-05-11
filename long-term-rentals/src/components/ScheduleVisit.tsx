@@ -87,7 +87,7 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
       onClick={onClose}
     >
       <motion.div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-rial-cream-dark/50 bg-rial-cream shadow-xl dark:border-slate-700 dark:bg-slate-900"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
@@ -96,8 +96,8 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
         <div className="p-6">
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rial-cream-dark/50 dark:bg-slate-800">
+                <Calendar className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -151,8 +151,8 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
                       className={classNames(
                         'px-3 py-2 rounded-xl text-sm font-medium transition-all border',
                         timeSlot === slot.value
-                          ? 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500'
-                          : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500'
+                          ? 'border-rial-navy bg-rial-navy text-rial-cream dark:border-rial-navy dark:bg-rial-navy'
+                          : 'border-rial-cream-dark/50 bg-white text-slate-700 hover:border-rial-gold dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-rial-gold'
                       )}
                     >
                       {t(`scheduleVisit.${slot.labelKey}`)}
@@ -174,8 +174,8 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
                       className={classNames(
                         'flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium transition-all',
                         visitType === value
-                          ? 'bg-blue-600 text-white border-blue-600 dark:bg-blue-500'
-                          : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-400'
+                          ? 'border-rial-navy bg-rial-navy text-rial-cream dark:border-rial-navy dark:bg-rial-navy'
+                          : 'border-rial-cream-dark/50 bg-white text-slate-700 hover:border-rial-gold dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:border-rial-gold'
                       )}
                     >
                       <Icon className="w-4 h-4" />
@@ -193,7 +193,7 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t('scheduleVisit.messagePlaceholder')}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[80px] resize-y"
+                  className="min-h-[80px] w-full resize-y rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-navy focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
                   maxLength={500}
                 />
               </div>

@@ -107,7 +107,7 @@ export function NotificationPanel({ token, user, onClose }: NotificationPanelPro
                 key={notification.id} 
                 className={classNames(
                   'p-3 rounded-xl border',
-                  notification.read ? 'bg-gray-50 dark:bg-gray-700' : 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700'
+                  notification.read ? 'bg-gray-50 dark:bg-gray-700' : 'border-rial-cream-dark/50 bg-rial-cream-dark/40 dark:border-slate-600 dark:bg-slate-800/90'
                 )}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

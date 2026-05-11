@@ -7,6 +7,10 @@ export default {
   darkMode: 'class', // Habilitar modo oscuro basado en clases
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        serif: ['"Fraunces"', 'Georgia', 'serif'],
+      },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',
@@ -44,6 +48,19 @@ export default {
           700: '#1d4ed8',
           800: '#1e40af',
           900: '#1e3a8a',
+        },
+        /** Editorial + professional dark (RIAL) */
+        rial: {
+          navy: '#0B1623',
+          'navy-light': '#152535',
+          cream: '#F5F1E9',
+          'cream-dark': '#E8E2D6',
+          gold: '#C9A227',
+          'gold-soft': '#D4B84A',
+          ink: '#1A1F26',
+          muted: '#5C6570',
+          verified: '#2F6F5E',
+          'verified-soft': '#E6F2EE',
         },
       },
       boxShadow: {

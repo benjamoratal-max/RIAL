@@ -4,32 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster, toast } from 'react-hot-toast'
 import { setAppLanguage, getAppLanguage } from './i18n'
 import { 
-  Bell, 
-  MessageCircle, 
   CreditCard, 
-  Sun, 
-  Moon, 
   Search, 
   MapPin, 
   DollarSign, 
   Star, 
-  Heart, 
-  Share2, 
   Calendar,
-  Users,
   Home,
-  Bed,
-  Bath,
-  Settings,
-  LogOut,
   X,
   Check,
   Send,
-  Info,
-  User,
   AlertTriangle,
-  BarChart3,
-  GitCompare,
   Shield,
   Globe,
   Sparkles
@@ -71,6 +56,7 @@ const ScheduleVisit = lazy(() => import('./components/ScheduleVisit').then(m => 
 
 // Componentes críticos cargados normalmente (necesarios para el render inicial)
 import { AuthPanel } from './components/AuthPanel'
+import { AppSidebar } from './components/AppSidebar'
 import { PropertyCard } from './components/PropertyCard'
 import { useAuth } from './hooks/useAuth'
 import { useDebouncedValue } from './hooks/useDebounce'
@@ -127,7 +113,7 @@ function FiltersBar({ filters, setFilters, onSearch }: any) {
   const { t } = useTranslation()
   return (
     <motion.div 
-      className="p-4 rounded-2xl bg-white/70 dark:bg-gray-800/70 shadow-lg backdrop-blur-sm border border-white/20"
+      className="rounded-2xl border border-rial-cream-dark/40 bg-white/90 p-4 shadow-lg backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/85"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -154,7 +140,7 @@ function FiltersBar({ filters, setFilters, onSearch }: any) {
           icon={<DollarSign className="w-4 h-4" />}
         />
         <select 
-          className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+          className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-navy transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
           value={filters.sort} 
           onChange={e => setFilters({ ...filters, sort: e.target.value })}
         >
@@ -286,18 +272,6 @@ function PropertyDetail({ id, onClose, token, user }: any) {
     return subtitle
   }
 
-  const statCards = [
-    { label: t('propertyDetail.monthlyPrice'), value: `${formatMoney(property.price)} ${t('propertyDetail.perMonth')}` },
-    { label: t('propertyDetail.rooms'), value: `${property.rooms ?? property.bedrooms} ${t('propertyDetail.roomsShort')}` },
-    { label: t('propertyDetail.bedrooms'), value: `${property.bedrooms} ${t('propertyDetail.bedroomsShort')}` },
-    { label: t('propertyDetail.bathrooms'), value: `${property.bathrooms} ${t('propertyDetail.bathroomsShort')}` },
-    { label: t('propertyDetail.beds'), value: `${property.beds}` },
-    { label: t('propertyDetail.area'), value: `${property.area} m²` },
-    { label: t('propertyDetail.parking'), value: property.parking ? `${property.parking}` : t('propertyDetail.noParking') },
-    { label: t('propertyDetail.propertyType'), value: localizePropertyType(property.type) },
-    { label: t('propertyDetail.availability'), value: property.availableNow ? t('propertyDetail.availableNow') : t('propertyDetail.comingSoon') }
-  ]
-
   const amenityGroups = [
     {
       title: isHouseLike ? t('propertyDetail.insideHouse') : t('propertyDetail.insideApt'),
@@ -330,100 +304,207 @@ function PropertyDetail({ id, onClose, token, user }: any) {
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
-      <motion.div 
-        className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-        initial={{ scale: 0.9, opacity: 0 }}
+      <motion.div
+        className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-rial-cream-dark/50 bg-rial-cream p-0 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
+        exit={{ scale: 0.96, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-start gap-4 mb-6">
-          <div className="space-y-2">
-            <div>
-              <p className="text-sm uppercase tracking-wide text-blue-500 font-semibold">{localizeSubtitle(property.subtitle)}</p>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{property.title}</h2>
-              <div className="text-gray-600 dark:text-gray-400 flex items-center mt-1">
-                <MapPin className="w-4 h-4 mr-1" />
-                {property.location}
-              </div>
-            </div>
-            <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="flex items-center">
-                  <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
-                  {averageRating.toFixed(1)} · {reviewsCount} {t('propertyDetail.reviewsCount')}
-                </span>
-                <span
-                  className={classNames(
-                    'inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full font-semibold',
-                    isAvailable
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
-                      : 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300'
-                  )}
-                >
-                  {isAvailable ? t('common.available') : t('common.reserved')}
-                </span>
-              </div>
-              {broker?.isVerifiedBroker && (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 font-semibold">
-                    <Shield className="w-3 h-3" />
-                    {t('propertyDetail.listedByVerifiedBroker')}
-                  </span>
-                  {broker.name && <span>· {broker.name}</span>}
-                  {broker.brokerageName && <span>· {broker.brokerageName}</span>}
-                  {broker.licenseState && (
-                    <span className="text-[11px] opacity-80">
-                      {t('propertyDetail.licenseLabel')}: {broker.licenseType ? `${broker.licenseType} · ` : ''}
-                      {broker.licenseState}
-                      {broker.licenseExpiration && ` · ${t('propertyDetail.licenseExpires')}: ${new Date(broker.licenseExpiration).toLocaleDateString()}`}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-          <Button variant="outline" onClick={onClose} icon={<X className="w-4 h-4" />}>
+        <div className="sticky top-0 z-20 flex justify-end border-b border-rial-cream-dark/40 bg-rial-cream/95 px-4 py-3 backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/90">
+          <Button variant="outline" size="sm" onClick={onClose} icon={<X className="h-4 w-4" />}>
             {t('propertyDetail.close')}
           </Button>
         </div>
 
-        <motion.div 
-          className="mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Suspense fallback={<LoadingSpinner text={t('app.loadingGallery')} />}>
-            <ImageGallery
-              images={property.images || []}
-              title={property.title}
-            />
-          </Suspense>
-        </motion.div>
-
-        <motion.div 
-          className="grid md:grid-cols-4 gap-3 mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          {statCards.map((card, idx) => (
-            <div key={`stat-${idx}-${card.label || 'label'}`} className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/70 border border-gray-100 dark:border-gray-600">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{card.label}</p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">{card.value}</p>
+        <div className="space-y-8 p-4 md:p-6">
+          <motion.div
+            className="flex flex-col gap-8 md:flex-row md:items-start"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <div className="md:max-w-md md:w-[42%] md:shrink-0">
+              <div className="relative overflow-hidden rounded-2xl border border-rial-cream-dark/50 bg-rial-navy/[0.04] dark:border-slate-700 dark:bg-slate-800/40">
+                <Suspense fallback={<LoadingSpinner text={t('app.loadingGallery')} />}>
+                  <ImageGallery images={property.images || []} title={property.title} />
+                </Suspense>
+              </div>
             </div>
-          ))}
-        </motion.div>
+            <div className="min-w-0 flex-1 space-y-5">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rial-muted dark:text-slate-400">
+                  {localizeSubtitle(property.subtitle)} · {property.city}
+                  {property.country ? `, ${property.country}` : ''}
+                </p>
+                <h2 className="mt-2 font-serif text-2xl font-medium leading-tight tracking-tight text-rial-navy md:text-3xl dark:text-rial-cream">
+                  {property.title}
+                </h2>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-rial-muted dark:text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    {property.location}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-current text-amber-500" />
+                    {averageRating.toFixed(1)} · {reviewsCount} {t('propertyDetail.reviewsCount')}
+                  </span>
+                  <span
+                    className={classNames(
+                      'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                      isAvailable
+                        ? 'bg-rial-verified-soft text-rial-verified dark:bg-emerald-900/40 dark:text-emerald-200'
+                        : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200'
+                    )}
+                  >
+                    {isAvailable ? t('common.available') : t('common.reserved')}
+                  </span>
+                </div>
+                {broker?.isVerifiedBroker && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-rial-verified dark:text-emerald-300">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 font-semibold dark:bg-emerald-900/40">
+                      <Shield className="h-3 w-3" />
+                      {t('propertyDetail.listedByVerifiedBroker')}
+                    </span>
+                    {broker.name && <span>· {broker.name}</span>}
+                    {broker.brokerageName && <span>· {broker.brokerageName}</span>}
+                    {broker.licenseState && (
+                      <span className="text-[11px] opacity-80">
+                        {t('propertyDetail.licenseLabel')}: {broker.licenseType ? `${broker.licenseType} · ` : ''}
+                        {broker.licenseState}
+                        {broker.licenseExpiration &&
+                          ` · ${t('propertyDetail.licenseExpires')}: ${new Date(broker.licenseExpiration).toLocaleDateString()}`}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
-        <motion.div 
-          className="grid md:grid-cols-3 gap-6 mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="md:col-span-2 space-y-4">
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+              <div className="flex flex-col gap-4 border-b border-rial-cream-dark/40 pb-5 dark:border-slate-700 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="font-serif text-3xl tracking-tight text-rial-navy dark:text-rial-cream md:text-4xl">
+                    {formatMoney(property.price)}
+                    <span className="ml-2 align-baseline font-sans text-base font-medium text-rial-muted dark:text-slate-400">
+                      {t('propertyDetail.perMonth')}
+                    </span>
+                  </p>
+                  {rentAvailable && (
+                    <p className="mt-1 text-sm text-rial-muted dark:text-slate-400">
+                      {t('propertyDetail.deposit')}: {formatMoney(property.deposit)} · {t('propertyDetail.expenses')}:{' '}
+                      {property.hoa ? formatMoney(property.hoa) : t('propertyDetail.included')}
+                    </p>
+                  )}
+                  {buyAvailable && !rentAvailable && (
+                    <p className="mt-1 font-serif text-2xl text-rial-navy dark:text-rial-cream">{formatMoney(property.salePrice)}</p>
+                  )}
+                  {buyAvailable && rentAvailable && (
+                    <p className="mt-2 text-sm text-rial-muted dark:text-slate-400">
+                      {t('propertyDetail.buyDirectOrLeasing')}{' '}
+                      <span className="font-semibold text-rial-ink dark:text-slate-100">{formatMoney(property.salePrice)}</span>
+                    </p>
+                  )}
+                </div>
+                <div className="flex min-w-[200px] shrink-0 flex-col gap-2">
+                  {rentAvailable && (
+                    <Button
+                      variant="navy"
+                      icon={<CreditCard className="h-4 w-4" />}
+                      onClick={async () => {
+                        if (!user) {
+                          toast.error(t('propertyDetail.loginToRent'))
+                          return
+                        }
+                        if (!token) {
+                          toast.error(t('propertyDetail.loginToRent'))
+                          return
+                        }
+                        try {
+                          const status = await api('/api/verification/status', { token })
+                          if (status?.verified !== true) {
+                            toast.error(t('propertyDetail.verifyAccountToRent'))
+                            return
+                          }
+                          setShowRentalProcess(true)
+                        } catch {
+                          toast.error(t('propertyDetail.verifyAccountToRent'))
+                        }
+                      }}
+                    >
+                      {t('propertyDetail.startRental')}
+                    </Button>
+                  )}
+                  {buyAvailable && (
+                    <Button
+                      variant="secondary"
+                      icon={<Home className="h-4 w-4" />}
+                      onClick={async () => {
+                        if (!user) {
+                          toast.error(t('propertyDetail.loginToBuy'))
+                          return
+                        }
+                        if (!token) {
+                          toast.error(t('propertyDetail.loginToBuy'))
+                          return
+                        }
+                        try {
+                          const status = await api('/api/verification/status', { token })
+                          if (status?.verified !== true) {
+                            toast.error(t('propertyDetail.verifyAccountToBuy'))
+                            return
+                          }
+                          setShowPurchaseProcess(true)
+                        } catch {
+                          toast.error(t('propertyDetail.verifyAccountToBuy'))
+                        }
+                      }}
+                    >
+                      {t('propertyDetail.wantToBuy')}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    icon={<Calendar className="h-4 w-4" />}
+                    onClick={() => {
+                      if (!user || !token) {
+                        toast.error(t('scheduleVisit.loginRequired'))
+                        return
+                      }
+                      setShowScheduleVisit(true)
+                    }}
+                  >
+                    {t('propertyDetail.scheduleVisit')}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 text-sm text-rial-ink/90 dark:text-slate-200">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1.5 ring-1 ring-rial-cream-dark/40 dark:bg-slate-800/80 dark:ring-slate-600">
+                  <Home className="h-4 w-4 text-rial-navy dark:text-rial-gold" />
+                  {property.rooms ?? property.bedrooms} {t('propertyDetail.roomsShort')}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1.5 ring-1 ring-rial-cream-dark/40 dark:bg-slate-800/80 dark:ring-slate-600">
+                  {property.bedrooms} {t('propertyDetail.bedroomsShort')}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1.5 ring-1 ring-rial-cream-dark/40 dark:bg-slate-800/80 dark:ring-slate-600">
+                  {property.bathrooms} {t('propertyDetail.bathroomsShort')}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1.5 ring-1 ring-rial-cream-dark/40 dark:bg-slate-800/80 dark:ring-slate-600">
+                  {property.area} m²
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1.5 ring-1 ring-rial-cream-dark/40 dark:bg-slate-800/80 dark:ring-slate-600">
+                  {localizePropertyType(property.type)}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            className="space-y-4"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+          >
+            <p className="leading-relaxed text-rial-ink/90 dark:text-slate-200">
               {i18n.language === 'en' && (property as any).descriptionEn
                 ? (property as any).descriptionEn
                 : property.description}
@@ -433,118 +514,37 @@ function PropertyDetail({ id, onClose, token, user }: any) {
                 {property.highlights
                   .filter((highlight: string) => Boolean(highlight && highlight.trim()))
                   .map((highlight: string, idx: number) => (
-                  <span key={`highlight-${idx}-${highlight}`} className="text-xs font-medium px-3 py-1 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
-                    {highlight}
-                  </span>
-                ))}
+                    <span
+                      key={`highlight-${idx}-${highlight}`}
+                      className="rounded-full bg-rial-navy/5 px-3 py-1 text-xs font-medium text-rial-navy ring-1 ring-rial-cream-dark/50 dark:bg-slate-800 dark:text-rial-cream dark:ring-slate-600"
+                    >
+                      {highlight}
+                    </span>
+                  ))}
               </div>
             )}
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               {detailFacts.map((fact, idx) => (
-                <div key={`fact-${idx}-${fact.label || 'label'}`} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-100 dark:border-gray-600">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{fact.label}</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{fact.value}</p>
+                <div
+                  key={`fact-${idx}-${fact.label || 'label'}`}
+                  className="rounded-xl border border-rial-cream-dark/40 bg-white/60 p-3 dark:border-slate-700 dark:bg-slate-800/60"
+                >
+                  <p className="text-xs font-medium uppercase tracking-wide text-rial-muted dark:text-slate-400">{fact.label}</p>
+                  <p className="text-sm font-semibold text-rial-ink dark:text-slate-100">{fact.value}</p>
                 </div>
               ))}
             </div>
-          </div>
-          <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/70 border border-gray-100 dark:border-gray-700 space-y-4">
-            <div>
-              <p className="text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{t('propertyDetail.contractOptions')}</p>
-              {rentAvailable && (
-                <div className="mb-3">
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatMoney(property.price)} {t('propertyDetail.perMonth')}</div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('propertyDetail.deposit')}: {formatMoney(property.deposit)} · {t('propertyDetail.expenses')}: {property.hoa ? formatMoney(property.hoa) : t('propertyDetail.included')}</p>
-                </div>
-              )}
-              {buyAvailable && (
-                <div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white">{formatMoney(property.salePrice)}</div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('propertyDetail.buyDirectOrLeasing')}</p>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              {rentAvailable && (
-                <Button 
-                  icon={<CreditCard className="w-4 h-4" />}
-                  onClick={async () => {
-                    if (!user) {
-                      toast.error(t('propertyDetail.loginToRent'))
-                      return
-                    }
-                    if (!token) {
-                      toast.error(t('propertyDetail.loginToRent'))
-                      return
-                    }
-                    try {
-                      const status = await api('/api/verification/status', { token })
-                      if (status?.verified !== true) {
-                        toast.error(t('propertyDetail.verifyAccountToRent'))
-                        return
-                      }
-                      setShowRentalProcess(true)
-                    } catch {
-                      toast.error(t('propertyDetail.verifyAccountToRent'))
-                    }
-                  }}
-                >
-                  {t('propertyDetail.startRental')}
-                </Button>
-              )}
-              {buyAvailable && (
-                <Button
-                  variant="secondary"
-                  icon={<Home className="w-4 h-4" />}
-                  onClick={async () => {
-                    if (!user) {
-                      toast.error(t('propertyDetail.loginToBuy'))
-                      return
-                    }
-                    if (!token) {
-                      toast.error(t('propertyDetail.loginToBuy'))
-                      return
-                    }
-                    try {
-                      const status = await api('/api/verification/status', { token })
-                      if (status?.verified !== true) {
-                        toast.error(t('propertyDetail.verifyAccountToBuy'))
-                        return
-                      }
-                      setShowPurchaseProcess(true)
-                    } catch {
-                      toast.error(t('propertyDetail.verifyAccountToBuy'))
-                    }
-                  }}
-                >
-                  {t('propertyDetail.wantToBuy')}
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                icon={<Calendar className="w-4 h-4" />}
-                onClick={() => {
-                  if (!user || !token) {
-                    toast.error(t('scheduleVisit.loginRequired'))
-                    return
-                  }
-                  setShowScheduleVisit(true)
-                }}
-              >
-                {t('propertyDetail.scheduleVisit')}
-              </Button>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
         <motion.div 
-          className="grid md:grid-cols-3 gap-4 mb-6"
+          className="mb-6 grid gap-4 px-4 md:grid-cols-3 md:px-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
         >
           {amenityGroups.map((group, groupIdx) => (
-            <div key={`amenity-group-${groupIdx}-${group.title || 'group'}`} className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/70 border border-gray-100 dark:border-gray-600">
+            <div key={`amenity-group-${groupIdx}-${group.title || 'group'}`} className="rounded-2xl border border-rial-cream-dark/40 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-800/70">
               <h4 className="font-semibold text-gray-900 dark:text-white mb-3">{group.title}</h4>
               {group.items.length ? (
                 <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
@@ -669,7 +669,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
                     key={n}
                     type="button"
                     onClick={() => setReview({ ...review, rating: n })}
-                    className="flex-shrink-0 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-inset focus:outline-none transition-colors"
+                    className="flex-shrink-0 rounded-lg p-1 transition-colors hover:bg-rial-cream-dark/40 focus:outline-none focus:ring-2 focus:ring-rial-gold focus:ring-inset dark:hover:bg-slate-700"
                     aria-label={`${n} ${t('propertyDetail.stars')}`}
                   >
                     <Star
@@ -862,7 +862,7 @@ function ChatPanel({ token, user, onClose }: any) {
                     onClick={() => setSelectedConversation(conv)}
                     className={classNames(
                       'p-3 rounded-xl cursor-pointer mb-2',
-                      selectedConversation?.userId === conv.userId ? 'bg-blue-100 dark:bg-blue-900' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                      selectedConversation?.userId === conv.userId ? 'bg-rial-cream-dark/60 dark:bg-slate-800' : 'hover:bg-rial-cream-dark/30 dark:hover:bg-slate-800/80'
                     )}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -873,7 +873,7 @@ function ChatPanel({ token, user, onClose }: any) {
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(conv.lastMessageTime).toLocaleString()}
                       {conv.unreadCount > 0 && (
-                        <span className="ml-2 bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs">
+                        <span className="ml-2 rounded-full bg-rial-navy px-2 py-0.5 text-xs text-rial-cream ring-1 ring-rial-gold/40">
                           {conv.unreadCount}
                         </span>
                       )}
@@ -910,8 +910,8 @@ function ChatPanel({ token, user, onClose }: any) {
                       className={classNames(
                         'max-w-[70%] p-3 rounded-xl',
                         message.senderId === user.id
-                          ? 'ml-auto bg-blue-500 text-white dark:bg-blue-600'
-                          : 'bg-gray-100 dark:bg-gray-700'
+                          ? 'ml-auto bg-rial-navy text-rial-cream'
+                          : 'bg-rial-cream-dark/50 text-rial-ink dark:bg-slate-800 dark:text-slate-200'
                       )}
                       initial={{ opacity: 0, x: message.senderId === user.id ? 20 : -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -920,7 +920,7 @@ function ChatPanel({ token, user, onClose }: any) {
                       <div className="text-sm">{message.content}</div>
                       <div className={classNames(
                         'text-xs mt-1',
-                        message.senderId === user.id ? 'text-blue-100 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                        message.senderId === user.id ? 'text-rial-cream/80 dark:text-slate-300' : 'text-rial-muted dark:text-slate-400'
                       )}>
                         {new Date(message.createdAt).toLocaleString()}
                       </div>
@@ -1236,13 +1236,53 @@ export default function App() {
     }
   }, [token, loadCounters])
 
-
+  const scrollToExplore = useCallback(() => {
+    setShowMap(false)
+    requestAnimationFrame(() => {
+      document.getElementById('rial-explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [])
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 text-slate-900 dark:text-white transition-colors duration-300`}>
+    <div className="flex min-h-screen bg-rial-cream font-sans text-rial-ink transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+      <AppSidebar
+        user={user}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        showMap={showMap}
+        onToggleMap={() => setShowMap(!showMap)}
+        onScrollHome={scrollToExplore}
+        notificationCount={notificationCount}
+        messageCount={messageCount}
+        onOpenNotifications={() => setShowNotifications(true)}
+        onOpenChat={() => setShowChat(true)}
+        onOpenPayments={() => setShowPayments(true)}
+        onOpenAlerts={() => setShowAlerts(true)}
+        onOpenComparison={() => setShowComparison(true)}
+        onOpenProfile={() => setShowUserProfile(true)}
+        onOpenOwnerLeads={() => setShowOwnerLeads(true)}
+        onOpenBrokerLeads={() => setShowBrokerLeads(true)}
+        onOpenAnalytics={() => setShowAnalytics(true)}
+        onOpenAdminRequests={() => setShowAdminRequests(true)}
+        favoritesSlot={
+          user && token ? (
+            <Suspense fallback={null}>
+              <FavoritesSystem
+                token={token}
+                user={user}
+                onPropertyClick={(id) => setOpenId(id)}
+                properties={items}
+                rail
+              />
+            </Suspense>
+          ) : null
+        }
+      />
+
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <style>{`
-        .input{ @apply w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200; }
-        .btn-primary{ @apply px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200; }
+        .input{ @apply w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-rial-gold focus:border-transparent transition-all duration-200; }
+        .btn-primary{ @apply px-4 py-2 rounded-xl bg-rial-navy text-rial-cream hover:bg-rial-navy-light focus:outline-none focus:ring-2 focus:ring-rial-gold focus:ring-offset-2 transition-all duration-200; }
         .btn-secondary{ @apply px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200; }
       `}</style>
 
@@ -1251,203 +1291,54 @@ export default function App() {
         toastOptions={{
           duration: 4000,
           style: {
-            background: darkMode ? '#374151' : '#fff',
-            color: darkMode ? '#fff' : '#000',
-            border: `1px solid ${darkMode ? '#4B5563' : '#E5E7EB'}`,
+            background: darkMode ? '#0f172a' : '#F5F1E9',
+            color: darkMode ? '#f1f5f9' : '#1A1F26',
+            border: `1px solid ${darkMode ? '#334155' : '#E8E2D6'}`,
           },
         }}
       />
 
-      <header className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-        <motion.div 
-          className="flex items-center gap-3"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-          <img
-            src="/rial-logo.png"
-            alt="RIAL - Real Estate AI"
-            className="h-12 w-12 rounded-full object-cover"
-          />
-          <div>
-            <div className="font-semibold text-xl text-gray-900 dark:text-white">{t('app.name')}</div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('app.tagline')}</p>
+      <header className="border-b border-rial-cream-dark/50 bg-rial-cream/95 px-4 py-3 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/90">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-rial-muted dark:text-slate-400">
+              {t('app.tagline')}
+            </p>
+            <h1 className="text-lg font-semibold tracking-tight text-rial-navy dark:text-rial-cream">
+              {t('app.name')}
+            </h1>
           </div>
-        </motion.div>
-        
-        <div className="flex items-center gap-4">
-          {user && (
-            <>
-              <motion.button 
-                onClick={() => setShowNotifications(true)}
-                className="relative p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                {notificationCount > 0 && (
-                  <motion.span 
-                    className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  >
-                    {notificationCount}
-                  </motion.span>
-                )}
-              </motion.button>
-              
-              <motion.button 
-                onClick={() => setShowChat(true)}
-                className="relative p-2 rounded-xl bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/30 dark:to-violet-900/30 hover:from-indigo-100 hover:to-violet-100 dark:hover:from-indigo-800/40 dark:hover:to-violet-800/40 transition-all duration-200 shadow-lg backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-700/50"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                title="Asistente virtual - ¿Necesitas ayuda?"
-              >
-                <MessageCircle className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                {messageCount > 0 && (
-                  <motion.span 
-                    className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  >
-                    {messageCount}
-                  </motion.span>
-                )}
-              </motion.button>
-              
-              <motion.button 
-                onClick={() => setShowPayments(true)}
-                className="p-2 rounded-xl bg-white/60 dark:bg-gray-800/60 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-all duration-200 border border-dashed border-gray-200 dark:border-gray-700"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                <CreditCard className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              </motion.button>
-
-              <Suspense fallback={null}>
-                <FavoritesSystem 
-                  token={token} 
-                  user={user} 
-                  onPropertyClick={(id) => setOpenId(id)}
-                  properties={items}
-                />
-              </Suspense>
-
-              <motion.button 
-                onClick={() => setShowAlerts(true)}
-                className="p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                title={t('alerts.title')}
-              >
-                <AlertTriangle className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </motion.button>
-
-              {(user?.role === 'owner' || user?.role === 'admin') && (
-                <>
-                  <motion.button 
-                onClick={() => {
-                  if (user?.role === 'broker' || user?.role === 'broker_admin') {
-                    setShowBrokerLeads(true)
-                  } else {
-                    setShowOwnerLeads(true)
-                  }
-                }}
-                    className="p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    title={t('ownerLeads.title')}
-                  >
-                    <Users className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  </motion.button>
-                  <motion.button 
-                    onClick={() => setShowAnalytics(true)}
-                    className="p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    title={t('analytics.title')}
-                  >
-                    <BarChart3 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  </motion.button>
-                </>
-              )}
-              {user?.role === 'admin' && (
-                <motion.button 
-                  onClick={() => setShowAdminRequests(true)}
-                  className="p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  title={t('adminRequests.title')}
-                >
-                  <Shield className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                </motion.button>
-              )}
-
-              <motion.button 
-                onClick={() => setShowComparison(true)}
-                className="p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                title={t('comparator.title')}
-              >
-                <GitCompare className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </motion.button>
-
-              <motion.button 
-                onClick={() => setShowUserProfile(true)}
-                className="p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <User className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </motion.button>
-
-              <motion.button 
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {darkMode ? <Sun className="w-5 h-5 text-gray-700 dark:text-gray-300" /> : <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />}
-              </motion.button>
-            </>
-          )}
-
-          {/* Selector de idioma: siempre visible para poder cambiar antes de iniciar sesión o registrarse */}
-          <div className="flex items-center gap-2">
-            <Globe className="w-5 h-5 text-gray-600 dark:text-gray-400" aria-hidden />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Globe className="h-4 w-4 shrink-0 text-rial-muted dark:text-slate-400" aria-hidden />
             <select
               value={getAppLanguage()}
               onChange={(e) => setAppLanguage(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              className="rounded-xl border border-rial-cream-dark/60 bg-white px-3 py-2 text-sm text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
               title={t('profile.language')}
               aria-label={t('profile.language')}
             >
               <option value="es">{t('profile.spanish')}</option>
               <option value="en">{t('profile.english')}</option>
             </select>
-          </div>
-          
-          <div className="w-full max-w-xl">
-            <AuthPanel 
-              user={user} 
-              token={token} 
-              requires2FA={requires2FA}
-              twoFactorMethod={twoFactorMethod}
-              onLogin={onLogin} 
-              onVerify2FA={verify2FA}
-              onLogout={onLogout} 
-              onRegister={onRegister} 
-            />
+            <div className="min-w-0 max-w-full sm:max-w-xl">
+              <AuthPanel
+                user={user}
+                token={token}
+                requires2FA={requires2FA}
+                twoFactorMethod={twoFactorMethod}
+                onLogin={onLogin}
+                onVerify2FA={verify2FA}
+                onLogout={onLogout}
+                onRegister={onRegister}
+              />
+            </div>
           </div>
         </div>
       </header>
 
       {/* Navegación por rol: renta / broker / compliance */}
       {user && (
-        <nav className="max-w-6xl mx-auto px-4 pb-3">
+        <nav className="mx-auto max-w-6xl border-b border-rial-cream-dark/40 bg-rial-cream/60 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/40">
           {user.role === 'tenant' && (
             <div className="flex flex-wrap gap-2 text-xs">
               {[
@@ -1464,8 +1355,8 @@ export default function App() {
                   className={classNames(
                     'px-3 py-1 rounded-full border text-xs',
                     renterNav === item.key
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white/70 dark:bg-gray-800/70 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream'
+                      : 'border-rial-cream-dark/40 bg-white text-rial-ink dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
                   )}
                   onClick={() => {
                     const k = item.key as RenterNavKey
@@ -1510,8 +1401,8 @@ export default function App() {
                   className={classNames(
                     'px-3 py-1 rounded-full border text-xs',
                     brokerNav === item.key
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white/70 dark:bg-gray-800/70 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream'
+                      : 'border-rial-cream-dark/40 bg-white text-rial-ink dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
                   )}
                   onClick={() => {
                     const k = item.key as BrokerNavKey
@@ -1549,8 +1440,8 @@ export default function App() {
                   className={classNames(
                     'px-3 py-1 rounded-full border text-xs',
                     complianceNav === item.key
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white/70 dark:bg-gray-800/70 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream'
+                      : 'border-rial-cream-dark/40 bg-white text-rial-ink dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
                   )}
                   onClick={() => {
                     const k = item.key as ComplianceNavKey
@@ -1596,7 +1487,8 @@ export default function App() {
         </nav>
       )}
 
-      <main className="max-w-6xl mx-auto px-4 pb-16 space-y-6">
+      <main className="mx-auto max-w-6xl flex-1 space-y-6 px-4 pb-16">
+        <div id="rial-explore">
         <Suspense fallback={<LoadingSpinner text={t('app.loadingFilters')} />}>
           <AdvancedFilters
             filters={filters}
@@ -1615,6 +1507,7 @@ export default function App() {
             onToggleMap={useCallback(() => setShowMap(!showMap), [showMap])}
           />
         </Suspense>
+        </div>
 
         <Suspense fallback={null}>
           <CreatePropertyForm token={token} currentUser={user} onCreated={useCallback(() => load(filters), [load, filters])} />
@@ -1776,29 +1669,31 @@ export default function App() {
         )}
       </main>
 
-      {/* Botón flotante del Asistente IA - visible y fácil de encontrar */}
-      {user && !showChat && (
+      {/* Asistente IA flotante (marca RIAL: navy + dorado) */}
+      {!showChat && (
         <motion.button
           onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl border-0 text-white font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400"
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-3 rounded-2xl border border-rial-gold/50 px-5 py-3.5 font-medium text-white shadow-xl focus:outline-none focus:ring-2 focus:ring-rial-gold focus:ring-offset-2 focus:ring-offset-rial-cream dark:focus:ring-offset-slate-950"
           style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
-            boxShadow: '0 10px 40px -10px rgba(99, 102, 241, 0.5), 0 0 0 1px rgba(255,255,255,0.1) inset'
+            background: 'linear-gradient(135deg, #D4B84A 0%, #C9A227 40%, #0B1623 100%)',
+            boxShadow: '0 12px 40px -12px rgba(11, 22, 35, 0.45)',
           }}
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8 }}
-          whileHover={{ scale: 1.05, boxShadow: '0 14px 50px -10px rgba(99, 102, 241, 0.6)' }}
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.98 }}
           title="Abrir asistente virtual"
         >
-          <span className="relative flex">
-            <Sparkles className="w-6 h-6" />
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" aria-hidden />
+          <span className="relative flex text-white">
+            <Sparkles className="h-6 w-6" />
+            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 animate-pulse rounded-full bg-emerald-400" aria-hidden />
           </span>
-          <span className="hidden sm:inline">¿Necesitas ayuda?</span>
+          <span className="hidden max-w-[10rem] truncate text-sm sm:inline">¿Necesitas ayuda?</span>
         </motion.button>
       )}
+
+      </div>
 
       <AnimatePresence>
         {openId && <PropertyDetail id={openId} onClose={handleClosePropertyDetail} token={token} user={user} />}

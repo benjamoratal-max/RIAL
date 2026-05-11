@@ -287,9 +287,9 @@ export function PhoneInput({
             className={classNames(
               "flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700",
               "bg-white dark:bg-gray-800 text-gray-900 dark:text-white",
-              "focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200",
+              "focus:outline-none focus:ring-2 focus:ring-rial-gold transition-all duration-200",
               "min-w-[100px] justify-between",
-              disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-500"
+              disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-rial-gold"
             )}
           >
             <div className="flex items-center gap-2">
@@ -325,7 +325,7 @@ export function PhoneInput({
                     placeholder="Buscar país..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-navy focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
                     autoFocus
                   />
                 </div>
@@ -344,7 +344,7 @@ export function PhoneInput({
                         onClick={() => handleCountrySelect(country)}
                         className={classNames(
                           "w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
-                          selectedCountry.code === country.code && "bg-blue-50 dark:bg-blue-900/20"
+                          selectedCountry.code === country.code && "bg-rial-cream-dark/50 dark:bg-slate-700/80"
                         )}
                       >
                         <span 
@@ -370,7 +370,7 @@ export function PhoneInput({
                           </div>
                         </div>
                         {selectedCountry.code === country.code && (
-                          <span className="text-blue-500 flex-shrink-0">✓</span>
+                          <span className="flex-shrink-0 text-rial-gold">✓</span>
                         )}
                       </button>
                     ))
@@ -396,7 +396,7 @@ export function PhoneInput({
             className={classNames(
               "w-full pl-10 pr-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700",
               "bg-white dark:bg-gray-800 text-gray-900 dark:text-white",
-              "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+              "focus:outline-none focus:ring-2 focus:ring-rial-gold focus:border-transparent",
               "transition-all duration-200",
               disabled && "opacity-50 cursor-not-allowed"
             )}

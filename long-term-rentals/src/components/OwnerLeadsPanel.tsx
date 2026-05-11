@@ -79,7 +79,7 @@ export function OwnerLeadsPanel({ token, onClose }: OwnerLeadsPanelProps) {
       >
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" />
+            <Users className="h-6 w-6 text-rial-navy dark:text-rial-gold" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('ownerLeads.title')}</h2>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />} />

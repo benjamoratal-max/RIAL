@@ -25,11 +25,13 @@ interface FavoritesSystemProps {
   user: any
   onPropertyClick: (id: number) => void
   properties?: any[] // Propiedades disponibles para construir favoritos completos
+  /** Botón compacto para barra lateral navy (RIAL editorial) */
+  rail?: boolean
 }
 
 const FAVORITES_API_ENABLED = false
 
-export function FavoritesSystem({ token, user, onPropertyClick, properties = [] }: FavoritesSystemProps) {
+export function FavoritesSystem({ token, user, onPropertyClick, properties = [], rail = false }: FavoritesSystemProps) {
   const [favorites, setFavorites] = useState<FavoriteProperty[]>([])
   const [loading, setLoading] = useState(true)
   const [showFavorites, setShowFavorites] = useState(false)
@@ -238,11 +240,16 @@ export function FavoritesSystem({ token, user, onPropertyClick, properties = [] 
       {/* Botón de favoritos en header */}
       <motion.button
         onClick={() => setShowFavorites(true)}
-        className="relative p-2 rounded-xl bg-white/70 dark:bg-gray-800/70 hover:bg-white/90 dark:hover:bg-gray-700/90 transition-all duration-200 shadow-lg backdrop-blur-sm"
+        title="Favoritos"
+        className={
+          rail
+            ? 'relative flex h-11 w-11 items-center justify-center rounded-xl text-rial-cream/70 transition-colors hover:bg-rial-navy-light hover:text-rial-cream focus:outline-none focus-visible:ring-2 focus-visible:ring-rial-gold focus-visible:ring-offset-2 focus-visible:ring-offset-rial-navy'
+            : 'relative rounded-xl border border-rial-cream-dark/40 bg-white/90 p-2 shadow-lg backdrop-blur-sm transition-all duration-200 hover:bg-rial-cream dark:border-slate-600 dark:bg-slate-800/90 dark:hover:bg-slate-700/90'
+        }
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <Heart className="w-5 h-5 text-red-500 fill-current" />
+        <Heart className={`w-5 h-5 fill-current ${rail ? 'text-red-400' : 'text-red-500'}`} />
         {favorites.length > 0 && (
           <motion.span 
             className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
@@ -259,14 +266,14 @@ export function FavoritesSystem({ token, user, onPropertyClick, properties = [] 
       <AnimatePresence>
         {showFavorites && (
           <motion.div 
-            className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-rial-navy/45 p-4 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowFavorites(false)}
           >
             <motion.div 
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] overflow-hidden"
+              className="max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-rial-cream-dark/50 bg-rial-cream p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -274,8 +281,8 @@ export function FavoritesSystem({ token, user, onPropertyClick, properties = [] 
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Mis Favoritos</h2>
-                  <p className="text-gray-600 dark:text-gray-400">{favorites.length} propiedades guardadas</p>
+                  <h2 className="text-2xl font-bold text-rial-navy dark:text-rial-cream">Mis Favoritos</h2>
+                  <p className="text-slate-600 dark:text-slate-400">{favorites.length} propiedades guardadas</p>
                 </div>
                 <Button variant="outline" onClick={() => setShowFavorites(false)} icon={<X className="w-4 h-4" />}>
                   Cerrar
@@ -285,7 +292,7 @@ export function FavoritesSystem({ token, user, onPropertyClick, properties = [] 
               {/* Alertas de precio */}
               {priceAlerts.length > 0 && (
                 <motion.div 
-                  className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900 dark:to-blue-900 rounded-xl border border-green-200 dark:border-green-700"
+                  className="mb-6 rounded-xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50 to-rial-cream-dark/40 p-4 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-slate-800/80"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                 >

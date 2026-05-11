@@ -227,10 +227,10 @@ export function BrokerLeadsDashboard({ token, user, onClose }: BrokerLeadsDashbo
 
         {/* Resumen superior + IA Capa 2 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-          <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20">
-            <div className="flex items-center justify-between mb-1">
-              <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-lg font-semibold text-blue-700 dark:text-blue-300">{totalLeads}</span>
+          <div className="rounded-xl border border-rial-cream-dark/40 bg-rial-cream-dark/35 p-3 dark:border-slate-600 dark:bg-slate-800/70">
+            <div className="mb-1 flex items-center justify-between">
+              <Users className="h-4 w-4 text-rial-navy dark:text-rial-gold" />
+              <span className="text-lg font-semibold font-serif text-rial-navy dark:text-rial-cream">{totalLeads}</span>
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-400">{t('brokerLeads.totalLeads')}</div>
           </div>
@@ -347,7 +347,7 @@ export function BrokerLeadsDashboard({ token, user, onClose }: BrokerLeadsDashbo
                               </div>
                             )}
                             {aiSummaries[lead.id] && (
-                              <div className="mt-1 p-2 rounded-lg bg-blue-50/70 dark:bg-blue-900/20 text-[11px] text-gray-700 dark:text-gray-200 whitespace-pre-line">
+                              <div className="mt-1 rounded-lg border border-rial-cream-dark/30 bg-rial-cream-dark/30 p-2 text-[11px] text-gray-700 whitespace-pre-line dark:border-slate-600 dark:bg-slate-800/60 dark:text-gray-200">
                                 {aiSummaries[lead.id]}
                               </div>
                             )}

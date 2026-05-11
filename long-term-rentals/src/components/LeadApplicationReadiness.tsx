@@ -172,7 +172,7 @@ export function LeadApplicationReadiness({ token, leadId, role, onClose }: LeadA
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <FileText className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
             <div>
               <div className="text-sm font-semibold text-gray-900 dark:text-white">
                 {t('applicationReadiness.title')}
@@ -226,7 +226,7 @@ export function LeadApplicationReadiness({ token, leadId, role, onClose }: LeadA
                           href={doc.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[11px] text-blue-600 dark:text-blue-400 underline truncate"
+                          className="truncate text-[11px] text-rial-navy underline hover:text-rial-gold dark:text-rial-gold dark:hover:text-rial-cream"
                         >
                           Ver archivo
                         </a>
@@ -240,7 +240,7 @@ export function LeadApplicationReadiness({ token, leadId, role, onClose }: LeadA
                         doc.status === 'approved'
                           ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-200'
                           : doc.status === 'received'
-                          ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200'
+                          ? 'bg-rial-cream-dark/60 text-rial-navy dark:bg-slate-700 dark:text-rial-gold'
                           : doc.status === 'rejected'
                           ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-200'
                           : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-200'

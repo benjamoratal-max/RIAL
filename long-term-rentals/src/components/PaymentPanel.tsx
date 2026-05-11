@@ -124,7 +124,7 @@ export function PaymentPanel({ token, user, onClose }: PaymentPanelProps) {
               <div className="text-sm text-gray-600 dark:text-gray-400">{t('payments.pending')}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.successRate.toFixed(1)}%</div>
+              <div className="text-2xl font-bold font-serif text-rial-navy dark:text-rial-gold">{stats.successRate.toFixed(1)}%</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">{t('payments.successRate')}</div>
             </div>
           </motion.div>
@@ -154,7 +154,7 @@ export function PaymentPanel({ token, user, onClose }: PaymentPanelProps) {
                 icon={<DollarSign className="w-4 h-4" />}
               />
               <select
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-navy transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
                 value={paymentForm.paymentMethod}
                 onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
               >

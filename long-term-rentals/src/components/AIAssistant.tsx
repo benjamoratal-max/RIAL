@@ -2162,7 +2162,7 @@ export function AIAssistant({
                               key={`${keyPrefix}-btn`}
                               type="button"
                               onClick={() => onPropertyClick(Number(prop.id))}
-                              className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline cursor-pointer text-left"
+                              className="cursor-pointer text-left font-semibold text-rial-navy hover:text-rial-gold hover:underline dark:text-rial-gold dark:hover:text-rial-cream"
                             >
                               {title}
                             </button>,
@@ -2184,7 +2184,7 @@ export function AIAssistant({
                   </div>
                   <div className={classNames(
                     'text-xs mt-2',
-                    message.role === 'user' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                    message.role === 'user' ? 'text-rial-cream/90' : 'text-gray-500 dark:text-gray-400'
                   )}>
                     {message.timestamp.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}
                   </div>

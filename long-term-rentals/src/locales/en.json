@@ -24,7 +24,27 @@
     "loadingListingsReview": "Loading listings for review...",
     "loadingIncidents": "Loading incidents...",
     "loadingSuspensions": "Loading suspensions...",
-    "loadingAuditLogs": "Loading audit logs..."
+    "loadingAuditLogs": "Loading audit logs...",
+    "sidebar": {
+      "mainNav": "Main navigation",
+      "explore": "Browse listings",
+      "map": "Map view",
+      "favorites": "Favorites",
+      "messages": "Messages & assistant",
+      "notifications": "Notifications",
+      "profile": "Profile & account",
+      "more": "More options",
+      "compare": "Compare listings",
+      "payments": "Payments",
+      "alerts": "Alerts",
+      "analytics": "Analytics",
+      "ownerLeads": "Owner leads",
+      "brokerLeads": "Broker leads",
+      "admin": "Admin requests",
+      "themeLight": "Editorial light theme",
+      "themeDark": "Dark theme",
+      "loginRequired": "Sign in to use this feature"
+    }
   },
   "nav": {
     "renter": {

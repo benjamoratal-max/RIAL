@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Trash2, GitCompare } from 'lucide-react'
@@ -152,23 +152,23 @@ export function PropertyComparator({ token, onClose, selectedIds: propSelectedId
 
   return (
     <motion.div
-      className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-rial-navy/45 p-4 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
-        className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-rial-cream-dark/50 bg-rial-cream p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('comparator.title')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <h2 className="text-2xl font-bold text-rial-navy dark:text-rial-cream">{t('comparator.title')}</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
               {t('comparator.subtitle')}
             </p>
           </div>
@@ -180,11 +180,11 @@ export function PropertyComparator({ token, onClose, selectedIds: propSelectedId
         {!comparison ? (
           <div className="flex-1 overflow-y-auto">
             <div className="mb-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
                 {t('comparator.selectUpTo')}
               </p>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="text-sm text-slate-600 dark:text-slate-400">
                   {t('comparator.selectedCount')}: {selectedIds.length}/{maxSelections}
                 </span>
                 {selectedIds.length >= 2 && (
@@ -199,8 +199,8 @@ export function PropertyComparator({ token, onClose, selectedIds: propSelectedId
                 )}
               </div>
             </div>
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-              <GitCompare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <div className="py-8 text-center text-slate-500 dark:text-slate-400">
+              <GitCompare className="mx-auto mb-4 h-12 w-12 opacity-50" />
               <p>{t('comparator.selectFromList')}</p>
               <p className="text-sm mt-2">
                 {t('comparator.useCompareButton')}
@@ -209,10 +209,10 @@ export function PropertyComparator({ token, onClose, selectedIds: propSelectedId
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
-            <div className="mb-4 flex justify-between items-center">
+            <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{t('comparator.resultTitle')}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <h3 className="text-lg font-semibold text-rial-navy dark:text-rial-cream">{t('comparator.resultTitle')}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   {comparison.properties.length} {t('comparator.propertiesCompared')}
                 </p>
               </div>
@@ -223,34 +223,34 @@ export function PropertyComparator({ token, onClose, selectedIds: propSelectedId
 
             {/* Resumen de comparación */}
             {comparison.comparison && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <div className="mb-6 grid grid-cols-2 gap-4 rounded-xl border border-rial-cream-dark/40 bg-rial-cream-dark/25 p-4 md:grid-cols-4 dark:border-slate-600 dark:bg-slate-800/60">
                 <div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{t('comparator.averagePrice')}</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                  <div className="text-sm text-slate-600 dark:text-slate-400">{t('comparator.averagePrice')}</div>
+                  <div className="text-lg font-bold font-serif text-rial-navy dark:text-rial-cream">
                     ${comparison.comparison.priceRange.average.toFixed(2)}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     ${comparison.comparison.priceRange.min} - ${comparison.comparison.priceRange.max}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{t('comparator.averageRating')}</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                  <div className="text-sm text-slate-600 dark:text-slate-400">{t('comparator.averageRating')}</div>
+                  <div className="text-lg font-bold text-rial-navy dark:text-rial-cream">
                     {comparison.comparison.ratingRange.average.toFixed(1)} ⭐
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     {comparison.comparison.ratingRange.min} - {comparison.comparison.ratingRange.max}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{t('comparator.available')}</div>
-                  <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                  <div className="text-sm text-slate-600 dark:text-slate-400">{t('comparator.available')}</div>
+                  <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
                     {comparison.comparison.availableCount}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{t('comparator.verified')}</div>
-                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                  <div className="text-sm text-slate-600 dark:text-slate-400">{t('comparator.verified')}</div>
+                  <div className="text-lg font-bold font-serif text-rial-navy dark:text-rial-cream">
                     {comparison.comparison.verifiedCount}
                   </div>
                 </div>
@@ -261,81 +261,81 @@ export function PropertyComparator({ token, onClose, selectedIds: propSelectedId
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left p-3 text-sm font-semibold text-gray-900 dark:text-white">{t('comparator.property')}</th>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <th className="p-3 text-left text-sm font-semibold text-rial-navy dark:text-rial-cream">{t('comparator.property')}</th>
                     {comparison.properties.map((prop: Property) => (
-                      <th key={prop.id} className="text-center p-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      <th key={prop.id} className="p-3 text-center text-sm font-semibold text-rial-navy dark:text-rial-cream">
                         <div className="max-w-[200px]">
-                          <div className="font-medium truncate">{prop.title}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{prop.location}</div>
+                          <div className="truncate font-medium">{prop.title}</div>
+                          <div className="truncate text-xs text-slate-500 dark:text-slate-400">{prop.location}</div>
                         </div>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="p-3 text-sm font-medium text-gray-900 dark:text-white">{t('comparator.price')}</td>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <td className="p-3 text-sm font-medium text-rial-navy dark:text-rial-cream">{t('comparator.price')}</td>
                     {comparison.properties.map((prop: Property) => (
                       <td key={prop.id} className="p-3 text-center">
-                        <div className="font-bold text-gray-900 dark:text-white">${prop.price}</div>
+                        <div className="font-bold font-serif text-rial-navy dark:text-rial-cream">${prop.price}</div>
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="p-3 text-sm font-medium text-gray-900 dark:text-white">{t('comparator.rating')}</td>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <td className="p-3 text-sm font-medium text-rial-navy dark:text-rial-cream">{t('comparator.rating')}</td>
                     {comparison.properties.map((prop: Property) => (
                       <td key={prop.id} className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <span className="font-medium">{prop.averageRating.toFixed(1)}</span>
                           <span className="text-yellow-500">⭐</span>
-                          <span className="text-xs text-gray-500">({prop.reviewsCount})</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">({prop.reviewsCount})</span>
                         </div>
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="p-3 text-sm font-medium text-gray-900 dark:text-white">{t('comparator.bedrooms')}</td>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <td className="p-3 text-sm font-medium text-rial-navy dark:text-rial-cream">{t('comparator.bedrooms')}</td>
                     {comparison.properties.map((prop: Property) => (
-                      <td key={prop.id} className="p-3 text-center text-gray-600 dark:text-gray-400">
+                      <td key={prop.id} className="p-3 text-center text-slate-600 dark:text-slate-400">
                         {prop.bedrooms || '-'}
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="p-3 text-sm font-medium text-gray-900 dark:text-white">{t('comparator.bathrooms')}</td>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <td className="p-3 text-sm font-medium text-rial-navy dark:text-rial-cream">{t('comparator.bathrooms')}</td>
                     {comparison.properties.map((prop: Property) => (
-                      <td key={prop.id} className="p-3 text-center text-gray-600 dark:text-gray-400">
+                      <td key={prop.id} className="p-3 text-center text-slate-600 dark:text-slate-400">
                         {prop.bathrooms || '-'}
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="p-3 text-sm font-medium text-gray-900 dark:text-white">{t('comparator.area')}</td>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <td className="p-3 text-sm font-medium text-rial-navy dark:text-rial-cream">{t('comparator.area')}</td>
                     {comparison.properties.map((prop: Property) => (
-                      <td key={prop.id} className="p-3 text-center text-gray-600 dark:text-gray-400">
+                      <td key={prop.id} className="p-3 text-center text-slate-600 dark:text-slate-400">
                         {prop.area ? `${prop.area} m²` : '-'}
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="p-3 text-sm font-medium text-gray-900 dark:text-white">{t('comparator.type')}</td>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <td className="p-3 text-sm font-medium text-rial-navy dark:text-rial-cream">{t('comparator.type')}</td>
                     {comparison.properties.map((prop: Property) => (
-                      <td key={prop.id} className="p-3 text-center text-gray-600 dark:text-gray-400">
+                      <td key={prop.id} className="p-3 text-center text-slate-600 dark:text-slate-400">
                         {prop.propertyType || '-'}
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="p-3 text-sm font-medium text-gray-900 dark:text-white">{t('comparator.availability')}</td>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <td className="p-3 text-sm font-medium text-rial-navy dark:text-rial-cream">{t('comparator.availability')}</td>
                     {comparison.properties.map((prop: Property) => (
                       <td key={prop.id} className="p-3 text-center">
                         <span
                           className={classNames(
                             'px-2 py-1 rounded-full text-xs font-medium',
                             prop.isAvailable
-                              ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-                              : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
+                              ? 'bg-emerald-100/90 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                              : 'bg-rose-100/90 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
                           )}
                         >
                           {prop.isAvailable ? t('comparator.availableLabel') : t('comparator.occupied')}
@@ -343,16 +343,16 @@ export function PropertyComparator({ token, onClose, selectedIds: propSelectedId
                       </td>
                     ))}
                   </tr>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="p-3 text-sm font-medium text-gray-900 dark:text-white">{t('comparator.verifiedLabel')}</td>
+                  <tr className="border-b border-rial-cream-dark/50 dark:border-slate-600">
+                    <td className="p-3 text-sm font-medium text-rial-navy dark:text-rial-cream">{t('comparator.verifiedLabel')}</td>
                     {comparison.properties.map((prop: Property) => (
                       <td key={prop.id} className="p-3 text-center">
                         {prop.verified ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100/90 px-2 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                             ✓ {t('comparator.verifiedLabel')}
                           </span>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-slate-400 dark:text-slate-500">-</span>
                         )}
                       </td>
                     ))}
@@ -376,10 +376,10 @@ export function CompareButton({ propertyId, onSelect }: { propertyId: number; on
         e.stopPropagation()
         onSelect(propertyId)
       }}
-      className="p-2 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-all"
+      className="rounded-full border border-rial-cream-dark/30 bg-white/95 p-2 shadow-lg backdrop-blur-sm transition-all hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800/95 dark:hover:bg-slate-700"
       title={t('comparator.addToCompare')}
     >
-      <GitCompare className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+      <GitCompare className="h-4 w-4 text-rial-navy dark:text-rial-gold" />
     </button>
   )
 }

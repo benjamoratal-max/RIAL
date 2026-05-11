@@ -104,7 +104,7 @@ export function AdminRequestsPanel({ token, onClose, onApproved }: AdminRequests
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin text-rial-gold" />
           </div>
         ) : pending.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">

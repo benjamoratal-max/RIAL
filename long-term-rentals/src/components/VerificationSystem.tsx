@@ -166,7 +166,7 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
     <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <Shield className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
           <h3 className="font-semibold text-gray-900 dark:text-white">Verificación de Cuenta</h3>
         </div>
         {isVerified ? (
@@ -227,9 +227,9 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setSelectedMethod('email')}
-                  className="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all text-left"
+                  className="rounded-lg border-2 border-rial-cream-dark/50 p-4 text-left transition-all hover:border-rial-gold dark:border-slate-600 dark:hover:border-rial-gold"
                 >
-                  <Mail className="w-6 h-6 text-blue-500 mb-2" />
+                  <Mail className="mb-2 h-6 w-6 text-rial-navy dark:text-rial-gold" />
                   <p className="font-medium text-gray-900 dark:text-white">Por Email</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {emailVerified ? '✅ Verificado' : 'Código por email'}
@@ -238,9 +238,9 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
 
                 <button
                   onClick={() => setSelectedMethod('document')}
-                  className="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-all text-left"
+                  className="rounded-lg border-2 border-rial-cream-dark/50 p-4 text-left transition-all hover:border-rial-gold dark:border-slate-600 dark:hover:border-rial-gold"
                 >
-                  <FileText className="w-6 h-6 text-blue-500 mb-2" />
+                  <FileText className="mb-2 h-6 w-6 text-rial-navy dark:text-rial-gold" />
                   <p className="font-medium text-gray-900 dark:text-white">Por Documento</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {documentVerified ? '✅ Verificado' : 'DNI, Pasaporte o Licencia'}
@@ -348,7 +348,7 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
                     Tipo de documento
                   </label>
                   <select
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-navy focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
                     value={documentType}
                     onChange={(e) => setDocumentType(e.target.value as any)}
                   >
@@ -390,8 +390,8 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
                   </p>
                 </div>
 
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs text-blue-800 dark:text-blue-200">
+                <div className="rounded-lg border border-rial-cream-dark/50 bg-rial-cream-dark/30 p-3 dark:border-slate-600 dark:bg-slate-800/70">
+                  <p className="text-xs text-rial-navy dark:text-rial-cream">
                     ℹ️ Solo se aceptan documentos de identidad reales. Se analiza el contenido (OCR) para verificar que sea un DNI, cédula o pasaporte válido y que seas mayor de 18 años.
                   </p>
                 </div>

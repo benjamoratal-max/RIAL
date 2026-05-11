@@ -95,7 +95,7 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <Shield className="h-6 w-6 text-rial-navy dark:text-rial-gold" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {t('compliance.brokerVerificationsTitle')}
@@ -117,7 +117,7 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin text-rial-gold" />
           </div>
         ) : profiles.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 text-sm">

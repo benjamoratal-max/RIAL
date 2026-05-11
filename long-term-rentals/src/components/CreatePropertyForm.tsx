@@ -78,7 +78,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
   if (!canCreate) {
     return (
       <motion.div
-        className="p-4 rounded-2xl bg-white/70 dark:bg-gray-800/70 shadow-lg backdrop-blur-sm border border-dashed border-blue-300 dark:border-blue-700"
+        className="rounded-2xl border border-dashed border-rial-cream-dark/60 bg-white/90 p-4 shadow-lg backdrop-blur-sm dark:border-slate-600 dark:bg-slate-900/85"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -181,7 +181,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
 
   return (
     <motion.div
-      className="p-4 rounded-2xl bg-white/70 dark:bg-gray-800/70 shadow-lg backdrop-blur-sm border border-white/20"
+      className="rounded-2xl border border-rial-cream-dark/40 bg-white/90 p-4 shadow-lg backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/85"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -245,18 +245,18 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
               />
               {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
               {suggestedPricing && (
-                <div className="mt-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                  <div className="flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-200">
-                    <TrendingUp className="w-4 h-4" />
+                <div className="mt-2 rounded-xl border border-rial-cream-dark/50 bg-rial-cream-dark/35 p-3 dark:border-slate-600 dark:bg-slate-800/70">
+                  <div className="flex items-center gap-2 text-sm font-medium text-rial-navy dark:text-rial-cream">
+                    <TrendingUp className="h-4 w-4 text-rial-gold" />
                     {t('createProperty.suggestedPricing')}
                   </div>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                     ${suggestedPricing.suggestedRentMin.toLocaleString()} – ${suggestedPricing.suggestedRentMax.toLocaleString()} USD/mes
                     {suggestedPricing.similarCount > 0 && (
-                      <span className="text-blue-600 dark:text-blue-400"> ({suggestedPricing.similarCount} {t('createProperty.similarInZone')})</span>
+                      <span className="text-rial-navy dark:text-rial-gold"> ({suggestedPricing.similarCount} {t('createProperty.similarInZone')})</span>
                     )}
                   </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
+                  <p className="mt-1 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
                     <Clock className="w-3 h-3" />
                     {t('createProperty.estimatedDaysToPlace', { days: suggestedPricing.estimatedDaysToPlace })}
                   </p>
@@ -314,7 +314,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
                   </div>
                 ))}
                 {imageFiles.length < MAX_PHOTOS && (
-                  <label className="w-20 h-20 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 cursor-pointer bg-gray-50 dark:bg-gray-800/50">
+                  <label className="w-20 h-20 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer hover:border-rial-gold bg-gray-50 dark:bg-gray-800/50">
                     <Upload className="w-8 h-8 text-gray-400" />
                     <input
                       type="file"
@@ -337,7 +337,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Foto de tu DNI (documento de identidad) <span className="text-red-500">*</span>
               </label>
-              <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 cursor-pointer bg-gray-50 dark:bg-gray-800/50">
+              <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer hover:border-rial-gold bg-gray-50 dark:bg-gray-800/50">
                 <FileText className="w-8 h-8 text-gray-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   {ownerDniDocument ? (
@@ -370,7 +370,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Contrato o título de la propiedad <span className="text-red-500">*</span>
               </label>
-              <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 cursor-pointer bg-gray-50 dark:bg-gray-800/50">
+              <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer hover:border-rial-gold bg-gray-50 dark:bg-gray-800/50">
                 <ImageIcon className="w-8 h-8 text-gray-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   {contractOrTitle ? (
@@ -403,7 +403,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Video tour de la propiedad <span className="text-red-500">*</span>
               </label>
-              <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 cursor-pointer bg-gray-50 dark:bg-gray-800/50">
+              <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer hover:border-rial-gold bg-gray-50 dark:bg-gray-800/50">
                 <Video className="w-8 h-8 text-gray-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   {videoTourFile ? (

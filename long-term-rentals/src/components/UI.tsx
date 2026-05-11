@@ -44,7 +44,7 @@ export function LoadingSpinner({ size = 'md', text = 'Cargando...' }: { size?: '
       animate={{ opacity: 1 }}
     >
       <motion.div
-        className={`${sizeClasses[size]} border-2 border-gray-300 border-t-blue-600 rounded-full`}
+        className={`${sizeClasses[size]} border-2 border-gray-300 border-t-rial-navy rounded-full dark:border-slate-600 dark:border-t-rial-gold`}
         animate={{ rotate: 360 }}
         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
       />
@@ -56,7 +56,7 @@ export function LoadingSpinner({ size = 'md', text = 'Cargando...' }: { size?: '
 // Componente de botón mejorado
 type ButtonProps = {
   children?: ReactNode
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'navy'
   size?: 'sm' | 'md' | 'lg'
   icon?: ReactNode
   className?: string
@@ -75,11 +75,12 @@ export function Button({
   const baseClasses = "inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
   
   const variants = {
-    primary: "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500 shadow-lg hover:shadow-xl",
+    primary: "bg-rial-navy text-rial-cream hover:bg-rial-navy-light focus:ring-rial-gold shadow-md hover:shadow-lg",
     secondary: "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-gray-500",
-    outline: "border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-gray-500",
+    outline: "border-2 border-rial-cream-dark/70 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 focus:ring-rial-gold",
     ghost: "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:ring-gray-500",
-    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
+    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+    navy: "bg-rial-navy text-rial-cream hover:bg-rial-navy-light focus:ring-rial-gold shadow-md hover:shadow-lg",
   }
 
   const sizes = {
@@ -138,7 +139,7 @@ export function Input({
       )}
       <input
         type={type}
-        className={`w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${icon ? 'pl-10' : ''}`}
+        className={`w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-rial-gold focus:border-transparent transition-all duration-200 ${icon ? 'pl-10' : ''}`}
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -179,7 +180,7 @@ export function StatusBadge({
     success: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
     warning: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
     error: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
-    info: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+    info: 'bg-rial-cream-dark/60 text-rial-navy dark:bg-slate-800 dark:text-rial-cream'
   }
 
   return (
@@ -242,7 +243,7 @@ export function FloatingActionButton({
 }) {
   return (
     <motion.button
-      className={`fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center ${className}`}
+      className={`fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-rial-navy text-rial-cream shadow-lg ring-2 ring-rial-gold/40 hover:bg-rial-navy-light ${className}`}
       onClick={onClick}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}

@@ -174,8 +174,8 @@ export function ImageGallery({ images, videos = [], title, onClose, initialIndex
                 className={classNames(
                   "aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-200",
                   index === currentIndex 
-                    ? "border-blue-500 scale-105" 
-                    : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                    ? "scale-105 border-rial-gold" 
+                    : "border-transparent hover:border-rial-cream-dark/60 dark:hover:border-slate-500"
                 )}
                 onClick={() => setCurrentIndex(index)}
                 whileHover={{ scale: 1.05 }}
@@ -439,7 +439,7 @@ function Lightbox({ media, currentIndex, onClose, onNavigate, title }: LightboxP
                 className={classNames(
                   "w-16 h-16 rounded-lg overflow-hidden cursor-pointer border-2 transition-all duration-200",
                   index === currentIndex 
-                    ? "border-blue-500" 
+                    ? "border-rial-gold" 
                     : "border-white/30 hover:border-white/50"
                 )}
                 onClick={() => onNavigate(index)}

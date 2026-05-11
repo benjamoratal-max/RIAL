@@ -45,22 +45,22 @@ export function AuthPanel({
   if (user) {
     return (
       <motion.div 
-        className="p-4 rounded-2xl bg-white/70 dark:bg-gray-800/70 shadow-lg backdrop-blur-sm border border-white/20"
+        className="rounded-2xl border border-rial-cream-dark/50 bg-white p-4 shadow-md dark:border-slate-700 dark:bg-slate-900/95"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-rial-gold to-rial-navy ring-2 ring-rial-gold/30">
+              <Users className="h-5 w-5 text-rial-cream" />
             </div>
             <div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">{t('auth.sessionStarted')}</div>
-              <div className="font-semibold text-gray-900 dark:text-white">
-                {user.name} · <span className="uppercase text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{user.role}</span>
+              <div className="text-sm text-rial-muted dark:text-slate-400">{t('auth.sessionStarted')}</div>
+              <div className="font-semibold text-rial-navy dark:text-rial-cream">
+                {user.name} · <span className="rounded-full bg-rial-cream-dark/50 px-2 py-0.5 text-xs uppercase text-rial-ink dark:bg-slate-800 dark:text-slate-200">{user.role}</span>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
+              <div className="text-xs text-rial-muted dark:text-slate-400">{user.email}</div>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onLogout} icon={<LogOut className="w-4 h-4" />}>
@@ -73,7 +73,7 @@ export function AuthPanel({
 
   return (
     <motion.div 
-      className="relative p-4 rounded-2xl bg-white/70 dark:bg-gray-800/70 shadow-lg backdrop-blur-sm border border-white/20"
+      className="relative rounded-2xl border border-rial-cream-dark/50 bg-white p-4 shadow-md dark:border-slate-700 dark:bg-slate-900/95"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -104,11 +104,11 @@ export function AuthPanel({
             transition={{ delay: 0.1 }}
           >
             <div className="text-center mb-2">
-              <Shield className="w-12 h-12 text-blue-500 mx-auto mb-2" />
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+              <Shield className="mx-auto mb-2 h-12 w-12 text-rial-navy dark:text-rial-gold" />
+              <h3 className="mb-1 font-semibold text-rial-navy dark:text-rial-cream">
                 {t('auth.twoFactorTitle')}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-rial-muted dark:text-slate-400">
                 {t('auth.twoFactorDescription')}
               </p>
             </div>
@@ -262,7 +262,7 @@ export function AuthPanel({
             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
           </div>
           <select 
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
             value={form.role} 
             onChange={e => setForm({ ...form, role: e.target.value })}
           >
@@ -270,12 +270,12 @@ export function AuthPanel({
             <option value="tenant">{t('auth.roleTenant')}</option>
             <option value="broker_applicant">{t('auth.roleBrokerApplicant')}</option>
           </select>
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <p className="text-center text-xs text-rial-muted dark:text-slate-400">
             {t('auth.adminRequestHint')}
             <button
               type="button"
               onClick={() => setShowAdminRequest(true)}
-              className="text-blue-600 dark:text-blue-400 hover:underline ml-1 font-medium"
+              className="ml-1 font-medium text-rial-navy underline-offset-2 hover:underline dark:text-rial-gold"
             >
               {t('auth.requestAdminAccess')}
             </button>
@@ -288,15 +288,15 @@ export function AuthPanel({
 
       {showAdminRequest && (
         <motion.div
-          className="absolute inset-0 rounded-2xl bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700"
+          className="absolute inset-0 rounded-2xl border border-rial-cream-dark/50 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
           <div className="flex items-center gap-2 mb-3">
             <ShieldAlert className="w-5 h-5 text-amber-500" />
-            <h3 className="font-semibold text-gray-900 dark:text-white">{t('auth.adminRequestTitle')}</h3>
+            <h3 className="font-semibold text-rial-navy dark:text-rial-cream">{t('auth.adminRequestTitle')}</h3>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t('auth.adminRequestDescription')}</p>
+          <p className="mb-4 text-sm text-rial-muted dark:text-slate-400">{t('auth.adminRequestDescription')}</p>
           <div className="grid gap-3">
             <Input
               placeholder={t('auth.email')}
@@ -305,7 +305,7 @@ export function AuthPanel({
               icon={<Mail className="w-4 h-4" />}
             />
             <textarea
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] resize-y"
+              className="min-h-[80px] w-full resize-y rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
               placeholder={t('auth.adminRequestReasonPlaceholder')}
               value={adminRequest.reason}
               onChange={(e) => setAdminRequest((prev) => ({ ...prev, reason: e.target.value }))}

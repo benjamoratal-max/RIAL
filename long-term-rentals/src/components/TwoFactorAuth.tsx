@@ -80,7 +80,7 @@ export function TwoFactorAuth({ token, user, onUpdate }: TwoFactorAuthProps) {
     <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <Shield className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
           <h3 className="font-semibold text-gray-900 dark:text-white">Autenticación de dos factores</h3>
         </div>
         {status?.enabled ? (
@@ -134,9 +134,9 @@ export function TwoFactorAuth({ token, user, onUpdate }: TwoFactorAuthProps) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
             >
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-3 mb-2">
-                  <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="rounded-lg border border-rial-cream-dark/50 bg-rial-cream-dark/35 p-4 dark:border-slate-600 dark:bg-slate-800/70">
+                <div className="mb-2 flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">Autenticación por Email</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">

@@ -24,7 +24,27 @@
     "loadingListingsReview": "Cargando listado para revisión...",
     "loadingIncidents": "Cargando incidentes...",
     "loadingSuspensions": "Cargando suspensiones...",
-    "loadingAuditLogs": "Cargando audit logs..."
+    "loadingAuditLogs": "Cargando audit logs...",
+    "sidebar": {
+      "mainNav": "Navegación principal",
+      "explore": "Explorar listados",
+      "map": "Ver mapa",
+      "favorites": "Favoritos",
+      "messages": "Mensajes y asistente",
+      "notifications": "Notificaciones",
+      "profile": "Perfil y cuenta",
+      "more": "Más opciones",
+      "compare": "Comparador",
+      "payments": "Pagos",
+      "alerts": "Alertas",
+      "analytics": "Analíticas",
+      "ownerLeads": "Leads de propietario",
+      "brokerLeads": "Leads de broker",
+      "admin": "Solicitudes de administrador",
+      "themeLight": "Modo claro editorial",
+      "themeDark": "Modo oscuro",
+      "loginRequired": "Iniciá sesión para usar esta función"
+    }
   },
   "nav": {
     "renter": {

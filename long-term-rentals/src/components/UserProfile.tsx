@@ -350,11 +350,11 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl p-6 shadow-lg backdrop-blur-sm border border-white/20">
+          <div className="rounded-2xl border border-rial-cream-dark/40 bg-white/90 p-6 shadow-lg backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/85">
             {/* Información del usuario */}
             <div className="text-center mb-6">
               <div className="relative inline-block mb-4">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-rial-navy to-rial-navy-light text-2xl font-bold text-rial-cream ring-2 ring-rial-gold/50">
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
                   ) : (
@@ -375,7 +375,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                 <span className={classNames(
                   'px-2 py-1 rounded-full text-xs font-medium',
                   user.role === 'admin' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                  user.role === 'owner' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                  user.role === 'owner' ? 'bg-rial-cream-dark/70 text-rial-navy dark:bg-slate-700 dark:text-rial-gold' :
                   'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                 )}>
                   {user.role === 'admin' ? t('auth.roleAdmin') : user.role === 'owner' ? t('auth.roleOwner') : t('auth.roleTenant')}
@@ -408,8 +408,8 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                     className={classNames(
                       'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200',
                       activeTab === tab.id
-                        ? 'bg-blue-500 text-white shadow-lg'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        ? 'bg-rial-navy text-rial-cream shadow-lg ring-1 ring-rial-gold/30'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-rial-cream-dark/40 dark:hover:bg-slate-800'
                     )}
                   >
                     <Icon className="w-5 h-5" />
@@ -435,7 +435,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
 
         {/* Contenido principal */}
         <div className="lg:col-span-3">
-          <div className="bg-white/70 dark:bg-gray-800/70 rounded-2xl p-6 shadow-lg backdrop-blur-sm border border-white/20">
+          <div className="rounded-2xl border border-rial-cream-dark/40 bg-white/90 p-6 shadow-lg backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/85">
             {loading ? (
               <div className="flex justify-center py-12">
                 <LoadingSpinner size="lg" text={t('app.loadingProfile')} />
@@ -505,7 +505,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                         {renterLeads.map((lead) => (
                           <div
                             key={lead.id}
-                            className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700"
+                            className="flex items-center justify-between gap-3 rounded-xl border border-rial-cream-dark/40 bg-white/95 px-4 py-3 dark:border-slate-600 dark:bg-slate-900/80"
                           >
                             <div className="min-w-0">
                               <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
@@ -515,7 +515,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                                 {lead.property?.location || t('profile.locationUnavailable')}
                               </div>
                               {lead.stage && (
-                                <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[11px] text-blue-700 dark:text-blue-200 font-semibold">
+                                <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-rial-cream-dark/50 px-2 py-0.5 text-[11px] font-semibold text-rial-navy dark:bg-slate-800 dark:text-rial-gold">
                                   {lead.stage}
                                 </div>
                               )}
@@ -602,7 +602,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
 function DashboardTab({ user, activities, favorites }: { user: UserProfileData, activities: any[], favorites: any[] }) {
   const { t } = useTranslation()
   const stats = [
-    { label: t('profile.statsProperties'), value: user.stats.totalProperties, icon: Home, color: 'blue' },
+    { label: t('profile.statsProperties'), value: user.stats.totalProperties, icon: Home, color: 'slate' },
     { label: t('profile.statsReviews'), value: user.stats.totalReviews, icon: Star, color: 'yellow' },
     { label: t('profile.statsBookings'), value: user.stats.totalBookings, icon: Calendar, color: 'green' },
     { label: t('profile.statsFavorites'), value: favorites.length, icon: Heart, color: 'red' } // Usar el array directamente
@@ -620,7 +620,7 @@ function DashboardTab({ user, activities, favorites }: { user: UserProfileData, 
             return (
               <motion.div
                 key={`profile-stat-${index}-${stat.label || 'label'}`}
-                className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 rounded-xl p-4"
+                className="rounded-xl bg-gradient-to-r from-rial-cream to-rial-cream-dark/50 p-4 dark:from-slate-800 dark:to-slate-700/90"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -670,7 +670,7 @@ function DashboardTab({ user, activities, favorites }: { user: UserProfileData, 
                       className="w-full h-40 object-cover"
                     />
                   ) : (
-                    <div className="w-full h-40 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-gray-600 dark:to-gray-500 flex items-center justify-center">
+                    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-rial-cream-dark/50 to-rial-cream-dark/20 dark:from-slate-700 dark:to-slate-600">
                       <Home className="w-12 h-12 text-gray-400" />
                     </div>
                   )}
@@ -721,8 +721,8 @@ function DashboardTab({ user, activities, favorites }: { user: UserProfileData, 
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rial-cream-dark/50 dark:bg-slate-800">
+                      <Icon className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-gray-900 dark:text-white">{activity.title}</p>
@@ -862,8 +862,8 @@ function ActivityTab({ activities, favorites, bookings, reviews }: {
               className={classNames(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                 activeSection === section.id
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-rial-navy text-rial-cream ring-1 ring-rial-gold/30'
+                  : 'bg-gray-100 text-gray-700 hover:bg-rial-cream-dark/40 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-slate-600'
               )}
             >
               {section.label} ({section.count})
@@ -883,8 +883,8 @@ function ActivityTab({ activities, favorites, bookings, reviews }: {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                  <Icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-rial-cream-dark/50 dark:bg-slate-800">
+                  <Icon className="h-6 w-6 text-rial-navy dark:text-rial-gold" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-gray-900 dark:text-white">{activity.title}</p>
@@ -1009,7 +1009,7 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
                 type="checkbox"
                 checked={settings.notifications.email}
                 onChange={(e) => updateSetting('notifications.email', e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="h-4 w-4 rounded text-rial-navy focus:ring-rial-gold dark:text-rial-gold"
               />
               <span className="text-gray-700 dark:text-gray-300">Notificaciones por email</span>
             </label>
@@ -1019,7 +1019,7 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
                 type="checkbox"
                 checked={settings.notifications.push}
                 onChange={(e) => updateSetting('notifications.push', e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="h-4 w-4 rounded text-rial-navy focus:ring-rial-gold dark:text-rial-gold"
               />
               <span className="text-gray-700 dark:text-gray-300">Notificaciones push</span>
             </label>
@@ -1029,7 +1029,7 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
                 type="checkbox"
                 checked={settings.notifications.sms}
                 onChange={(e) => updateSetting('notifications.sms', e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="h-4 w-4 rounded text-rial-navy focus:ring-rial-gold dark:text-rial-gold"
               />
               <span className="text-gray-700 dark:text-gray-300">Notificaciones por SMS</span>
             </label>
@@ -1045,7 +1045,7 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
                 type="checkbox"
                 checked={settings.privacy.profileVisible}
                 onChange={(e) => updateSetting('privacy.profileVisible', e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="h-4 w-4 rounded text-rial-navy focus:ring-rial-gold dark:text-rial-gold"
               />
               <span className="text-gray-700 dark:text-gray-300">{t('profile.publicProfile')}</span>
             </label>
@@ -1055,7 +1055,7 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
                 type="checkbox"
                 checked={settings.privacy.showEmail}
                 onChange={(e) => updateSetting('privacy.showEmail', e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="h-4 w-4 rounded text-rial-navy focus:ring-rial-gold dark:text-rial-gold"
               />
               <span className="text-gray-700 dark:text-gray-300">Mostrar email en perfil</span>
             </label>
@@ -1065,7 +1065,7 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
                 type="checkbox"
                 checked={settings.privacy.showPhone}
                 onChange={(e) => updateSetting('privacy.showPhone', e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="h-4 w-4 rounded text-rial-navy focus:ring-rial-gold dark:text-rial-gold"
               />
               <span className="text-gray-700 dark:text-gray-300">Mostrar teléfono en perfil</span>
             </label>
@@ -1294,7 +1294,7 @@ function VerificationModal({ step, onStep, onClose }: {
                 <div className={classNames(
                   'w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-all duration-200',
                   isCompleted ? 'bg-green-500 text-white' :
-                  isActive ? 'bg-blue-500 text-white' :
+                  isActive ? 'bg-rial-navy text-rial-cream ring-1 ring-rial-gold/40' :
                   isClickable ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 hover:scale-110' :
                   'bg-gray-200 dark:bg-gray-700 text-gray-500'
                 )}>
@@ -1302,8 +1302,8 @@ function VerificationModal({ step, onStep, onClose }: {
                 </div>
                 <span className={classNames(
                   'text-xs text-center',
-                  isActive ? 'text-blue-600 dark:text-blue-400 font-medium' :
-                  isClickable ? 'text-gray-600 dark:text-gray-400 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' :
+                  isActive ? 'font-medium text-rial-navy dark:text-rial-gold' :
+                  isClickable ? 'cursor-pointer text-gray-600 hover:text-rial-navy dark:text-gray-400 dark:hover:text-rial-gold' :
                   'text-gray-500 dark:text-gray-400'
                 )}>
                   {s.label}
@@ -1317,7 +1317,7 @@ function VerificationModal({ step, onStep, onClose }: {
         <div className="space-y-4">
           {step === 'id' && (
             <div className="text-center">
-              <FileText className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+              <FileText className="mx-auto mb-4 h-16 w-16 text-rial-navy dark:text-rial-gold" />
               <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
                 Sube tu documento de identidad
               </h3>
@@ -1332,7 +1332,7 @@ function VerificationModal({ step, onStep, onClose }: {
 
           {step === 'phone' && (
             <div className="text-center">
-              <Phone className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+              <Phone className="mx-auto mb-4 h-16 w-16 text-rial-navy dark:text-rial-gold" />
               <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
                 Verificación telefónica
               </h3>
@@ -1347,7 +1347,7 @@ function VerificationModal({ step, onStep, onClose }: {
 
           {step === 'email' && (
             <div className="text-center">
-              <Mail className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+              <Mail className="mx-auto mb-4 h-16 w-16 text-rial-navy dark:text-rial-gold" />
               <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
                 Verificación de email
               </h3>

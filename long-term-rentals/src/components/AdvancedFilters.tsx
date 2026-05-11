@@ -198,7 +198,7 @@ export function AdvancedFilters({
 
   return (
     <motion.div 
-      className="p-6 rounded-2xl bg-white/70 dark:bg-gray-800/70 shadow-lg backdrop-blur-sm border border-white/20"
+      className="rounded-2xl border border-rial-cream-dark/50 bg-white p-6 shadow-md dark:border-slate-700 dark:bg-slate-900/95"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -207,11 +207,11 @@ export function AdvancedFilters({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-blue-600" />
-            <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{t('filtersAdvanced.title')}</h3>
+            <Filter className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
+            <h3 className="text-lg font-semibold text-rial-navy dark:text-rial-cream">{t('filtersAdvanced.title')}</h3>
             {activeFilters > 0 && (
               <motion.span 
-                className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full"
+                className="rounded-full bg-rial-gold px-2 py-1 text-xs font-semibold text-rial-navy"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
@@ -245,7 +245,7 @@ export function AdvancedFilters({
 
       {/* Búsqueda principal: texto libre con ejemplos */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+        <label className="mb-1.5 block text-sm font-medium text-rial-ink dark:text-slate-200">
           {t('filtersAdvanced.searchLabel')}
         </label>
         <Input 
@@ -256,14 +256,14 @@ export function AdvancedFilters({
           icon={<Search className="w-4 h-4" />}
           className="text-base"
         />
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+        <p className="mt-1.5 text-xs text-rial-muted dark:text-slate-400">
           {t('filtersAdvanced.searchHint')}
         </p>
       </div>
 
       {/* Chips de búsqueda rápida */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <span className="text-xs text-gray-500 dark:text-gray-400 self-center mr-1">{t('filtersAdvanced.quickSearch')}</span>
+        <span className="mr-1 self-center text-xs text-rial-muted dark:text-slate-400">{t('filtersAdvanced.quickSearch')}</span>
         {QUICK_SEARCH_CHIPS.map(({ key, query, verified }) => {
           const label = t(`filtersAdvanced.quickChip_${key}`)
           const isActive = verified ? filters.verified : (
@@ -286,10 +286,10 @@ export function AdvancedFilters({
                 }
               }}
               className={classNames(
-                'px-3 py-1.5 rounded-full text-sm font-medium transition-all',
+                'rounded-full px-3 py-1.5 text-sm font-medium transition-all',
                 isActive
-                  ? 'bg-blue-600 text-white dark:bg-blue-500'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'border border-rial-navy bg-rial-navy text-rial-cream shadow-sm dark:bg-rial-navy dark:text-rial-cream'
+                  : 'border border-rial-cream-dark/40 bg-white text-rial-ink hover:bg-rial-cream-dark/35 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
               )}
             >
               {label}
@@ -321,7 +321,7 @@ export function AdvancedFilters({
           icon={<DollarSign className="w-4 h-4" />}
         />
         <select 
-          className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+          className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
           value={filters.sort} 
           onChange={e => updateFilter('sort', e.target.value)}
         >
@@ -343,10 +343,10 @@ export function AdvancedFilters({
           >
             {/* Características básicas */}
             <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">{t('filtersAdvanced.characteristics')}</h4>
+              <h4 className="mb-3 font-medium text-rial-navy dark:text-rial-cream">{t('filtersAdvanced.characteristics')}</h4>
               <div className="grid md:grid-cols-5 gap-4">
                 <select 
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                   value={filters.bedrooms} 
                   onChange={e => updateFilter('bedrooms', e.target.value)}
                 >
@@ -358,7 +358,7 @@ export function AdvancedFilters({
                 </select>
                 
                 <select 
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                   value={filters.rooms} 
                   onChange={e => updateFilter('rooms', e.target.value)}
                 >
@@ -370,7 +370,7 @@ export function AdvancedFilters({
                 </select>
                 
                 <select 
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                   value={filters.bathrooms} 
                   onChange={e => updateFilter('bathrooms', e.target.value)}
                 >
@@ -381,7 +381,7 @@ export function AdvancedFilters({
                 </select>
                 
                 <select 
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                   value={filters.propertyType} 
                   onChange={e => updateFilter('propertyType', e.target.value)}
                 >
@@ -391,7 +391,7 @@ export function AdvancedFilters({
                 </select>
                 
                 <select 
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
                   value={filters.rating} 
                   onChange={e => updateFilter('rating', e.target.value)}
                 >
@@ -404,7 +404,7 @@ export function AdvancedFilters({
 
             {/* Fechas de disponibilidad */}
             <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">{t('filtersAdvanced.availability')}</h4>
+              <h4 className="mb-3 font-medium text-rial-navy dark:text-rial-cream">{t('filtersAdvanced.availability')}</h4>
               <div className="grid md:grid-cols-2 gap-4">
                 <Input 
                   type="date"
@@ -425,8 +425,8 @@ export function AdvancedFilters({
 
             {/* Amenidades y Servicios */}
             <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">{t('filtersAdvanced.amenitiesAndServices')}</h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t('filtersAdvanced.selectAmenities')}</p>
+              <h4 className="mb-3 font-medium text-rial-navy dark:text-rial-cream">{t('filtersAdvanced.amenitiesAndServices')}</h4>
+              <p className="mb-3 text-xs text-rial-muted dark:text-slate-400">{t('filtersAdvanced.selectAmenities')}</p>
               <div className="flex flex-wrap gap-2">
                 {/* Amenidades básicas con checkboxes */}
                 <button
@@ -435,8 +435,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200 flex items-center gap-2',
                     filters.wifi
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   <Wifi className="w-4 h-4" />
@@ -449,8 +449,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200 flex items-center gap-2',
                     filters.parking
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   <Car className="w-4 h-4" />
@@ -463,8 +463,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                     filters.airConditioning
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {t('filtersAdvanced.airConditioning')}
@@ -476,8 +476,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                     filters.heating
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {t('filtersAdvanced.heating')}
@@ -489,8 +489,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                     filters.balcony
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {t('filtersAdvanced.balcony')}
@@ -502,8 +502,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                     filters.elevator
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {t('filtersAdvanced.elevator')}
@@ -515,8 +515,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                     filters.gym
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {t('filtersAdvanced.gym')}
@@ -528,8 +528,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                     filters.pool
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {t('filtersAdvanced.pool')}
@@ -541,8 +541,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                     filters.furnished
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {t('filtersAdvanced.furnished')}
@@ -554,8 +554,8 @@ export function AdvancedFilters({
                   className={classNames(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                     filters.petsAllowed
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {t('filtersAdvanced.petsAllowed')}
@@ -572,8 +572,8 @@ export function AdvancedFilters({
                       className={classNames(
                         'px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-200',
                         active
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                          : 'bg-white/80 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream shadow-md'
+                      : 'border-rial-cream-dark/40 bg-white/90 text-rial-ink hover:bg-rial-cream-dark/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                       )}
                     >
                       {t(`filtersAdvanced.${amenityKey}`)}
@@ -585,7 +585,7 @@ export function AdvancedFilters({
 
             {/* Capacidad */}
             <div>
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">{t('filtersAdvanced.capacity')}</h4>
+              <h4 className="mb-3 font-medium text-rial-navy dark:text-rial-cream">{t('filtersAdvanced.capacity')}</h4>
               <div className="grid md:grid-cols-2 gap-4">
                 <Input 
                   type="number"
@@ -601,7 +601,7 @@ export function AdvancedFilters({
       </AnimatePresence>
 
       {/* Botones de acción */}
-      <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between border-t border-rial-cream-dark/40 pt-6 dark:border-slate-700">
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
@@ -611,7 +611,7 @@ export function AdvancedFilters({
             {t('filtersAdvanced.clearFilters')}
           </Button>
           {activeFilters > 0 && (
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-rial-muted dark:text-slate-400">
               {activeFilters} {activeFilters !== 1 ? t('filtersAdvanced.activeFiltersCount') : t('filtersAdvanced.activeFilters')}
             </span>
           )}
@@ -652,21 +652,21 @@ export function MobileFilters({ filters, setFilters, onSearch }: {
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            className="fixed inset-0 bg-black/40 backdrop-blur z-50 md:hidden"
+            className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm md:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
           >
             <motion.div 
-              className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto"
+              className="absolute bottom-0 left-0 right-0 max-h-[80vh] overflow-y-auto rounded-t-2xl border-t border-rial-cream-dark/40 bg-rial-cream p-6 dark:border-slate-700 dark:bg-slate-900"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('filtersAdvanced.title')}</h3>
+                <h3 className="text-lg font-semibold text-rial-navy dark:text-rial-cream">{t('filtersAdvanced.title')}</h3>
                 <Button 
                   variant="ghost" 
                   size="sm"

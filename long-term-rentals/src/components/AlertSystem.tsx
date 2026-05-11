@@ -267,7 +267,7 @@ export function AlertSystem({ token, user, onClose }: AlertSystemProps) {
                         <div className={classNames(
                           'p-2 rounded-lg',
                           alert.isActive
-                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
+                            ? 'bg-rial-cream-dark/50 text-rial-navy dark:bg-slate-700 dark:text-rial-gold'
                             : 'bg-gray-200 dark:bg-gray-600 text-gray-500'
                         )}>
                           {getAlertTypeIcon(alert.type)}

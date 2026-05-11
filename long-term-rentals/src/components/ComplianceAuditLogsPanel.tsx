@@ -63,7 +63,7 @@ export function ComplianceAuditLogsPanel({ token, onClose }: ComplianceAuditLogs
       >
         <div className="flex items-center justify-between px=5 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
-            <ListChecks className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <ListChecks className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {t('compliance.auditLogsTitle')}

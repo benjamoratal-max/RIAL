@@ -58,16 +58,16 @@ export function AIFeedback({ knowledgeId, question, answer, onFeedback, onClose 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
-        className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+        className="mt-4 rounded-lg border border-rial-cream-dark/50 bg-rial-cream-dark/35 p-4 dark:border-slate-600 dark:bg-slate-800/70"
       >
-        <div className="flex items-start justify-between mb-3">
-          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+        <div className="mb-3 flex items-start justify-between">
+          <p className="text-sm font-medium text-rial-navy dark:text-rial-cream">
             ¿Esta respuesta te fue útil?
           </p>
           {onClose && (
             <button
               onClick={onClose}
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+              className="text-rial-navy hover:text-rial-gold dark:text-rial-gold dark:hover:text-rial-cream"
             >
               <X className="w-4 h-4" />
             </button>
@@ -101,14 +101,14 @@ export function AIFeedback({ knowledgeId, question, answer, onFeedback, onClose 
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+            <p className="text-sm text-rial-navy dark:text-rial-cream">
               ¿Cómo podríamos mejorar esta respuesta?
             </p>
             <textarea
               value={improvedAnswer}
               onChange={(e) => setImprovedAnswer(e.target.value)}
               placeholder="Escribe cómo debería ser la respuesta ideal..."
-              className="w-full px-3 py-2 border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full resize-none rounded-lg border border-rial-cream-dark/50 bg-white px-3 py-2 text-sm text-rial-navy focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
               rows={3}
             />
             <div className="flex gap-2">

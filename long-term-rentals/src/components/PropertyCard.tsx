@@ -104,12 +104,25 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
     })
   }, [images.length])
 
+  const priceDisplay = useMemo(() => {
+    const cur = property.currency || 'USD'
+    try {
+      return new Intl.NumberFormat(cur === 'EUR' ? 'es-ES' : 'en-US', {
+        style: 'currency',
+        currency: cur,
+        maximumFractionDigits: 0,
+      }).format(property.price)
+    } catch {
+      return `$${property.price?.toLocaleString?.() ?? property.price}`
+    }
+  }, [property.price, property.currency])
+
   return (
     <motion.div 
-      className="rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
+      className="group overflow-hidden rounded-2xl border border-rial-cream-dark/40 bg-white shadow-md transition-all duration-300 hover:shadow-xl dark:border-slate-700 dark:bg-slate-900"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5 }}
+      whileHover={{ y: -4 }}
       layout
     >
       <div className="relative aspect-[16/10] bg-gray-100 dark:bg-gray-700 overflow-hidden">
@@ -147,7 +160,7 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
                 onClick={handleToggleComparison}
                 title={t('propertyCard.addToCompare')}
               >
-                <GitCompare className={`w-4 h-4 ${comparisonIds.includes(property.id) ? 'text-blue-500 fill-current' : 'text-gray-600'}`} />
+                <GitCompare className={`h-4 w-4 ${comparisonIds.includes(property.id) ? 'text-rial-gold' : 'text-gray-600'}`} />
               </motion.button>
             </>
           )}
@@ -166,10 +179,10 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
         {/* Badges de disponibilidad y verificación */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           <span className={classNames(
-            'inline-block text-xs px-2 py-1 rounded-full font-medium',
+            'inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide',
             isAvailable 
-              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' 
-              : 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300'
+              ? 'bg-rial-verified-soft text-rial-verified dark:bg-emerald-900/50 dark:text-emerald-200' 
+              : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200'
           )}>
             {isAvailable ? t('propertyCard.available') : t('propertyCard.occupied')}
           </span>
@@ -177,24 +190,24 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="font-semibold text-lg text-gray-900 dark:text-white line-clamp-1">
+      <div className="p-5 pt-4">
+        <div className="mb-3 min-w-0">
+          <p className="font-serif text-2xl font-medium leading-tight tracking-tight text-rial-navy dark:text-rial-cream">
+            {priceDisplay}
+            <span className="ml-1 align-baseline font-sans text-sm font-normal text-rial-muted dark:text-slate-400">
+              {t('propertyCard.perMonth')}
+            </span>
+          </p>
+          <div className="mt-2 flex items-start gap-1.5 text-sm text-rial-muted dark:text-slate-400">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 opacity-80" />
+            <span className="line-clamp-2 leading-snug">{property.location}</span>
+          </div>
+          <h3 className="mt-2 line-clamp-2 font-sans text-xs font-semibold uppercase tracking-wide text-rial-muted dark:text-slate-500">
             {property.title}
           </h3>
-          <div className="text-right">
-            <div className="font-bold text-lg text-gray-900 dark:text-white">
-              ${property.price}
-            </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">{t('propertyCard.perMonth')}</div>
-          </div>
         </div>
         
-        <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
-          <div className="flex items-center">
-            <MapPin className="w-4 h-4 mr-1" />
-            {property.location}
-          </div>
+        <div className="mb-3 flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
           {((property as any).broker?.isVerifiedBroker || (property as any).verified) && (
             <div className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
               <span className="font-semibold">
@@ -210,17 +223,17 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+        <div className="mb-3 flex flex-wrap items-center gap-3 text-sm text-rial-ink/80 dark:text-slate-300">
           <span className="flex items-center gap-1">
-            <Home className="w-4 h-4 text-blue-500 dark:text-blue-300" />
+            <Home className="h-4 w-4 text-rial-navy opacity-80 dark:text-rial-gold" />
             {property.rooms ?? property.bedrooms} {t('propertyDetail.roomsShort')}
           </span>
           <span className="flex items-center gap-1">
-            <Bed className="w-4 h-4 text-purple-500 dark:text-purple-300" />
+            <Bed className="h-4 w-4 text-rial-navy opacity-80 dark:text-rial-gold" />
             {property.bedrooms} {t('propertyDetail.bedroomsShort')}
           </span>
           <span className="flex items-center gap-1">
-            <Bath className="w-4 h-4 text-rose-500 dark:text-rose-300" />
+            <Bath className="h-4 w-4 text-rial-navy opacity-80 dark:text-rial-gold" />
             {property.bathrooms} {t('propertyDetail.bathroomsShort')}
           </span>
         </div>

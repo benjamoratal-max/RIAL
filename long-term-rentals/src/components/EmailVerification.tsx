@@ -88,7 +88,7 @@ export function EmailVerification({ token, user, onUpdate }: EmailVerificationPr
     <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <Mail className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
           <h3 className="font-semibold text-gray-900 dark:text-white">Verificación de Email</h3>
         </div>
         {status?.verified ? (

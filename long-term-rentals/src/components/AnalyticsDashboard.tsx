@@ -150,14 +150,14 @@ export function AnalyticsDashboard({ token, user, onClose }: AnalyticsDashboardP
           {isBrokerMode ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <motion.div
-                className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"
+                className="rounded-xl border border-rial-cream-dark/40 bg-rial-cream-dark/35 p-4 dark:border-slate-600 dark:bg-slate-800/70"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="mb-2 flex items-center justify-between">
+                  <Users className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
+                  <span className="text-2xl font-bold font-serif text-rial-navy dark:text-rial-cream">
                     {overview.totalLeads}
                   </span>
                 </div>
@@ -209,14 +209,14 @@ export function AnalyticsDashboard({ token, user, onClose }: AnalyticsDashboardP
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <motion.div
-                className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl"
+                className="rounded-xl border border-rial-cream-dark/40 bg-rial-cream-dark/35 p-4 dark:border-slate-600 dark:bg-slate-800/70"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <Home className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="mb-2 flex items-center justify-between">
+                  <Home className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
+                  <span className="text-2xl font-bold font-serif text-rial-navy dark:text-rial-cream">
                     {overview.totalProperties}
                   </span>
                 </div>
