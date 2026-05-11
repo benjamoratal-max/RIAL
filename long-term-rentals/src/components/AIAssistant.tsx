@@ -1722,6 +1722,73 @@ export function AIAssistant({
     return `Entiendo que preguntas sobre "${question}". Basándome en nuestro catálogo de ${totalProperties} propiedades, puedo ayudarte con:\n\n• Información sobre precios (promedio: $${Math.round(avgPrice).toLocaleString()}/mes)\n• Propiedades por ubicación\n• Comparaciones y recomendaciones\n• Búsquedas personalizadas\n\n¿Podrías ser más específico sobre lo que buscas? Por ejemplo: "¿Cuántas propiedades hay en Palermo?" o "¿Cuál es la propiedad más barata?"`
   }
 
+  function localizeAssistantText(text: string): string {
+    if (!i18n.language.startsWith('en')) return text
+
+    let output = text
+    const replacements: Array<[RegExp, string]> = [
+      [/Por favor, asegúrate de tener Ollama instalado y ejecutándose\./g, 'Please make sure Ollama is installed and running.'],
+      [/Una vez instalado, ejecuta:/g, 'Once installed, run:'],
+      [/No encontré propiedades que coincidan con tus criterios/g, 'I could not find properties matching your criteria'],
+      [/Encontré \*\*(\d+) propiedades\*\*/g, 'I found **$1 properties**'],
+      [/Sin título/g, 'Untitled'],
+      [/Ubicación no especificada/g, 'Location not specified'],
+      [/ubicación no especificada/g, 'location not specified'],
+      [/¿Te interesa alguna en particular\? Puedo darte más detalles\./g, 'Are you interested in any of them? I can share more details.'],
+      [/¿Quieres más detalles sobre alguna de estas\?/g, 'Do you want more details about any of these?'],
+      [/¿Podrías contarme más sobre lo que buscas\?/g, 'Could you tell me more about what you are looking for?'],
+      [/Basándome en/g, 'Based on'],
+      [/tu presupuesto de hasta/g, 'your budget up to'],
+      [/y tu interés en/g, 'and your interest in'],
+      [/La propiedad más económica es/g, 'The most affordable property is'],
+      [/disponible ahora/g, 'available now'],
+      [/disponible próximamente/g, 'available soon'],
+      [/Puedes contactar al propietario para coordinar la fecha de ingreso\./g, 'You can contact the owner to coordinate the move-in date.'],
+      [/amueblada/g, 'furnished'],
+      [/sin amueblar/g, 'unfurnished'],
+      [/acepta mascotas/g, 'allows pets'],
+      [/no acepta mascotas/g, 'does not allow pets'],
+      [/cocheras/g, 'parking spaces'],
+      [/cochera/g, 'parking space'],
+      [/estacionamiento/g, 'parking'],
+      [/seguridad/g, 'security'],
+      [/personas/g, 'people'],
+      [/persona/g, 'person'],
+      [/habitaciones/g, 'bedrooms'],
+      [/habitación/g, 'bedroom'],
+      [/camas/g, 'beds'],
+      [/cama/g, 'bed'],
+      [/¿Te interesa alguna ubicación en particular\?/g, 'Are you interested in any specific location?'],
+      [/Tenemos propiedades en las siguientes ubicaciones:/g, 'We have properties in the following locations:'],
+      [/No tengo suficientes propiedades que coincidan con tus preferencias para hacer una recomendación\./g, 'I do not have enough properties matching your preferences to make a recommendation.'],
+      [/Para comparar, necesito que menciones al menos 2 propiedades\./g, 'To compare, I need you to mention at least 2 properties.'],
+      [/Comparando \*\*(\d+) propiedades\*\*/g, 'Comparing **$1 properties**'],
+      [/Análisis:/g, 'Analysis:'],
+      [/Precio promedio:/g, 'Average price:'],
+      [/Rango:/g, 'Range:'],
+      [/Diferencia:/g, 'Difference:'],
+      [/Nuestras propiedades tienen precios que van desde/g, 'Our properties range in price from'],
+      [/¿Tienes un presupuesto en mente\?/g, 'Do you have a budget in mind?'],
+      [/No hay reserva previa sin aprobación/g, 'There is no pre-booking without approval'],
+      [/Tiempo de respuesta/g, 'Response time'],
+      [/Si es rechazada/g, 'If rejected'],
+      [/depósito/g, 'deposit'],
+      [/solicitud/g, 'application'],
+      [/propietario/g, 'owner'],
+      [/propiedades/g, 'properties'],
+      [/propiedad/g, 'property'],
+      [/alquiler/g, 'rental'],
+      [/¿Qué te gustaría saber específicamente\?/g, 'What would you like to know specifically?'],
+      [/Lo siento, hubo un error al procesar tu pregunta\. Por favor, intenta reformularla o pregunta algo diferente\./g, 'Sorry, there was an error processing your question. Please try rephrasing it or ask something different.'],
+    ]
+
+    for (const [pattern, replacement] of replacements) {
+      output = output.replace(pattern, replacement)
+    }
+
+    return output
+  }
+
   async function handleSend() {
     if (!input.trim() || isTyping) return
 
@@ -1742,11 +1809,12 @@ export function AIAssistant({
     try {
       // Usar el nuevo motor de IA mejorado
       const response = await processQuestion(userMessage.content)
+      const localizedResponse = localizeAssistantText(response)
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: localizedResponse,
         timestamp: new Date(),
         context: {
           mentionedProperties: contextRef.current.mentionedProperties.slice(-5), // Últimas 5 mencionadas
@@ -1774,7 +1842,7 @@ export function AIAssistant({
       const combinedSuggestions = [
         ...followUpSuggestions,
         ...smartSuggestions.map(s => s.text)
-      ].slice(0, 4)
+      ].map((suggestion) => localizeAssistantText(suggestion)).slice(0, 4)
       
       setSuggestedQuestions(combinedSuggestions)
     } catch (error) {
@@ -1782,7 +1850,7 @@ export function AIAssistant({
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Lo siento, hubo un error al procesar tu pregunta. Por favor, intenta reformularla o pregunta algo diferente.',
+        content: localizeAssistantText('Lo siento, hubo un error al procesar tu pregunta. Por favor, intenta reformularla o pregunta algo diferente.'),
         timestamp: new Date()
       }
       setMessages(prev => [...prev, errorMessage])
@@ -1835,7 +1903,7 @@ export function AIAssistant({
               <Bot className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Asistente Virtual RIAL</h2>
+              <h2 className="text-xl font-bold text-white tracking-tight">{t('aiAssistant.title')}</h2>
               <p className="text-sm text-white/90 flex items-center gap-1.5 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
                 {t('aiAssistant.readyToHelp')}
@@ -1914,7 +1982,9 @@ export function AIAssistant({
                         }
                         return [isBold ? <strong key={keyPrefix}>{text}</strong> : <React.Fragment key={keyPrefix}>{text}</React.Fragment>]
                       }
-                      const parts = message.content.split('**')
+                      const displayContent =
+                        message.role === 'assistant' ? localizeAssistantText(message.content) : message.content
+                      const parts = displayContent.split('**')
                       const result: React.ReactNode[] = []
                       parts.forEach((part, i) => {
                         const nodes = makeSegmentClickable(part, `${message.id}-${i}`, i % 2 === 1)

@@ -374,6 +374,7 @@
     "title": "Dashboard Analytics"
   },
   "aiAssistant": {
+    "title": "Asistente Virtual RIAL",
     "readyToHelp": "Listo para ayudarte",
     "you": "Tú",
     "tryAsking": "Prueba preguntar:",
