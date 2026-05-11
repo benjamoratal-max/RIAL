@@ -1669,13 +1669,13 @@ export default function App() {
         )}
       </main>
 
-      {/* Asistente IA flotante (marca RIAL: navy + dorado) */}
+      {/* Asistente IA flotante (marca RIAL: navy + celeste) */}
       {!showChat && (
         <motion.button
           onClick={() => setShowChat(true)}
           className="fixed bottom-6 right-6 z-40 flex items-center gap-3 rounded-2xl border border-rial-gold/50 px-5 py-3.5 font-medium text-white shadow-xl focus:outline-none focus:ring-2 focus:ring-rial-gold focus:ring-offset-2 focus:ring-offset-rial-cream dark:focus:ring-offset-slate-950"
           style={{
-            background: 'linear-gradient(135deg, #D4B84A 0%, #C9A227 40%, #0B1623 100%)',
+            background: 'linear-gradient(135deg, #D4EFFF 0%, #B9E2FF 38%, #0B1623 100%)',
             boxShadow: '0 12px 40px -12px rgba(11, 22, 35, 0.45)',
           }}
           initial={{ opacity: 0, scale: 0.8, y: 20 }}

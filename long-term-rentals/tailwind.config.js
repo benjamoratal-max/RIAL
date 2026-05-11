@@ -55,8 +55,9 @@ export default {
           'navy-light': '#152535',
           cream: '#F5F1E9',
           'cream-dark': '#E8E2D6',
-          gold: '#C9A227',
-          'gold-soft': '#D4B84A',
+          /** Acento editorial (celeste — referencia ~#B9E2FF) */
+          gold: '#B9E2FF',
+          'gold-soft': '#D4EFFF',
           ink: '#1A1F26',
           muted: '#5C6570',
           verified: '#2F6F5E',
