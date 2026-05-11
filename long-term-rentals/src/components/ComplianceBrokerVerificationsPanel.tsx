@@ -5,6 +5,7 @@ import { Button } from './UI'
 import { api } from '../utils/api'
 import { getErrorMessage } from '../utils/errorHandler'
 import { toast } from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 
 interface BrokerProfile {
   id: number
@@ -30,6 +31,7 @@ interface ComplianceBrokerVerificationsPanelProps {
 }
 
 export function ComplianceBrokerVerificationsPanel({ token, onClose }: ComplianceBrokerVerificationsPanelProps) {
+  const { t } = useTranslation()
   const [profiles, setProfiles] = useState<BrokerProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [actionId, setActionId] = useState<number | null>(null)
@@ -61,12 +63,12 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
       })
       toast.success(
         action === 'approve'
-          ? 'Broker aprobado'
+          ? t('compliance.brokerApproved')
           : action === 'reject'
-          ? 'Broker rechazado'
+          ? t('compliance.brokerRejected')
           : action === 'more_info'
-          ? 'Se solicitó más información'
-          : 'Broker suspendido'
+          ? t('compliance.moreInfoRequested')
+          : t('compliance.brokerSuspended')
       )
       await loadPending()
     } catch (err) {
@@ -96,21 +98,21 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
             <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Broker verifications
+                {t('compliance.brokerVerificationsTitle')}
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Cola de brokers pendientes de revisión y compliance.
+                {t('compliance.brokerVerificationsSubtitle')}
               </p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
-            Cerrar
+            {t('common.close')}
           </Button>
         </div>
 
         <div className="mb-3 text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
           <AlertTriangle className="w-3 h-3" />
-          Asegúrate de validar licencia, identidad y brokerage antes de aprobar.
+          {t('compliance.brokerValidationHint')}
         </div>
 
         {loading ? (
@@ -119,7 +121,7 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
           </div>
         ) : profiles.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
-            No hay brokers pendientes de verificación.
+            {t('compliance.noPendingBrokers')}
           </div>
         ) : (
           <ul className="flex-1 overflow-y-auto space-y-3 pr-1">
@@ -138,16 +140,16 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
                     </div>
                     {p.brokerageName && (
                       <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Brokerage: {p.brokerageName}
+                        {t('compliance.brokerageLabel')}: {p.brokerageName}
                       </div>
                     )}
                     {p.licenseNumber && (
                       <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Licencia: {p.licenseNumber}{' '}
+                        {t('compliance.licenseLabel')}: {p.licenseNumber}{' '}
                         {p.licenseType && `(${p.licenseType})`}{' '}
                         {p.licenseState && `· ${p.licenseState}`}{' '}
                         {p.licenseExpiration &&
-                          `· exp. ${new Date(p.licenseExpiration).toLocaleDateString()}`}
+                          `· ${t('compliance.licenseExpiresShort')} ${new Date(p.licenseExpiration).toLocaleDateString()}`}
                       </div>
                     )}
                   </div>
@@ -157,11 +159,11 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-gray-500 dark:text-gray-400">
                   <span>
-                    Creado: {new Date(p.createdAt).toLocaleString()}
+                    {t('compliance.createdLabel')}: {new Date(p.createdAt).toLocaleString()}
                   </span>
                   <span className="flex items-center gap-1">
                     <Info className="w-3 h-3" />
-                    ID perfil: {p.id}
+                    {t('compliance.profileIdLabel')}: {p.id}
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2 justify-end">
@@ -171,7 +173,7 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
                     disabled={actionId === p.id}
                     onClick={() => decide(p.id, 'more_info')}
                   >
-                    Más info
+                    {t('compliance.moreInfo')}
                   </Button>
                   <Button
                     size="sm"
@@ -179,7 +181,7 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
                     disabled={actionId === p.id}
                     onClick={() => decide(p.id, 'reject')}
                   >
-                    Rechazar
+                    {t('compliance.reject')}
                   </Button>
                   <Button
                     size="sm"
@@ -188,7 +190,7 @@ export function ComplianceBrokerVerificationsPanel({ token, onClose }: Complianc
                     icon={actionId === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                     onClick={() => decide(p.id, 'approve')}
                   >
-                    Aprobar
+                    {t('compliance.approve')}
                   </Button>
                 </div>
               </li>

@@ -273,6 +273,18 @@ function PropertyDetail({ id, onClose, token, user }: any) {
     if (normalized.includes('townhouse') || normalized.includes('adosada')) return t('propertyTypes.townhouse')
     return rawType
   }
+  const localizeSubtitle = (subtitle: string) => {
+    const normalized = String(subtitle || '').toLowerCase().trim()
+    if (!normalized) return subtitle
+    if (normalized === 'house' || normalized === 'casa') return t('propertyTypes.house')
+    if (normalized === 'apartment' || normalized === 'apartamento' || normalized === 'departamento') return t('propertyTypes.apartment')
+    if (normalized === 'studio' || normalized === 'estudio') return t('propertyTypes.studio')
+    if (normalized === 'loft') return t('propertyTypes.loft')
+    if (normalized === 'penthouse') return t('propertyTypes.penthouse')
+    if (normalized === 'villa') return t('propertyTypes.villa')
+    if (normalized === 'townhouse') return t('propertyTypes.townhouse')
+    return subtitle
+  }
 
   const statCards = [
     { label: t('propertyDetail.monthlyPrice'), value: `${formatMoney(property.price)} ${t('propertyDetail.perMonth')}` },
@@ -328,7 +340,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
         <div className="flex justify-between items-start gap-4 mb-6">
           <div className="space-y-2">
             <div>
-              <p className="text-sm uppercase tracking-wide text-blue-500 font-semibold">{property.subtitle}</p>
+              <p className="text-sm uppercase tracking-wide text-blue-500 font-semibold">{localizeSubtitle(property.subtitle)}</p>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{property.title}</h2>
               <div className="text-gray-600 dark:text-gray-400 flex items-center mt-1">
                 <MapPin className="w-4 h-4 mr-1" />

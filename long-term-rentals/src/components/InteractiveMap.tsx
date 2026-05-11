@@ -478,6 +478,7 @@ export function InteractiveMap({
 }
 
 export function AdvancedMapSearch({ onSearch }: { onSearch: (query: string, filters: any) => void }) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState({
     radius: 5000,
@@ -490,40 +491,40 @@ export function AdvancedMapSearch({ onSearch }: { onSearch: (query: string, filt
 
   return (
     <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Búsqueda avanzada</h3>
+      <h3 className="font-semibold text-gray-900 dark:text-white mb-3">{t('map.advancedSearchTitle')}</h3>
       <div className="space-y-3">
-        <Input placeholder="Ubicación o dirección..." value={query} onChange={setQuery} icon={<Search className="w-4 h-4" />} />
+        <Input placeholder={t('map.addressPlaceholder')} value={query} onChange={setQuery} icon={<Search className="w-4 h-4" />} />
         <div>
-          <label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">Radio de búsqueda</label>
+          <label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">{t('map.searchRadiusLabel')}</label>
           <select
             value={filters.radius}
             onChange={(e) => setFilters({ ...filters, radius: Number(e.target.value) })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
           >
-            <option value={1000}>1 km</option>
-            <option value={5000}>5 km</option>
-            <option value={10000}>10 km</option>
-            <option value={25000}>25 km</option>
+            <option value={1000}>{t('map.radius1km')}</option>
+            <option value={5000}>{t('map.radius5km')}</option>
+            <option value={10000}>{t('map.radius10km')}</option>
+            <option value={25000}>{t('map.radius25km')}</option>
           </select>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Input
             type="number"
-            placeholder="Precio mín"
+            placeholder={t('filters.minPrice')}
             value={filters.minPrice}
             onChange={(value) => setFilters({ ...filters, minPrice: value })}
             icon={<DollarSign className="w-4 h-4" />}
           />
           <Input
             type="number"
-            placeholder="Precio máx"
+            placeholder={t('filters.maxPrice')}
             value={filters.maxPrice}
             onChange={(value) => setFilters({ ...filters, maxPrice: value })}
             icon={<DollarSign className="w-4 h-4" />}
           />
         </div>
         <Button onClick={() => onSearch(query, filters)} icon={<Search className="w-4 h-4" />} className="w-full">
-          Buscar en el mapa
+          {t('map.searchInMap')}
         </Button>
       </div>
     </div>

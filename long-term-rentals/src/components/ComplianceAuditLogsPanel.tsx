@@ -5,6 +5,7 @@ import { Button, LoadingSpinner } from './UI'
 import { api } from '../utils/api'
 import { getErrorMessage } from '../utils/errorHandler'
 import { toast } from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 
 interface ComplianceAuditLogsPanelProps {
   token: string
@@ -22,6 +23,7 @@ type AuditLogItem = {
 }
 
 export function ComplianceAuditLogsPanel({ token, onClose }: ComplianceAuditLogsPanelProps) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<AuditLogItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -64,27 +66,27 @@ export function ComplianceAuditLogsPanel({ token, onClose }: ComplianceAuditLogs
             <ListChecks className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Audit logs
+                {t('compliance.auditLogsTitle')}
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Historial de acciones sensibles realizadas por el equipo y el sistema.
+                {t('compliance.auditLogsSubtitle')}
               </p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />}>
-            Cerrar
+            {t('common.close')}
           </Button>
         </div>
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <LoadingSpinner size="lg" text="Cargando audit logs..." />
+            <LoadingSpinner size="lg" text={t('compliance.loadingAuditLogs')} />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 space-y-3 text-xs text-gray-700 dark:text-gray-200">
             {items.length === 0 ? (
               <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-10">
-                No hay registros recientes de auditoría.
+                {t('compliance.noRecentAuditLogs')}
               </div>
             ) : (
               items.map((log) => (
@@ -101,9 +103,9 @@ export function ComplianceAuditLogsPanel({ token, onClose }: ComplianceAuditLogs
                     </div>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-gray-600 dark:text-gray-300">
-                    <span>actorId: {log.actorId ?? 'system'}</span>
+                    <span>{t('compliance.actorIdLabel')}: {log.actorId ?? t('compliance.system')}</span>
                     <span>
-                      entity: {log.entityType}
+                      {t('compliance.entityLabel')}: {log.entityType}
                       {log.entityId != null && ` #${log.entityId}`}
                     </span>
                   </div>

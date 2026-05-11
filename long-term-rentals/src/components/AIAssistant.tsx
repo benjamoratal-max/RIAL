@@ -11,6 +11,7 @@ import { GenerativeAIService, DEFAULT_OLLAMA_MODEL } from '../utils/generativeAI
 import { RIAL_BROKER_WELCOME_MESSAGE } from '../utils/rialBrokerPrompt'
 import { LearningSystem } from '../utils/learningSystem'
 import { AIFeedback } from './AIFeedback'
+import { useTranslation } from 'react-i18next'
 
 interface Message {
   id: string
@@ -60,6 +61,7 @@ export function AIAssistant({
   onStartPrequalification,
   isOpen = true,
 }: AIAssistantProps) {
+  const { t, i18n } = useTranslation()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -1836,7 +1838,7 @@ export function AIAssistant({
               <h2 className="text-xl font-bold text-white tracking-tight">Asistente Virtual RIAL</h2>
               <p className="text-sm text-white/90 flex items-center gap-1.5 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                Listo para ayudarte
+                {t('aiAssistant.readyToHelp')}
               </p>
             </div>
           </div>
@@ -1847,7 +1849,7 @@ export function AIAssistant({
             className="text-white hover:bg-white/20 rounded-xl"
             icon={<X className="w-5 h-5" />}
           >
-            Cerrar
+            {t('common.close')}
           </Button>
         </div>
 
@@ -1925,7 +1927,7 @@ export function AIAssistant({
                     'text-xs mt-2',
                     message.role === 'user' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
                   )}>
-                    {message.timestamp.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    {message.timestamp.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                   
                   {/* Feedback para respuestas del asistente */}
@@ -1950,7 +1952,7 @@ export function AIAssistant({
                 </div>
                 {message.role === 'user' && (
                   <div className="w-9 h-9 rounded-xl bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0 border border-gray-200 dark:border-gray-500">
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Tú</span>
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('aiAssistant.you')}</span>
                   </div>
                 )}
               </motion.div>
@@ -1984,7 +1986,7 @@ export function AIAssistant({
           <div className="px-6 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-500" />
-              {messages.length === 1 ? 'Prueba preguntar:' : 'También puedes preguntar:'}
+              {messages.length === 1 ? t('aiAssistant.tryAsking') : t('aiAssistant.alsoAsk')}
             </p>
             <div className="flex flex-wrap gap-2">
               {suggestedQuestions.map((q, i) => (
@@ -2014,7 +2016,7 @@ export function AIAssistant({
                 value={input}
                 onChange={setInput}
                 onKeyPress={handleKeyPress}
-                placeholder="Escribe tu pregunta o lo que buscas..."
+                placeholder={t('aiAssistant.inputPlaceholder')}
                 icon={<Sparkles className="w-4 h-4 text-indigo-500" />}
                 disabled={isTyping}
               />
@@ -2026,7 +2028,7 @@ export function AIAssistant({
               style={!(!input.trim() || isTyping) ? { background: 'linear-gradient(135deg, #6366f1, #7c3aed)' } : undefined}
               icon={isTyping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             >
-              {isTyping ? 'Enviando...' : 'Enviar'}
+              {isTyping ? t('aiAssistant.sending') : t('chat.send')}
             </Button>
           </div>
         </div>

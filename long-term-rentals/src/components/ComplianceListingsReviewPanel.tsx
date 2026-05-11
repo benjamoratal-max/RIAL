@@ -5,6 +5,7 @@ import { Button, LoadingSpinner, classNames } from './UI'
 import { api } from '../utils/api'
 import { getErrorMessage } from '../utils/errorHandler'
 import { toast } from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 
 interface ComplianceListingsReviewPanelProps {
   token: string
@@ -30,15 +31,16 @@ type ListingItem = {
 }
 
 const FLAG_LABELS: Record<string, string> = {
-  SIN_IMAGENES: 'Sin imágenes',
-  POCAS_IMAGENES: 'Pocas imágenes',
-  DESCRIPCION_CORTA: 'Descripción corta',
-  SOSPECHA_DUPLICADO: 'Posible duplicado',
-  LISTING_NO_VERIFICADO: 'Listing no verificado',
-  SIN_OWNER_ASIGNADO: 'Sin owner asignado',
+  SIN_IMAGENES: 'compliance.flagNoImages',
+  POCAS_IMAGENES: 'compliance.flagFewImages',
+  DESCRIPCION_CORTA: 'compliance.flagShortDescription',
+  SOSPECHA_DUPLICADO: 'compliance.flagPossibleDuplicate',
+  LISTING_NO_VERIFICADO: 'compliance.flagListingNotVerified',
+  SIN_OWNER_ASIGNADO: 'compliance.flagNoOwnerAssigned',
 }
 
 export function ComplianceListingsReviewPanel({ token, onClose }: ComplianceListingsReviewPanelProps) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<ListingItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -81,27 +83,27 @@ export function ComplianceListingsReviewPanel({ token, onClose }: ComplianceList
             <Flag className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Listings review & flags
+                {t('compliance.listingsReviewTitle')}
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Panel de calidad de publicaciones (solo compliance/admin).
+                {t('compliance.listingsReviewSubtitle')}
               </p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />}>
-            Cerrar
+            {t('common.close')}
           </Button>
         </div>
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <LoadingSpinner size="lg" text="Cargando publicaciones para revisión..." />
+            <LoadingSpinner size="lg" text={t('compliance.loadingListingsReview')} />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {items.length === 0 ? (
               <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-10">
-                No hay publicaciones con flags relevantes en este momento.
+                {t('compliance.noListingsWithFlags')}
               </div>
             ) : (
               items.map((item) => {
@@ -116,17 +118,17 @@ export function ComplianceListingsReviewPanel({ token, onClose }: ComplianceList
                         <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                         <div className="truncate">
                           <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                            {item.property.title || 'Sin título'}
+                            {item.property.title || t('profile.untitledProperty')}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {item.property.location || 'Ubicación no disponible'}
+                            {item.property.location || t('profile.locationUnavailable')}
                           </div>
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
                         {item.owner && (
                           <span>
-                            Owner: {item.owner.name || 'Sin nombre'} · {item.owner.email || 'Sin email'} ·{' '}
+                            {t('compliance.ownerLabel')}: {item.owner.name || t('compliance.noName')} · {item.owner.email || t('compliance.noEmail')} ·{' '}
                             {item.owner.role}
                           </span>
                         )}
@@ -144,12 +146,12 @@ export function ComplianceListingsReviewPanel({ token, onClose }: ComplianceList
                           {item.property.verified ? (
                             <>
                               <CheckCircle2 className="w-3 h-3" />
-                              Verificado
+                              {t('compliance.verified')}
                             </>
                           ) : (
                             <>
                               <AlertTriangle className="w-3 h-3" />
-                              No verificado
+                              {t('compliance.notVerified')}
                             </>
                           )}
                         </span>
@@ -168,13 +170,13 @@ export function ComplianceListingsReviewPanel({ token, onClose }: ComplianceList
                               ) : (
                                 <AlertTriangle className="w-3 h-3" />
                               )}
-                              {FLAG_LABELS[flag] || flag}
+                              {t(FLAG_LABELS[flag] || flag)}
                             </span>
                           ))
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
                             <CheckCircle2 className="w-3 h-3" />
-                            Sin flags relevantes
+                            {t('compliance.noRelevantFlags')}
                           </span>
                         )}
                       </div>
@@ -183,10 +185,10 @@ export function ComplianceListingsReviewPanel({ token, onClose }: ComplianceList
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            toast('Acción avanzada pendiente de implementar (abrir detalle de listing).')
+                            toast(t('compliance.actionPending'))
                           }}
                         >
-                          Ver detalle
+                          {t('propertyCard.viewDetail')}
                         </Button>
                       </div>
                     </div>

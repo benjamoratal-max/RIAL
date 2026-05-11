@@ -161,24 +161,24 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
       {
         id: 1,
         type: 'booking',
-        title: 'Reserva confirmada',
-        description: 'Tu reserva en "Apartamento Centro" ha sido confirmada',
+        title: t('profile.activityBookingConfirmedTitle'),
+        description: t('profile.activityBookingConfirmedDescription'),
         date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
         icon: Calendar
       },
       {
         id: 2,
         type: 'review',
-        title: 'Reseña publicada',
-        description: 'Has publicado una reseña para "Casa Playa"',
+        title: t('profile.activityReviewPublishedTitle'),
+        description: t('profile.activityReviewPublishedDescription'),
         date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
         icon: Star
       },
       {
         id: 3,
         type: 'favorite',
-        title: 'Propiedad favorita',
-        description: 'Has agregado "Loft Moderno" a tus favoritos',
+        title: t('profile.activityFavoriteAddedTitle'),
+        description: t('profile.activityFavoriteAddedDescription'),
         date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         icon: Heart
       }
@@ -211,9 +211,9 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
             id: id,
             property: {
               id: prop.id,
-              title: prop.title || 'Sin título',
+              title: prop.title || t('profile.untitledProperty'),
               price: prop.price || 0,
-              location: prop.location || 'Ubicación no disponible',
+              location: prop.location || t('profile.locationUnavailable'),
               images: prop.images || [],
               averageRating: propertyItem.averageRating || 0,
               reviewsCount: propertyItem.reviewsCount || 0
@@ -498,7 +498,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                     </h2>
                     {renterLeads.length === 0 ? (
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Aún no tienes leads ni procesos de aplicación iniciados con brokers.
+                        {t('profile.noApplicationsYet')}
                       </p>
                     ) : (
                       <div className="space-y-3">
@@ -509,10 +509,10 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                           >
                             <div className="min-w-0">
                               <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                {lead.property?.title || 'Propiedad sin título'}
+                                {lead.property?.title || t('profile.untitledProperty')}
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                {lead.property?.location || 'Ubicación no disponible'}
+                                {lead.property?.location || t('profile.locationUnavailable')}
                               </div>
                               {lead.stage && (
                                 <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[11px] text-blue-700 dark:text-blue-200 font-semibold">
@@ -523,7 +523,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                             <div className="flex items-center gap-2">
                               {lead.broker?.name && (
                                 <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
-                                  Broker: {lead.broker.name}
+                                  {t('profile.brokerLabel')}: {lead.broker.name}
                                 </span>
                               )}
                               <Button
@@ -531,7 +531,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                                 variant="outline"
                                 onClick={() => setSelectedLeadForDocs(lead)}
                               >
-                                Ver documentos
+                                {t('profile.viewDocuments')}
                               </Button>
                             </div>
                           </div>
@@ -602,10 +602,10 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
 function DashboardTab({ user, activities, favorites }: { user: UserProfileData, activities: any[], favorites: any[] }) {
   const { t } = useTranslation()
   const stats = [
-    { label: 'Propiedades', value: user.stats.totalProperties, icon: Home, color: 'blue' },
-    { label: 'Reseñas', value: user.stats.totalReviews, icon: Star, color: 'yellow' },
-    { label: 'Reservas', value: user.stats.totalBookings, icon: Calendar, color: 'green' },
-    { label: 'Favoritos', value: favorites.length, icon: Heart, color: 'red' } // Usar el array directamente
+    { label: t('profile.statsProperties'), value: user.stats.totalProperties, icon: Home, color: 'blue' },
+    { label: t('profile.statsReviews'), value: user.stats.totalReviews, icon: Star, color: 'yellow' },
+    { label: t('profile.statsBookings'), value: user.stats.totalBookings, icon: Calendar, color: 'green' },
+    { label: t('profile.statsFavorites'), value: favorites.length, icon: Heart, color: 'red' } // Usar el array directamente
   ]
 
   return (
@@ -643,14 +643,14 @@ function DashboardTab({ user, activities, favorites }: { user: UserProfileData, 
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Heart className="w-5 h-5 text-red-500" />
-            Mis Favoritos
+            {t('profile.myFavorites')}
           </h3>
           {favorites.length === 0 ? (
             <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-8 text-center">
               <Heart className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 dark:text-gray-400">No tienes propiedades favoritas aún</p>
+              <p className="text-gray-600 dark:text-gray-400">{t('profile.noFavoritesYet')}</p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                Haz clic en el corazón de una propiedad para agregarla a favoritos
+                {t('profile.noFavoritesHint')}
               </p>
             </div>
           ) : (
@@ -676,15 +676,15 @@ function DashboardTab({ user, activities, favorites }: { user: UserProfileData, 
                   )}
                   <div className="p-4">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1">
-                      {favorite.property?.title || 'Sin título'}
+                      {favorite.property?.title || t('profile.untitledProperty')}
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      <span className="line-clamp-1">{favorite.property?.location || 'Ubicación no disponible'}</span>
+                      <span className="line-clamp-1">{favorite.property?.location || t('profile.locationUnavailable')}</span>
                     </p>
                     <div className="flex items-center justify-between">
                       <p className="text-lg font-bold text-gray-900 dark:text-white">
-                        ${favorite.property?.price?.toLocaleString() || 0}/mes
+                        ${favorite.property?.price?.toLocaleString() || 0}{t('propertyCard.perMonth')}
                       </p>
                       {favorite.property?.averageRating && (
                         <div className="flex items-center gap-1">
@@ -708,7 +708,7 @@ function DashboardTab({ user, activities, favorites }: { user: UserProfileData, 
           <div className="space-y-3">
             {activities.length === 0 ? (
               <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 text-center">
-                <p className="text-gray-600 dark:text-gray-400">No hay actividad reciente</p>
+                <p className="text-gray-600 dark:text-gray-400">{t('profile.noRecentActivity')}</p>
               </div>
             ) : (
               activities.slice(0, 5).map((activity, index) => {

@@ -5,6 +5,7 @@ import { Button, LoadingSpinner, classNames } from './UI'
 import { api } from '../utils/api'
 import { getErrorMessage } from '../utils/errorHandler'
 import { toast } from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 
 interface ComplianceIncidentsPanelProps {
   token: string
@@ -31,6 +32,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 }
 
 export function ComplianceIncidentsPanel({ token, onClose }: ComplianceIncidentsPanelProps) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<Incident[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -73,27 +75,27 @@ export function ComplianceIncidentsPanel({ token, onClose }: ComplianceIncidents
             <Flag className="w-5 h-5 text-rose-600 dark:text-rose-400" />
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Flags / Incidents
+                {t('compliance.incidentsTitle')}
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Reportes de problemas en listings, leads o usuarios (solo compliance/admin).
+                {t('compliance.incidentsSubtitle')}
               </p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />}>
-            Cerrar
+            {t('common.close')}
           </Button>
         </div>
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <LoadingSpinner size="lg" text="Cargando incidentes..." />
+            <LoadingSpinner size="lg" text={t('app.loadingIncidents')} />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {items.length === 0 ? (
               <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-10">
-                No hay incidentes abiertos en este momento.
+                {t('compliance.noOpenIncidents')}
               </div>
             ) : (
               items.map((incident) => (
@@ -114,9 +116,9 @@ export function ComplianceIncidentsPanel({ token, onClose }: ComplianceIncidents
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-                      {incident.propertyId && <span>Property: #{incident.propertyId}</span>}
-                      {incident.leadId && <span>Lead: #{incident.leadId}</span>}
-                      {incident.userId && <span>User: #{incident.userId}</span>}
+                      {incident.propertyId && <span>{t('compliance.propertyLabel')}: #{incident.propertyId}</span>}
+                      {incident.leadId && <span>{t('compliance.leadLabel')}: #{incident.leadId}</span>}
+                      {incident.userId && <span>{t('compliance.userLabel')}: #{incident.userId}</span>}
                       <span
                         className={classNames(
                           'inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold',
@@ -149,10 +151,10 @@ export function ComplianceIncidentsPanel({ token, onClose }: ComplianceIncidents
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        toast('Acciones de resolución de incidente pendientes de implementar.')
+                        toast(t('compliance.incidentActionsPending'))
                       }}
                     >
-                      Gestionar
+                      {t('compliance.manage')}
                     </Button>
                   </div>
                 </div>

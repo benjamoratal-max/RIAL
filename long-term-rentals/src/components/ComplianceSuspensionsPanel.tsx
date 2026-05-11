@@ -5,6 +5,7 @@ import { Button, LoadingSpinner } from './UI'
 import { api } from '../utils/api'
 import { getErrorMessage } from '../utils/errorHandler'
 import { toast } from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 
 interface ComplianceSuspensionsPanelProps {
   token: string
@@ -24,6 +25,7 @@ type SuspensionItem = {
 }
 
 export function ComplianceSuspensionsPanel({ token, onClose }: ComplianceSuspensionsPanelProps) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<SuspensionItem[]>([])
   const [loading, setLoading] = useState(true)
   const [liftingId, setLiftingId] = useState<number | null>(null)
@@ -54,7 +56,7 @@ export function ComplianceSuspensionsPanel({ token, onClose }: ComplianceSuspens
         method: 'POST',
         token,
       })
-      toast.success('Suspensión levantada')
+      toast.success(t('compliance.suspensionLifted'))
       await loadSuspensions()
     } catch (err) {
       toast.error(getErrorMessage(err))
@@ -83,27 +85,27 @@ export function ComplianceSuspensionsPanel({ token, onClose }: ComplianceSuspens
             <Ban className="w-5 h-5 text-rose-600 dark:text-rose-400" />
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Suspensions
+                {t('compliance.suspensionsTitle')}
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Cuentas y listings suspendidos (solo compliance/admin).
+                {t('compliance.suspensionsSubtitle')}
               </p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />}>
-            Cerrar
+            {t('common.close')}
           </Button>
         </div>
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <LoadingSpinner size="lg" text="Cargando suspensiones..." />
+            <LoadingSpinner size="lg" text={t('app.loadingSuspensions')} />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {items.length === 0 ? (
               <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-10">
-                No hay suspensiones activas en este momento.
+                {t('compliance.noActiveSuspensions')}
               </div>
             ) : (
               items.map((item) => (
@@ -116,7 +118,7 @@ export function ComplianceSuspensionsPanel({ token, onClose }: ComplianceSuspens
                       <Ban className="w-4 h-4 text-rose-500 dark:text-rose-300" />
                       <div className="truncate">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                          Suspensión #{item.id}
+                          {t('compliance.suspensionLabel')} #{item.id}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(item.createdAt).toLocaleString()}
@@ -126,17 +128,17 @@ export function ComplianceSuspensionsPanel({ token, onClose }: ComplianceSuspens
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
                       {item.user && (
                         <span>
-                          User: {item.user.name || 'Sin nombre'} · {item.user.email || 'Sin email'} · {item.user.role}
+                          {t('compliance.userLabel')}: {item.user.name || t('compliance.noName')} · {item.user.email || t('compliance.noEmail')} · {item.user.role}
                         </span>
                       )}
                       {item.property && (
                         <span>
-                          Property: #{item.property.id} · {item.property.title || 'Sin título'}
+                          {t('compliance.propertyLabel')}: #{item.property.id} · {item.property.title || t('profile.untitledProperty')}
                         </span>
                       )}
                     </div>
                     <div className="text-xs text-gray-700 dark:text-gray-300 mt-1">
-                      Motivo: {item.reason}
+                      {t('compliance.reasonLabel')}: {item.reason}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -147,7 +149,7 @@ export function ComplianceSuspensionsPanel({ token, onClose }: ComplianceSuspens
                       onClick={() => liftSuspension(item.id)}
                       icon={<CheckCircle2 className="w-3 h-3" />}
                     >
-                      {liftingId === item.id ? 'Levantando…' : 'Levantar suspensión'}
+                      {liftingId === item.id ? t('compliance.lifting') : t('compliance.liftSuspension')}
                     </Button>
                   </div>
                 </div>
