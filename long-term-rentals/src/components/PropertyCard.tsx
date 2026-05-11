@@ -198,7 +198,7 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
           {((property as any).broker?.isVerifiedBroker || (property as any).verified) && (
             <div className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
               <span className="font-semibold">
-                Listed by verified broker
+                {t('propertyDetail.listedByVerifiedBroker')}
               </span>
               {(property as any).broker?.name && (
                 <span>· {(property as any).broker.name}</span>

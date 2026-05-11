@@ -190,7 +190,25 @@
     "duplicateAlertsDescription": "This listing is very similar to others. Please ensure it is not a duplicate.",
     "duplicatePropertyId": "Property #{{id}}",
     "similarity": "similarity",
-    "couldNotLoad": "Could not load this property right now."
+    "couldNotLoad": "Could not load this property right now.",
+    "insideHouse": "Inside the house",
+    "outdoorAmenities": "Outdoor amenities",
+    "listedByVerifiedBroker": "Listed by verified broker",
+    "licenseLabel": "License",
+    "licenseExpires": "exp."
+  },
+  "propertyTypes": {
+    "apartment": "Apartment",
+    "house": "House",
+    "studio": "Studio",
+    "loft": "Loft",
+    "penthouse": "Penthouse",
+    "villa": "Villa",
+    "townhouse": "Townhouse"
+  },
+  "map": {
+    "searchPlaceholder": "Search location...",
+    "resolvingLocations": "Resolving real locations..."
   },
   "scheduleVisit": {
     "title": "Schedule visit",

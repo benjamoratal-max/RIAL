@@ -259,6 +259,20 @@ function PropertyDetail({ id, onClose, token, user }: any) {
   const buyAvailable = property.availableFor?.includes('buy')
   const normalizedType = String(property.type || (property as any).propertyType || '').toLowerCase()
   const isHouseLike = ['house', 'casa', 'townhouse', 'villa'].some((term) => normalizedType.includes(term))
+  const localizePropertyType = (rawType: string) => {
+    const normalized = String(rawType || '').toLowerCase()
+    if (!normalized) return t('common.consult')
+    if (normalized.includes('house') || normalized.includes('casa')) return t('propertyTypes.house')
+    if (normalized.includes('apartment') || normalized.includes('apartamento') || normalized.includes('depto') || normalized.includes('departamento') || normalized.includes('condo') || normalized.includes('condominio')) {
+      return t('propertyTypes.apartment')
+    }
+    if (normalized.includes('studio') || normalized.includes('estudio') || normalized.includes('monoambiente')) return t('propertyTypes.studio')
+    if (normalized.includes('loft')) return t('propertyTypes.loft')
+    if (normalized.includes('penthouse')) return t('propertyTypes.penthouse')
+    if (normalized.includes('villa')) return t('propertyTypes.villa')
+    if (normalized.includes('townhouse') || normalized.includes('adosada')) return t('propertyTypes.townhouse')
+    return rawType
+  }
 
   const statCards = [
     { label: t('propertyDetail.monthlyPrice'), value: `${formatMoney(property.price)} ${t('propertyDetail.perMonth')}` },
@@ -268,17 +282,17 @@ function PropertyDetail({ id, onClose, token, user }: any) {
     { label: t('propertyDetail.beds'), value: `${property.beds}` },
     { label: t('propertyDetail.area'), value: `${property.area} m²` },
     { label: t('propertyDetail.parking'), value: property.parking ? `${property.parking}` : t('propertyDetail.noParking') },
-    { label: t('propertyDetail.propertyType'), value: property.type },
+    { label: t('propertyDetail.propertyType'), value: localizePropertyType(property.type) },
     { label: t('propertyDetail.availability'), value: property.availableNow ? t('propertyDetail.availableNow') : t('propertyDetail.comingSoon') }
   ]
 
   const amenityGroups = [
     {
-      title: isHouseLike ? 'Dentro de la casa' : t('propertyDetail.insideApt'),
+      title: isHouseLike ? t('propertyDetail.insideHouse') : t('propertyDetail.insideApt'),
       items: property.amenities || [],
     },
     {
-      title: isHouseLike ? 'Amenidades exteriores' : t('propertyDetail.buildingAmenities'),
+      title: isHouseLike ? t('propertyDetail.outdoorAmenities') : t('propertyDetail.buildingAmenities'),
       items: property.buildingAmenities || [],
     },
     { title: t('propertyDetail.security'), items: property.safety || [] },
@@ -342,15 +356,15 @@ function PropertyDetail({ id, onClose, token, user }: any) {
                 <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 font-semibold">
                     <Shield className="w-3 h-3" />
-                    Listed by verified broker
+                    {t('propertyDetail.listedByVerifiedBroker')}
                   </span>
                   {broker.name && <span>· {broker.name}</span>}
                   {broker.brokerageName && <span>· {broker.brokerageName}</span>}
                   {broker.licenseState && (
                     <span className="text-[11px] opacity-80">
-                      License: {broker.licenseType ? `${broker.licenseType} · ` : ''}
+                      {t('propertyDetail.licenseLabel')}: {broker.licenseType ? `${broker.licenseType} · ` : ''}
                       {broker.licenseState}
-                      {broker.licenseExpiration && ` · exp. ${new Date(broker.licenseExpiration).toLocaleDateString()}`}
+                      {broker.licenseExpiration && ` · ${t('propertyDetail.licenseExpires')}: ${new Date(broker.licenseExpiration).toLocaleDateString()}`}
                     </span>
                   )}
                 </div>

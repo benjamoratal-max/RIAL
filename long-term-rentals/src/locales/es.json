@@ -190,7 +190,25 @@
     "duplicateAlertsDescription": "Esta publicación tiene alta similitud con otras. Revisa que no sea un duplicado.",
     "duplicatePropertyId": "Propiedad #{{id}}",
     "similarity": "similitud",
-    "couldNotLoad": "No se pudo cargar esta propiedad en este momento."
+    "couldNotLoad": "No se pudo cargar esta propiedad en este momento.",
+    "insideHouse": "Dentro de la casa",
+    "outdoorAmenities": "Amenidades exteriores",
+    "listedByVerifiedBroker": "Publicado por broker verificado",
+    "licenseLabel": "Licencia",
+    "licenseExpires": "vence"
+  },
+  "propertyTypes": {
+    "apartment": "Departamento",
+    "house": "Casa",
+    "studio": "Estudio",
+    "loft": "Loft",
+    "penthouse": "Penthouse",
+    "villa": "Villa",
+    "townhouse": "Casa adosada"
+  },
+  "map": {
+    "searchPlaceholder": "Buscar ubicación...",
+    "resolvingLocations": "Resolviendo ubicaciones reales..."
   },
   "scheduleVisit": {
     "title": "Agendar visita",

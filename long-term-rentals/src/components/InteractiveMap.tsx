@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import L from 'leaflet'
 import { MapPin, Search, Star, DollarSign, X, Crosshair, Info } from 'lucide-react'
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
+import { useTranslation } from 'react-i18next'
 import 'leaflet/dist/leaflet.css'
 import marker2x from 'leaflet/dist/images/marker-icon-2x.png'
 import marker from 'leaflet/dist/images/marker-icon.png'
@@ -290,6 +291,7 @@ export function InteractiveMap({
   center = { lat: 25.7617, lng: -80.1918 },
   zoom = 11,
 }: InteractiveMapProps) {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProperty, setSelectedProperty] = useState<ResolvedProperty | null>(null)
   const [resolvedProperties, setResolvedProperties] = useState<ResolvedProperty[]>([])
@@ -388,7 +390,7 @@ export function InteractiveMap({
       <div className="absolute top-4 left-4 right-4 z-[1000] flex items-center gap-2">
         <div className="flex-1">
           <Input
-            placeholder="Buscar ubicación..."
+            placeholder={t('map.searchPlaceholder')}
             value={searchQuery}
             onChange={setSearchQuery}
             icon={<Search className="w-4 h-4" />}
@@ -422,7 +424,7 @@ export function InteractiveMap({
               <div className="min-w-[220px]">
                 <div className="font-semibold mb-1">{property.title}</div>
                 <div className="text-xs text-gray-600 mb-2">{property.location}</div>
-                <div className="text-sm font-medium">${property.price}/mes</div>
+                <div className="text-sm font-medium">${property.price}{t('propertyCard.perMonth')}</div>
               </div>
             </Popup>
           </Marker>
@@ -431,7 +433,7 @@ export function InteractiveMap({
 
       {isResolving && resolvedProperties.length === 0 && (
         <div className="absolute bottom-4 left-4 z-[1000] rounded-lg bg-white/95 dark:bg-gray-800/95 px-3 py-2 text-xs shadow">
-          Resolviendo ubicaciones reales...
+          {t('map.resolvingLocations')}
         </div>
       )}
 
@@ -463,7 +465,7 @@ export function InteractiveMap({
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={() => onPropertyClick(selectedProperty)} icon={<Info className="w-4 h-4" />}>
-                  Ver detalles
+                  {t('propertyCard.viewDetail')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setSelectedProperty(null)} icon={<X className="w-4 h-4" />} />
               </div>
