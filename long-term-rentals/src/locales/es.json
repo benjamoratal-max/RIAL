@@ -17,6 +17,8 @@
     "loadingComparator": "Cargando comparador...",
     "loadingProfile": "Cargando perfil...",
     "loadingAssistant": "Cargando asistente...",
+    "assistantFabTitle": "Abrir asistente virtual",
+    "assistantFabLabel": "¿Necesitas ayuda?",
     "loadingProcess": "Cargando proceso...",
     "errorLoadingProperties": "Error al cargar propiedades",
     "loadingBrokerLeadsPipeline": "Cargando pipeline de leads...",
@@ -583,7 +585,10 @@
     "suggestedPricing": "Precio sugerido según la zona",
     "similarInZone": "similares en la zona",
     "estimatedDaysToPlace": "Tiempo estimado de colocación: {{days}} días",
-    "possibleDuplicateWarning": "Propiedad publicada. Se detectaron posibles anuncios similares; revisa que no sea un duplicado."
+    "possibleDuplicateWarning": "Propiedad publicada. Se detectaron posibles anuncios similares; revisa que no sea un duplicado.",
+    "mapPinTitle": "Ubicación en el mapa",
+    "mapPinHint": "Haz clic en el mapa para colocar el pin exacto. Puedes arrastrarlo después. Es opcional: si no lo marcas, la ubicación se estima a partir de la dirección.",
+    "mapPinClear": "Quitar pin"
   },
   "ownerLeads": {
     "title": "Solicitudes (Leads)",

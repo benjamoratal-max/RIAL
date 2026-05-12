@@ -6,6 +6,7 @@ import { Button, Input } from './UI'
 import { toast } from 'react-hot-toast'
 import { validatePropertyForm } from '../utils/validation'
 import { api } from '../utils/api'
+import { PropertyLocationPicker, type MapLocationValue } from './PropertyLocationPicker'
 
 const MIN_PHOTOS = 8
 const MAX_PHOTOS = 30
@@ -45,6 +46,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([])
   const [suggestedPricing, setSuggestedPricing] = useState<{ suggestedRentMin: number; suggestedRentMax: number; estimatedDaysToPlace: number; similarCount: number } | null>(null)
+  const [mapPin, setMapPin] = useState<MapLocationValue | null>(null)
   const canCreate =
     !!currentUser &&
     (currentUser.role === 'broker' || currentUser.role === 'broker_admin') &&
@@ -159,6 +161,10 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
       if (videoTourFile) {
         payload.videoTour = await fileToDataUrl(videoTourFile)
       }
+      if (mapPin) {
+        payload.latitude = mapPin.lat
+        payload.longitude = mapPin.lng
+      }
       const res = await api('/api/properties', { method: 'POST', token, body: payload }) as any
       if (res?.duplicateAlerts?.length > 0) {
         toast(t('createProperty.possibleDuplicateWarning'), { icon: '⚠️', duration: 6000 })
@@ -169,6 +175,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
       setContractOrTitle(null)
       setVideoTourFile(null)
       setSuggestedPricing(null)
+      setMapPin(null)
       setIsExpanded(false)
       onCreated?.()
       toast.success(t('createProperty.publishedSuccess'))
@@ -231,6 +238,9 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
                 icon={<MapPin className="w-4 h-4" />}
               />
               {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
+            </div>
+            <div className="md:col-span-2">
+              <PropertyLocationPicker value={mapPin} onChange={setMapPin} />
             </div>
             <div>
               <Input

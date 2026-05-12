@@ -17,6 +17,8 @@
     "loadingComparator": "Loading comparator...",
     "loadingProfile": "Loading profile...",
     "loadingAssistant": "Loading assistant...",
+    "assistantFabTitle": "Open virtual assistant",
+    "assistantFabLabel": "Need help?",
     "loadingProcess": "Loading process...",
     "errorLoadingProperties": "Error loading properties",
     "loadingBrokerLeadsPipeline": "Loading leads pipeline...",
@@ -583,7 +585,10 @@
     "suggestedPricing": "Suggested pricing for this area",
     "similarInZone": "similar in zone",
     "estimatedDaysToPlace": "Estimated time to place: {{days}} days",
-    "possibleDuplicateWarning": "Property published. Similar listings were detected; please ensure this is not a duplicate."
+    "possibleDuplicateWarning": "Property published. Similar listings were detected; please ensure this is not a duplicate.",
+    "mapPinTitle": "Map location",
+    "mapPinHint": "Click the map to place the exact pin; you can drag it afterward. Optional: if you skip this, we estimate position from the address.",
+    "mapPinClear": "Remove pin"
   },
   "ownerLeads": {
     "title": "Leads (Applications)",

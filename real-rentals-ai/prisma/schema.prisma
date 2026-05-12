@@ -124,6 +124,9 @@ model Property {
   title       String
   description String
   location    String   @default("No especificada")
+  /// Coordenadas opcionales fijadas por el broker (mapa al publicar)
+  latitude    Float?
+  longitude   Float?
   price       Float
   available   Boolean  @default(true)
   createdAt   DateTime @default(now())

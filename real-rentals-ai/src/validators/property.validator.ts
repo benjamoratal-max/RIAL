@@ -17,6 +17,8 @@ export const createPropertySchema = z.object({
     .min(3, 'La ubicación debe tener al menos 3 caracteres')
     .max(200, 'La ubicación no puede exceder 200 caracteres')
     .trim(),
+  latitude: z.number().gte(-90).lte(90).optional(),
+  longitude: z.number().gte(-180).lte(180).optional(),
   images: z.array(z.string().url('Cada imagen debe ser una URL válida'))
     .max(20, 'No se pueden agregar más de 20 imágenes')
     .optional()
@@ -28,7 +30,14 @@ export const createPropertySchema = z.object({
   area: z.number().positive().max(100000).optional(),
   propertyType: z.enum(['apartment', 'house', 'studio', 'condo', 'townhouse', 'other']).optional(),
   verified: z.boolean().optional().default(false),
-});
+}).refine(
+  (data) => {
+    const hasLat = data.latitude !== undefined
+    const hasLng = data.longitude !== undefined
+    return hasLat === hasLng
+  },
+  { message: 'latitude y longitude deben enviarse juntas', path: ['latitude'] }
+);
 
 // Validador para actualizar propiedad
 export const updatePropertySchema = createPropertySchema.partial();

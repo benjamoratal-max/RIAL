@@ -464,7 +464,15 @@ export function InteractiveMap({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={() => onPropertyClick(selectedProperty)} icon={<Info className="w-4 h-4" />}>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const p = selectedProperty
+                    setSelectedProperty(null)
+                    onPropertyClick(p)
+                  }}
+                  icon={<Info className="w-4 h-4" />}
+                >
                   {t('propertyCard.viewDetail')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setSelectedProperty(null)} icon={<X className="w-4 h-4" />} />

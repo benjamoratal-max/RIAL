@@ -317,6 +317,8 @@ router.get('/', searchLimiter, asyncHandler(async (req, res) => {
           area: true,
           propertyType: true,
           verified: true,
+          latitude: true,
+          longitude: true,
           createdAt: true,
           images: {
             select: {
@@ -363,7 +365,7 @@ router.get('/', searchLimiter, asyncHandler(async (req, res) => {
 
 // CREATE (protegido): solo brokers verificados pueden publicar
 router.post('/', auth, requireVerification, createLimiter, validateBody(createPropertySchema), asyncHandler(async (req: AuthRequest, res) => {
-  const { title, description, price, location, images, bedrooms, rooms, bathrooms, ownerId: ownerIdFromBody } = req.body;
+  const { title, description, price, location, images, bedrooms, rooms, bathrooms, latitude, longitude, ownerId: ownerIdFromBody } = req.body;
 
   const role = req.user!.role;
   const userId = req.user!.id;
@@ -404,6 +406,8 @@ router.post('/', auth, requireVerification, createLimiter, validateBody(createPr
         bedrooms: bedrooms != null && bedrooms !== '' ? Number(bedrooms) : null,
         rooms: rooms != null && rooms !== '' ? Number(rooms) : null,
         bathrooms: bathrooms != null && bathrooms !== '' ? Number(bathrooms) : null,
+        latitude: typeof latitude === 'number' && Number.isFinite(latitude) ? latitude : null,
+        longitude: typeof longitude === 'number' && Number.isFinite(longitude) ? longitude : null,
         // ownerId actúa como brokerId (dueño operativo del listing)
         ...(ownerId ? { ownerId } : {} as any),
         images: Array.isArray(images) && images.length > 0
@@ -450,7 +454,7 @@ router.post('/', auth, requireVerification, createLimiter, validateBody(createPr
 // PATCH (protegido): solo el dueño o admin
 router.patch('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
   const propertyId = Number(req.params.id);
-  const updates = req.body as Partial<{ title: string; description: string; price: number | string; location: string; images: string[]; bedrooms: number | string; rooms: number | string; bathrooms: number | string }>;
+  const updates = req.body as Partial<{ title: string; description: string; price: number | string; location: string; images: string[]; bedrooms: number | string; rooms: number | string; bathrooms: number | string; latitude: number; longitude: number }>;
 
   try {
     const prop = await prisma.property.findUnique({ where: { id: propertyId } });
@@ -470,6 +474,12 @@ router.patch('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
     if (updates.bedrooms !== undefined) allowed.bedrooms = Number(updates.bedrooms);
     if (updates.rooms !== undefined) allowed.rooms = Number(updates.rooms);
     if (updates.bathrooms !== undefined) allowed.bathrooms = Number(updates.bathrooms);
+    if (updates.latitude !== undefined) {
+      allowed.latitude = updates.latitude === null || updates.latitude === '' ? null : Number(updates.latitude);
+    }
+    if (updates.longitude !== undefined) {
+      allowed.longitude = updates.longitude === null || updates.longitude === '' ? null : Number(updates.longitude);
+    }
 
     const updated = await prisma.property.update({
       where: { id: propertyId },
@@ -621,6 +631,8 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
         price: true,
         rooms: true,
         bathrooms: true,
+        latitude: true,
+        longitude: true,
         images: true,
       },
     }),
@@ -806,6 +818,8 @@ router.get('/:id/summary', async (req, res) => {
         area: true,
         propertyType: true,
         images: true,
+        latitude: true,
+        longitude: true,
       },
     });
     if (!propertyBase) return res.status(404).json({ error: 'Propiedad no encontrada' });

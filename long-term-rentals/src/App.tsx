@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster, toast } from 'react-hot-toast'
@@ -202,7 +203,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
   if (!summary && !loadError)
     return (
       <motion.div 
-        className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-50"
+        className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-[10050]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -222,7 +223,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
 
   if (!summary && loadError) {
     return (
-      <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <motion.div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10050] flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full text-center">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('errors.title')}</h3>
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{t('propertyDetail.couldNotLoad')}</p>
@@ -298,7 +299,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
 
   return (
     <motion.div 
-      className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-[10050]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -1035,6 +1036,13 @@ export default function App() {
   const [comparisonItems, setComparisonItems] = useState<PropertySummary[]>([])
   const [notificationCount, setNotificationCount] = useState(0)
   const [messageCount, setMessageCount] = useState(0)
+
+  /** Cierra el mapa al abrir ficha (evita capas Leaflet encima del modal) y abre el detalle. */
+  const handleOpenPropertyDetail = useCallback((id: number) => {
+    setShowMap(false)
+    setOpenId(id)
+  }, [])
+
   const handleAddToComparison = useCallback((item: PropertySummary) => {
     setComparisonItems((prev) => (prev.some((i) => i.property.id === item.property.id) ? prev : [...prev, item]))
     setComparisonIds((prev) => (prev.includes(item.property.id) ? prev : [...prev, item.property.id]))
@@ -1270,7 +1278,7 @@ export default function App() {
               <FavoritesSystem
                 token={token}
                 user={user}
-                onPropertyClick={(id) => setOpenId(id)}
+                onPropertyClick={handleOpenPropertyDetail}
                 properties={items}
                 rail
               />
@@ -1590,7 +1598,7 @@ export default function App() {
                     properties={validProperties}
                     center={mapCenter}
                     zoom={validCoords.length > 1 ? 10 : 12}
-                    onPropertyClick={(property) => setOpenId(property.id)}
+                    onPropertyClick={(property) => handleOpenPropertyDetail(property.id)}
                     onLocationSelect={(lat, lng) => {
                       console.log('Location selected:', lat, lng)
                     }}
@@ -1615,7 +1623,7 @@ export default function App() {
                 >
                   <PropertyCard 
                     item={it} 
-                    onOpen={() => setOpenId(it.property.id)} 
+                    onOpen={() => handleOpenPropertyDetail(it.property.id)} 
                     token={token}
                     user={user}
                     comparisonIds={comparisonIds}
@@ -1670,28 +1678,32 @@ export default function App() {
       </main>
 
       {/* Asistente IA flotante (marca RIAL: navy + celeste) */}
-      {!showChat && (
-        <motion.button
-          onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-3 rounded-2xl border border-rial-gold/50 px-5 py-3.5 font-medium text-white shadow-xl focus:outline-none focus:ring-2 focus:ring-rial-gold focus:ring-offset-2 focus:ring-offset-rial-cream dark:focus:ring-offset-slate-950"
-          style={{
-            background: 'linear-gradient(135deg, #D4EFFF 0%, #B9E2FF 38%, #0B1623 100%)',
-            boxShadow: '0 12px 40px -12px rgba(11, 22, 35, 0.45)',
-          }}
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.98 }}
-          title="Abrir asistente virtual"
-        >
-          <span className="relative flex text-white">
-            <Sparkles className="h-6 w-6" />
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 animate-pulse rounded-full bg-emerald-400" aria-hidden />
-          </span>
-          <span className="hidden max-w-[10rem] truncate text-sm sm:inline">¿Necesitas ayuda?</span>
-        </motion.button>
-      )}
+      {typeof document !== 'undefined' &&
+        !showChat &&
+        createPortal(
+          <motion.button
+            type="button"
+            onClick={() => setShowChat(true)}
+            className="pointer-events-auto flex max-w-[min(20rem,calc(100vw-1.25rem))] items-center gap-2.5 rounded-2xl border border-rial-gold/45 bg-rial-navy px-4 py-3 text-sm font-medium text-rial-cream shadow-xl transition-colors hover:bg-rial-navy-light focus:outline-none focus-visible:ring-2 focus-visible:ring-rial-gold focus-visible:ring-offset-2 focus-visible:ring-offset-rial-cream dark:focus-visible:ring-offset-slate-950 sm:gap-3 sm:px-5 sm:py-3.5"
+            style={{
+              position: 'fixed',
+              zIndex: 60000,
+              right: 'max(1rem, env(safe-area-inset-right, 0px))',
+              bottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
+              boxShadow: '0 12px 36px -10px rgba(11, 22, 35, 0.55)',
+            }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            title={t('app.assistantFabTitle')}
+          >
+            <Sparkles className="h-5 w-5 shrink-0 text-rial-gold" aria-hidden />
+            <span className="hidden min-w-0 truncate sm:inline">{t('app.assistantFabLabel')}</span>
+          </motion.button>,
+          document.body
+        )}
 
       </div>
 
@@ -1709,7 +1721,7 @@ export default function App() {
             onClose={() => setShowChat(false)} 
             onPropertyClick={(id) => {
               setShowChat(false)
-              setOpenId(id)
+              handleOpenPropertyDetail(id)
             }}
             onSearchFiltersChange={(partial) => {
               // Ajustar filtros globales desde la IA y recargar resultados
@@ -1733,11 +1745,11 @@ export default function App() {
             // "Solicitar visita con broker" o "Revisar elegibilidad".
             onRequestVisit={(propertyId) => {
               setShowChat(false)
-              setOpenId(propertyId)
+              handleOpenPropertyDetail(propertyId)
             }}
             onStartPrequalification={(propertyId) => {
               setShowChat(false)
-              setOpenId(propertyId)
+              handleOpenPropertyDetail(propertyId)
             }}
           />
         </Suspense>
