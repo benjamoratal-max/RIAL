@@ -2066,35 +2066,29 @@ export function AIAssistant({
 
   return (
     <motion.div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-[10040] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
-        className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-3xl h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50"
+        className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-rial-cream-dark/50 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header más vistoso */}
-        <div 
-          className="flex items-center justify-between px-6 py-5 border-b border-white/10"
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 40%, #a855f7 100%)',
-            boxShadow: '0 4px 20px -2px rgba(99, 102, 241, 0.3)'
-          }}
-        >
+        {/* Cabecera editorial RIAL (navy + acento celeste) */}
+        <div className="flex items-center justify-between border-b border-rial-gold/25 bg-gradient-to-br from-rial-navy via-rial-navy to-rial-navy-light px-6 py-5 shadow-[0_4px_24px_-6px_rgba(11,22,35,0.55)]">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/25 rounded-2xl flex items-center justify-center shadow-lg backdrop-blur">
-              <Bot className="w-7 h-7 text-white" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 shadow-lg ring-1 ring-rial-gold/40 backdrop-blur-sm">
+              <Bot className="h-7 w-7 text-rial-gold" strokeWidth={2} aria-hidden />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">{t('aiAssistant.title')}</h2>
-              <p className="text-sm text-white/90 flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+              <h2 className="text-xl font-bold tracking-tight text-rial-cream">{t('aiAssistant.title')}</h2>
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-rial-cream/90">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                 {t('aiAssistant.readyToHelp')}
               </p>
             </div>
@@ -2103,15 +2097,15 @@ export function AIAssistant({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-white hover:bg-white/20 rounded-xl"
-            icon={<X className="w-5 h-5" />}
+            className="rounded-xl text-rial-cream hover:bg-white/10 hover:text-white"
+            icon={<X className="h-5 w-5" />}
           >
             {t('common.close')}
           </Button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+        <div className="flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-rial-cream/50 to-white p-6 dark:from-slate-900 dark:to-slate-950">
           <AnimatePresence>
             {messages.map((message) => (
               <motion.div
@@ -2125,18 +2119,17 @@ export function AIAssistant({
                 exit={{ opacity: 0, scale: 0.95 }}
               >
                 {message.role === 'assistant' && (
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                    <Bot className="w-5 h-5 text-white" />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rial-navy shadow-md ring-1 ring-rial-gold/40">
+                    <Bot className="h-[1.15rem] w-[1.15rem] text-rial-gold" strokeWidth={2.25} aria-hidden />
                   </div>
                 )}
                 <div
                   className={classNames(
                     'max-w-[80%] rounded-2xl px-4 py-3 shadow-sm',
                     message.role === 'user'
-                      ? 'text-white rounded-br-md'
-                      : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-600'
+                      ? 'rounded-br-md bg-rial-navy text-rial-cream shadow-md'
+                      : 'border border-rial-cream-dark/40 bg-white text-rial-ink dark:border-slate-600 dark:bg-slate-800 dark:text-rial-cream'
                   )}
-                  style={message.role === 'user' ? { background: 'linear-gradient(135deg, #6366f1, #7c3aed)' } : undefined}
                 >
                   <div className="whitespace-pre-wrap text-sm leading-relaxed">
                     {(() => {
@@ -2210,8 +2203,8 @@ export function AIAssistant({
                   )}
                 </div>
                 {message.role === 'user' && (
-                  <div className="w-9 h-9 rounded-xl bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0 border border-gray-200 dark:border-gray-500">
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('aiAssistant.you')}</span>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rial-cream-dark/50 bg-rial-cream-dark/40 dark:border-slate-600 dark:bg-slate-800">
+                    <span className="text-xs font-semibold text-rial-navy dark:text-rial-cream">{t('aiAssistant.you')}</span>
                   </div>
                 )}
               </motion.div>
@@ -2224,14 +2217,14 @@ export function AIAssistant({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                <Bot className="w-5 h-5 text-white" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rial-navy shadow-md ring-1 ring-rial-gold/40">
+                <Bot className="h-[1.15rem] w-[1.15rem] text-rial-gold" strokeWidth={2.25} aria-hidden />
               </div>
-              <div className="bg-white dark:bg-gray-700 rounded-2xl px-5 py-3 shadow-sm border border-gray-100 dark:border-gray-600">
+              <div className="rounded-2xl border border-rial-cream-dark/40 bg-white px-5 py-3 shadow-sm dark:border-slate-600 dark:bg-slate-800">
                 <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2.5 h-2.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2.5 h-2.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="h-2.5 w-2.5 animate-bounce rounded-full bg-rial-gold" style={{ animationDelay: '0ms' }} />
+                  <div className="h-2.5 w-2.5 animate-bounce rounded-full bg-rial-gold/70" style={{ animationDelay: '150ms' }} />
+                  <div className="h-2.5 w-2.5 animate-bounce rounded-full bg-rial-muted" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </motion.div>
@@ -2242,9 +2235,9 @@ export function AIAssistant({
 
         {/* Preguntas sugeridas - más visibles e intuitivas */}
         {suggestedQuestions.length > 0 && (
-          <div className="px-6 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-500" />
+          <div className="border-t border-rial-cream-dark/40 bg-rial-cream/40 px-6 pb-2 pt-4 dark:border-slate-700 dark:bg-slate-900/60">
+            <p className="mb-3 flex items-center gap-2 text-sm font-medium text-rial-navy dark:text-rial-cream">
+              <Sparkles className="h-4 w-4 shrink-0 text-rial-gold" aria-hidden />
               {messages.length === 1 ? t('aiAssistant.tryAsking') : t('aiAssistant.alsoAsk')}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -2255,7 +2248,7 @@ export function AIAssistant({
                     setInput(q)
                     setTimeout(() => handleSend(), 100)
                   }}
-                  className="text-sm px-4 py-2.5 rounded-xl font-medium transition-all border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-sm"
+                  className="rounded-xl border border-rial-cream-dark/60 bg-white px-4 py-2.5 text-sm font-medium text-rial-navy transition-all hover:border-rial-gold/60 hover:bg-rial-gold-soft/50 hover:shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-rial-cream dark:hover:border-rial-gold/40 dark:hover:bg-slate-800/90"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -2267,7 +2260,7 @@ export function AIAssistant({
         )}
 
         {/* Input más acogedor */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="border-t border-rial-cream-dark/40 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
           <div className="flex gap-3">
             <div className="flex-1">
               <Input
@@ -2276,16 +2269,16 @@ export function AIAssistant({
                 onChange={setInput}
                 onKeyPress={handleKeyPress}
                 placeholder={t('aiAssistant.inputPlaceholder')}
-                icon={<Sparkles className="w-4 h-4 text-indigo-500" />}
+                icon={<Sparkles className="h-4 w-4 text-rial-navy dark:text-rial-gold" aria-hidden />}
                 disabled={isTyping}
               />
             </div>
             <Button
+              variant="primary"
               onClick={handleSend}
               disabled={!input.trim() || isTyping}
               className="rounded-xl px-5 font-medium shadow-sm"
-              style={!(!input.trim() || isTyping) ? { background: 'linear-gradient(135deg, #6366f1, #7c3aed)' } : undefined}
-              icon={isTyping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              icon={isTyping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             >
               {isTyping ? t('aiAssistant.sending') : t('chat.send')}
             </Button>
