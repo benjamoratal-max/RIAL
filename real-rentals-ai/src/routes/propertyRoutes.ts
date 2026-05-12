@@ -475,10 +475,12 @@ router.patch('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
     if (updates.rooms !== undefined) allowed.rooms = Number(updates.rooms);
     if (updates.bathrooms !== undefined) allowed.bathrooms = Number(updates.bathrooms);
     if (updates.latitude !== undefined) {
-      allowed.latitude = updates.latitude === null || updates.latitude === '' ? null : Number(updates.latitude);
+      const lat = updates.latitude as unknown
+      allowed.latitude = lat === null || lat === '' ? null : Number(lat)
     }
     if (updates.longitude !== undefined) {
-      allowed.longitude = updates.longitude === null || updates.longitude === '' ? null : Number(updates.longitude);
+      const lng = updates.longitude as unknown
+      allowed.longitude = lng === null || lng === '' ? null : Number(lng)
     }
 
     const updated = await prisma.property.update({

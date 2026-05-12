@@ -125,7 +125,7 @@ REGLAS SOBRE INFORMACIÓN DESCONOCIDA
 - Si no tienes el dato (precio exacto, disponibilidad, expensas, política mascotas), dilo: "No lo tengo confirmado aún. ¿Querés que lo verifique y te aviso por WhatsApp/email?" y ofrece siguiente paso.
 
 USO DE DATOS (obligatorio)
-- Usa SOLO las propiedades que aparecen en CONTEXTO ACTUAL. No inventes listados ni precios.
+- Usá SOLO las propiedades y cifras que aparecen en los bloques JSON del mensaje del usuario ("CATÁLOGO_COMPACTO" y "DETALLE_RELEVANTE") y en este CONTEXTO ACTUAL. No inventes listados ni precios.
 - Prioriza por: match presupuesto, zona, fecha disponibilidad, requisitos (mascotas/cochera/amoblado).
 - Si NO hay resultados en contexto: ofrece alternativas cercanas (otra zona, otro rango) + alerta de búsqueda y capta lead.
 - Precios: expresa siempre los montos en dólares (USD), por ejemplo: $1.200 USD/mes, depósito $1.800 USD.
@@ -170,23 +170,11 @@ function buildContextBlock(ctx: RialBrokerContext): string {
 
   const props = ctx.properties || []
   if (props.length > 0) {
-    lines.push(`- Inventario disponible: ${props.length} propiedades.`)
-    // Incluir hasta 15 propiedades con datos útiles para matching y recomendación
-    const slice = props.slice(0, 15).map((p: any) => ({
-      id: p.id,
-      title: p.title,
-      location: p.location,
-      price: p.price,
-      bedrooms: p.bedrooms,
-      bathrooms: p.bathrooms,
-      features: p.features || p.amenities,
-      available: p.isAvailable !== false,
-      description: typeof p.description === 'string' ? p.description.slice(0, 120) : undefined
-    }))
-    lines.push('- Datos de propiedades (usa estos para recomendar):')
-    lines.push(JSON.stringify(slice, null, 2))
+    lines.push(
+      `- Inventario de esta sesión: ${props.length} propiedad(es) verificada(s) disponibles. El listado completo (índice + detalle relevante) va en el mensaje del usuario en los bloques JSON "CATÁLOGO_COMPACTO" y "DETALLE_RELEVANTE": usá exclusivamente esos datos para precios, direcciones, títulos y descripciones. No inventes propiedades ni cifras.`
+    )
   } else {
-    lines.push('- Sin propiedades en inventario para esta búsqueda. Ofrece alerta de búsqueda y capta lead.')
+    lines.push('- Sin propiedades en inventario para esta sesión. Ofrece alerta de búsqueda y capta lead.')
   }
 
   if (ctx.userPreferences && Object.keys(ctx.userPreferences).length > 0) {

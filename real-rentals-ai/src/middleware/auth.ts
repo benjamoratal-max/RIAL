@@ -32,4 +32,23 @@ export function requireRole(role: 'owner' | 'tenant' | 'admin') {
 // Alias para compatibilidad con rutas que usan authenticateToken
 export const authenticateToken = auth;
 
+/**
+ * Si hay Bearer JWT válido, setea req.user; si no hay token o es inválido, continúa sin usuario.
+ * Útil para endpoints de solo lectura (p. ej. catálogo público para el asistente).
+ */
+export function optionalAuthenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    return next();
+  }
+  const token = header.split(' ')[1];
+  try {
+    const payload = jwt.verify(token, config.jwtSecret) as { id: number; role: string };
+    req.user = payload;
+  } catch {
+    // Ignorar token inválido: la ruta puede seguir en modo anónimo
+  }
+  next();
+}
+
 

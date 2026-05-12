@@ -245,19 +245,81 @@ export class GenerativeAIService {
   }
 
   /**
-   * Construir prompt del usuario con contexto conversacional
+   * Índice JSON de todo el inventario de la sesión (para preguntas sobre cualquier propiedad / agregados).
+   * Si el catálogo es enorme, acorta descripciones hasta caber en ~110k caracteres.
+   */
+  private buildCatalogCompactJson(properties: any[]): { json: string; wasTrimmed: boolean } {
+    if (!properties.length) return { json: '[]', wasTrimmed: false }
+
+    let descMax = 420
+    let wasTrimmed = false
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const rows = properties.map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        location: p.location,
+        price: p.price,
+        rooms: p.rooms ?? p.bedrooms,
+        bedrooms: p.bedrooms,
+        bathrooms: p.bathrooms,
+        area: p.area,
+        type: p.propertyType,
+        verified: p.verified,
+        lat: p.latitude,
+        lng: p.longitude,
+        d:
+          descMax <= 0
+            ? undefined
+            : typeof p.description === 'string'
+              ? p.description.slice(0, descMax)
+              : undefined,
+      }))
+      const json = JSON.stringify(rows)
+      if (json.length <= 110000 || descMax <= 0) {
+        if (descMax < 420) wasTrimmed = true
+        return { json, wasTrimmed }
+      }
+      descMax = Math.max(0, Math.floor(descMax / 2))
+    }
+
+    const minimal = properties.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      location: p.location,
+      price: p.price,
+      rooms: p.rooms ?? p.bedrooms,
+      bathrooms: p.bathrooms,
+    }))
+    return { json: JSON.stringify(minimal), wasTrimmed: true }
+  }
+
+  /**
+   * Prioriza propiedades que encajan con la pregunta; siempre devuelve un subconjunto ampliado para el bloque DETALLE_RELEVANTE.
    */
   private pickRelevantProperties(question: string, properties: any[]): any[] {
     const q = (question || '').toLowerCase()
     const tokens = q.split(/\s+/).filter((t) => t.length >= 3)
 
+    const pinned: any[] = []
+    const idPatterns = [
+      /\b(?:propiedad|prop|listing|id|#)\s*[:#]?\s*(\d{1,8})\b/i,
+      /\bid\s*[=:]?\s*(\d{1,8})\b/i,
+    ]
+    for (const re of idPatterns) {
+      const m = q.match(re)
+      if (m) {
+        const pid = Number(m[1])
+        if (Number.isFinite(pid)) {
+          const found = properties.find((p) => Number(p?.id) === pid)
+          if (found) pinned.push(found)
+        }
+        break
+      }
+    }
+
     const scored = properties.map((p) => {
-      const haystack = [
-        p?.title,
-        p?.description,
-        p?.location,
-        p?.propertyType,
-      ]
+      const haystack = [p?.title, p?.description, p?.location, p?.propertyType]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -281,23 +343,28 @@ export class GenerativeAIService {
       return { p, score }
     })
 
-    const relevant = scored
+    const topScored = scored
       .sort((a, b) => b.score - a.score)
-      .slice(0, 30)
+      .slice(0, 55)
       .map((x) => x.p)
 
-    if (relevant.length > 0 && scored[0]?.score > 0) return relevant
-    return properties.slice(0, 30)
+    const merged = [...pinned, ...topScored]
+    const deduped = Array.from(new Map(merged.map((p) => [p.id, p])).values())
+
+    if (pinned.length > 0) return deduped.slice(0, 60)
+    if (deduped.length > 0 && scored.some((s) => s.score > 0)) return deduped.slice(0, 60)
+    return properties.slice(0, 60)
   }
 
   private buildUserPrompt(question: string, context: ConversationContext): string {
     const allProperties = context.properties || []
     const relevantProperties = this.pickRelevantProperties(question, allProperties)
 
-    const propertiesData = relevantProperties.map(p => ({
+    const propertiesData = relevantProperties.map((p) => ({
       id: p.id,
       title: p.title,
-      description: p.description,
+      description:
+        typeof p.description === 'string' ? p.description.slice(0, 1200) : p.description,
       location: p.location,
       price: p.price,
       bedrooms: p.bedrooms,
@@ -306,7 +373,9 @@ export class GenerativeAIService {
       area: p.area,
       propertyType: p.propertyType,
       verified: p.verified,
-      available: p.isAvailable !== false
+      latitude: p.latitude,
+      longitude: p.longitude,
+      available: p.isAvailable !== false,
     }))
 
     const prices = allProperties
@@ -349,8 +418,17 @@ export class GenerativeAIService {
       prompt += `\n\nEstadísticas del catálogo real disponible:\n${JSON.stringify(globalStats, null, 2)}`
     }
 
+    if (allProperties.length > 0) {
+      const { json, wasTrimmed } = this.buildCatalogCompactJson(allProperties)
+      prompt += `\n\nCATÁLOGO_COMPACTO (todas las propiedades de esta sesión; base factual para cualquier pregunta):\n${json}`
+      if (wasTrimmed) {
+        prompt +=
+          '\n\n(Nota interna: las descripciones del índice fueron acortadas por tamaño; usá DETALLE_RELEVANTE para texto más largo cuando figure.)'
+      }
+    }
+
     if (propertiesData.length > 0) {
-      prompt += `\n\nDatos de propiedades reales relevantes para esta consulta (extraídos del catálogo completo):\n${JSON.stringify(propertiesData, null, 2)}`
+      prompt += `\n\nDETALLE_RELEVANTE (propiedades priorizadas para esta consulta; combiná con CATÁLOGO_COMPACTO):\n${JSON.stringify(propertiesData, null, 2)}`
     }
 
     return prompt
@@ -361,11 +439,11 @@ export class GenerativeAIService {
    */
   private buildConversationHistory(context: ConversationContext): Array<{ role: string; content: string }> {
     const messages: Array<{ role: string; content: string }> = []
-    
+
     if (context.conversationHistory && context.conversationHistory.length > 0) {
       // Últimos 6 intercambios para contexto sin alargar demasiado la respuesta
       const recentHistory = context.conversationHistory.slice(-6)
-      
+
       recentHistory.forEach((entry: any) => {
         if (entry.question) {
           messages.push({ role: 'user', content: entry.question })
@@ -375,7 +453,7 @@ export class GenerativeAIService {
         }
       })
     }
-    
+
     return messages
   }
 

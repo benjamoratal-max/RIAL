@@ -1,6 +1,6 @@
 import express from 'express'
 import prisma from '../lib/prisma'
-import { authenticateToken, AuthRequest } from '../middleware/auth'
+import { authenticateToken, optionalAuthenticateToken, AuthRequest } from '../middleware/auth'
 import { logger } from '../utils/logger'
 
 const router = express.Router()
@@ -503,7 +503,7 @@ router.get('/knowledge-base', authenticateToken, async (req: AuthRequest, res) =
  * Catálogo de propiedades para IA (paginado, datos reales)
  * Permite al frontend cargar el contexto completo para IA generativa y no generativa.
  */
-router.get('/property-catalog', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/property-catalog', optionalAuthenticateToken, async (req: AuthRequest, res) => {
   try {
     const page = Math.max(1, Number(req.query.page || 1))
     const pageSize = Math.min(500, Math.max(1, Number(req.query.pageSize || 200)))
@@ -511,7 +511,8 @@ router.get('/property-catalog', authenticateToken, async (req: AuthRequest, res)
 
     const where: any = {}
     const verifiedRaw = req.query.verified
-    if (verifiedRaw === 'true') {
+    // Sin sesión: solo catálogo verificado (misma visibilidad que el buscador público).
+    if (!req.user || verifiedRaw === 'true') {
       where.verified = true
     }
 
@@ -534,6 +535,8 @@ router.get('/property-catalog', authenticateToken, async (req: AuthRequest, res)
           area: true,
           propertyType: true,
           verified: true,
+          latitude: true,
+          longitude: true,
           createdAt: true,
           images: { select: { url: true } },
         },

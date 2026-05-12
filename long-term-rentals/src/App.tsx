@@ -1080,32 +1080,35 @@ export default function App() {
   const [complianceNav, setComplianceNav] = useState<ComplianceNavKey>('brokerVerifications')
 
   const loadAssistantCatalog = useCallback(async () => {
-    if (!token) {
-      setAssistantCatalog([])
-      return
-    }
     try {
       const pageSize = 200
       let page = 1
       let totalPages = 1
       const allRows: any[] = []
+      const maxPages = 250
 
       do {
-        const data = await api(`/api/ai/property-catalog?verified=true&page=${page}&pageSize=${pageSize}`, { token })
+        const data = await api(
+          `/api/ai/property-catalog?verified=true&page=${page}&pageSize=${pageSize}`,
+          token ? { token } : {}
+        )
         const rows = Array.isArray(data?.items) ? data.items : []
         allRows.push(...rows)
         totalPages = Number(data?.totalPages) || 1
         page += 1
+        if (page > maxPages) break
       } while (page <= totalPages)
 
-      const uniqueById = Array.from(
-        new Map(allRows.map((p: any) => [p.id, p])).values()
-      )
+      const uniqueById = Array.from(new Map(allRows.map((p: any) => [p.id, p])).values())
       setAssistantCatalog(uniqueById)
     } catch {
       setAssistantCatalog([])
     }
   }, [token])
+
+  useEffect(() => {
+    void loadAssistantCatalog()
+  }, [loadAssistantCatalog])
 
   const load = useCallback(async (customFilters?: any) => {
     const activeFilters = customFilters ? { ...customFilters } : { ...filters }
@@ -1150,9 +1153,6 @@ export default function App() {
 
       setItems(apiItems)
       setTotal(apiTotal)
-      if (token && assistantCatalog.length === 0) {
-        loadAssistantCatalog()
-      }
     } catch (e: any) {
       setPropertiesError(getErrorMessage(e))
       setItems([])
@@ -1163,7 +1163,7 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [assistantCatalog.length, filters, loadAssistantCatalog, t, token])
+  }, [filters])
 
   // Cargar propiedades cuando cambian los filtros (ubicación/query con debounce para no disparar en cada tecla)
   useEffect(() => {
