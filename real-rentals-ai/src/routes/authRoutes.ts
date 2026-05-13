@@ -186,15 +186,16 @@ router.post('/login', authLimiter, validateBody(loginSchema), asyncHandler(async
 
     const token = jwt.sign({ id: user.id, role: user.role }, config.jwtSecret, { expiresIn: '7d' });
     logger.info(`Login exitoso: ${user.email}`, 'Auth', { userId: user.id, role: user.role, twoFactorUsed: user.twoFactorEnabled });
-    res.json({ 
-      token, 
-      user: { 
-        id: user.id, 
-        name: user.name, 
-        role: user.role, 
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
         email: user.email,
         emailVerified: user.emailVerified,
-      } 
+        verified: user.verified,
+      },
     });
   } catch (error) {
     logger.error('Error en login', 'Auth', error as Error, { email: req.body.email });

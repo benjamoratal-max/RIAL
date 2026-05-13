@@ -138,9 +138,28 @@ function tryParseMrz(lines: string[]): { valid: boolean; birthDate?: Date; expir
 }
 
 const DNI_KEYWORDS = [
-  'dni', 'cédula', 'cedula', 'identidad', 'república', 'republica', 'argentina',
-  'documento nacional', 'gobierno', 'nacional', 'identificación', 'identificacion',
-  'reniec', 'registro civil', 'documento único', 'documento unico',
+  'dni',
+  'cédula',
+  'cedula',
+  'identidad',
+  'identidad civil',
+  'cédula de identidad',
+  'cedula de identidad',
+  'república',
+  'republica',
+  'argentina',
+  'paraguay',
+  'república del paraguay',
+  'republica del paraguay',
+  'documento nacional',
+  'gobierno',
+  'nacional',
+  'identificación',
+  'identificacion',
+  'reniec',
+  'registro civil',
+  'documento único',
+  'documento unico',
 ];
 const LICENSE_KEYWORDS = [
   'licencia', 'conducir', 'driver', 'license', 'permiso', 'tránsito', 'transito',

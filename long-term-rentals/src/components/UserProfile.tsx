@@ -17,7 +17,6 @@ import {
   Edit, 
   Save, 
   X, 
-  Check, 
   AlertTriangle,
   TrendingUp,
   TrendingDown,
@@ -26,7 +25,6 @@ import {
   Download,
   Share2,
   Phone,
-  Mail,
   MapPin,
   Globe,
   Clock,
@@ -99,7 +97,6 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
   const [reviews, setReviews] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showVerification, setShowVerification] = useState(false)
-  const [verificationStep, setVerificationStep] = useState<'id' | 'phone' | 'email' | 'complete'>('id')
   const [renterLeads, setRenterLeads] = useState<any[]>([])
   const [selectedLeadForDocs, setSelectedLeadForDocs] = useState<any | null>(null)
 
@@ -291,15 +288,6 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
     }
   }
 
-  const handleVerification = async (step: string) => {
-    setVerificationStep(step as any)
-    if (step === 'complete') {
-      setShowVerification(false)
-      // Actualizar estado de verificación
-      onUpdate({ verified: true })
-    }
-  }
-
   const tabs = [
     { id: 'dashboard', labelKey: 'profile.dashboard', icon: Activity },
     { id: 'profile', labelKey: 'profile.profileTab', icon: User },
@@ -384,7 +372,10 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setShowVerification(true)}
+                    onClick={() => {
+                      setShowVerification(true)
+                      setActiveTab('security')
+                    }}
                     icon={<AlertTriangle className="w-3 h-3" />}
                   >
                     {t('profile.verify')}
@@ -573,11 +564,14 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
         
         {/* Modal de verificación - fuera del contenido scrolleable */}
         <AnimatePresence>
-          {showVerification && (
-            <VerificationModal 
-              step={verificationStep}
-              onStep={handleVerification}
+          {showVerification && token && (
+            <IdentityVerificationModal
+              token={token}
               onClose={() => setShowVerification(false)}
+              onVerified={() => {
+                onUpdate({ verified: true })
+                setShowVerification(false)
+              }}
             />
           )}
         </AnimatePresence>
@@ -1111,6 +1105,43 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
   )
 }
 
+// Modal rápido desde "Verificar" en la barra lateral: mismo flujo que Seguridad (solo documento).
+function IdentityVerificationModal({
+  token,
+  onClose,
+  onVerified,
+}: {
+  token: string
+  onClose: () => void
+  onVerified: () => void
+}) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Verificación de identidad</h2>
+          <Button variant="ghost" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />} />
+        </div>
+        <div className="p-2 sm:p-3">
+          <VerificationSystem token={token} onUpdate={onVerified} />
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 // Componente Seguridad
 function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdate: (data: Partial<UserProfileData>) => void, token: string }) {
   const { t } = useTranslation()
@@ -1134,11 +1165,10 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
       
       <div className="space-y-6">
         {/* Verificación de identidad */}
-        <VerificationSystem 
-          token={token} 
-          user={user} 
+        <VerificationSystem
+          token={token}
+          user={user}
           onUpdate={() => {
-            // Actualizar estado de verificación
             onUpdate({ verified: true })
           }}
         />
@@ -1233,149 +1263,5 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
         </div>
       </div>
     </>
-  )
-}
-
-// Modal de verificación
-function VerificationModal({ step, onStep, onClose }: {
-  step: string
-  onStep: (step: string) => void
-  onClose: () => void
-}) {
-  const steps = [
-    { id: 'id', label: 'Documento de identidad', icon: FileText },
-    { id: 'phone', label: 'Verificación telefónica', icon: Phone },
-    { id: 'email', label: 'Verificación de email', icon: Mail },
-    { id: 'complete', label: 'Completado', icon: Check }
-  ]
-
-  return (
-    <motion.div
-      className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Verificación de identidad</h2>
-                     <Button variant="ghost" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />}>
-             
-           </Button>
-        </div>
-
-        {/* Progreso */}
-        <div className="flex items-center justify-between mb-6">
-          {steps.map((s) => {
-            const Icon = s.icon
-            const isActive = s.id === step
-            const currentIndex = steps.findIndex(({ id }) => id === step)
-            const itemIndex = steps.findIndex(({ id }) => id === s.id)
-            const isCompleted = itemIndex < currentIndex
-            const isClickable = s.id === 'phone' || s.id === 'email' || s.id === 'id'
-            
-            return (
-              <div 
-                key={s.id} 
-                className="flex flex-col items-center"
-                onClick={() => {
-                  if (isClickable && !isActive) {
-                    onStep(s.id)
-                  }
-                }}
-              >
-                <div className={classNames(
-                  'w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-all duration-200',
-                  isCompleted ? 'bg-green-500 text-white' :
-                  isActive ? 'bg-rial-navy text-rial-cream ring-1 ring-rial-gold/40' :
-                  isClickable ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 hover:scale-110' :
-                  'bg-gray-200 dark:bg-gray-700 text-gray-500'
-                )}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className={classNames(
-                  'text-xs text-center',
-                  isActive ? 'font-medium text-rial-navy dark:text-rial-gold' :
-                  isClickable ? 'cursor-pointer text-gray-600 hover:text-rial-navy dark:text-gray-400 dark:hover:text-rial-gold' :
-                  'text-gray-500 dark:text-gray-400'
-                )}>
-                  {s.label}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Contenido del paso */}
-        <div className="space-y-4">
-          {step === 'id' && (
-            <div className="text-center">
-              <FileText className="mx-auto mb-4 h-16 w-16 text-rial-navy dark:text-rial-gold" />
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                Sube tu documento de identidad
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Puede ser tu DNI, pasaporte o licencia de conducir
-              </p>
-              <Button onClick={() => onStep('phone')} className="w-full">
-                Continuar
-              </Button>
-            </div>
-          )}
-
-          {step === 'phone' && (
-            <div className="text-center">
-              <Phone className="mx-auto mb-4 h-16 w-16 text-rial-navy dark:text-rial-gold" />
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                Verificación telefónica
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Te enviaremos un código SMS para verificar tu número
-              </p>
-              <Button onClick={() => onStep('email')} className="w-full">
-                Continuar
-              </Button>
-            </div>
-          )}
-
-          {step === 'email' && (
-            <div className="text-center">
-              <Mail className="mx-auto mb-4 h-16 w-16 text-rial-navy dark:text-rial-gold" />
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                Verificación de email
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Confirma tu dirección de email
-              </p>
-              <Button onClick={() => onStep('complete')} className="w-full">
-                Continuar
-              </Button>
-            </div>
-          )}
-
-          {step === 'complete' && (
-            <div className="text-center">
-              <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                ¡Verificación completada!
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Tu cuenta ha sido verificada exitosamente
-              </p>
-              <Button onClick={() => onStep('complete')} className="w-full">
-                Finalizar
-              </Button>
-            </div>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>
   )
 }

@@ -1846,21 +1846,25 @@ export default function App() {
             />
           </Suspense>
         )}
-        {showUserProfile && (
+        {showUserProfile && user && (
           <Suspense fallback={<LoadingSpinner text={t('app.loadingProfile')} />}>
-            <UserProfile 
+            <UserProfile
               user={{
-                id: user?.id || 1,
-                name: user?.name || 'Usuario',
-                email: user?.email || 'usuario@email.com',
-                role: user?.role || 'tenant',
-                verified: false,
-                joinDate: new Date().toISOString(),
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role:
+                  user.role === 'owner' || user.role === 'admin' || user.role === 'tenant'
+                    ? user.role
+                    : 'tenant',
+                verified: Boolean(user.verified),
+                emailVerified: Boolean(user.emailVerified),
+                joinDate: user.joinDate || user.createdAt || new Date().toISOString(),
                 preferences: {
                   notifications: { email: true, push: true, sms: false },
                   privacy: { profileVisible: true, showEmail: false, showPhone: false },
                   theme: 'auto',
-                  language: 'es'
+                  language: 'es',
                 },
                 stats: {
                   totalProperties: 0,
@@ -1868,12 +1872,11 @@ export default function App() {
                   averageRating: 0,
                   totalBookings: 0,
                   totalFavorites: 0,
-                  totalMessages: 0
-                }
+                  totalMessages: 0,
+                },
               }}
               token={token}
               onUpdate={(data) => {
-                console.log('User updated:', data)
                 updateUser(data)
               }}
               onLogout={onLogout}

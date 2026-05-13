@@ -7,12 +7,21 @@ import { APIError, handleAPIError, logError } from './errorHandler';
 
 const API_BASE = import.meta.env.VITE_API_URL || ''; // Si VITE_API_URL está configurada, usar esa, sino usar proxy de Vite
 
+/** Evita `Authorization: Bearer Bearer ...` si el token en localStorage ya incluía el prefijo. */
+function normalizeBearerToken(token: string): string {
+  const t = token.trim();
+  if (/^bearer\s+/i.test(t)) return t.replace(/^bearer\s+/i, '').trim();
+  return t;
+}
+
 export async function api(
   path: string,
   options: { method?: string; token?: string | null; body?: any; retry?: boolean; signal?: AbortSignal } = {}
 ) {
   const { method = 'GET', token, body, retry = false, signal } = options;
-  
+  const authHeader =
+    token && String(token).trim() ? { Authorization: `Bearer ${normalizeBearerToken(String(token))}` } : {};
+
   const makeRequest = async () => {
     try {
       const url = `${API_BASE}${path}`;
@@ -20,7 +29,7 @@ export async function api(
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...authHeader,
         },
         body: body ? JSON.stringify(body) : undefined,
         signal,
