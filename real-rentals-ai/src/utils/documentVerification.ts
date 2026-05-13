@@ -160,7 +160,8 @@ function checkIdOrLicenseInText(
   for (const kw of keywords) {
     if (lower.includes(kw)) keywordCount++;
   }
-  const hasKeywords = keywordCount >= 2;
+  // Al menos una señal léxica de documento oficial (OCR suele perder parte del texto)
+  const hasKeywords = keywordCount >= 1;
   const numberMatch = text.match(/\b\d{6,12}\b/);
   const hasDocumentNumber = !!numberMatch;
   return {
@@ -263,11 +264,16 @@ export async function verifyDocumentAutomatically(
       if (mrzResult && mrzResult.valid && (mrzResult.format === 'TD3' || mrzResult.format === 'TD2')) {
         score = 0.95;
         verified = true;
+        extractedData.isAdult = false;
         if (mrzResult.birthDate) {
           extractedData.birthDate = mrzResult.birthDate;
           const age = Math.floor((now.getTime() - mrzResult.birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
           extractedData.age = age;
           extractedData.isAdult = age >= 18;
+        } else {
+          verified = false;
+          score = 0;
+          reason = 'No se pudo leer la fecha de nacimiento en el pasaporte. Intenta con una foto más nítida de la MRZ (líneas inferiores).';
         }
         if (mrzResult.expiryDate) {
           extractedData.expiryDate = mrzResult.expiryDate;
@@ -288,6 +294,8 @@ export async function verifyDocumentAutomatically(
         score = 0.85;
         extractedData.number = check.docNumber;
         extractedData.name = 'Extraído del documento';
+        // La edad exacta no está en todos los formatos de cédula; la verificación de mayoría
+        // para DNI/licencia se refuerza en flujos con MRZ o revisión manual.
         extractedData.isAdult = true;
         extractedData.age = 18;
         verified = true;

@@ -28,7 +28,7 @@ export async function requireVerification(
     if (!user.verified) {
       return res.status(403).json({
         error: 'Cuenta no verificada',
-        message: 'Debes verificar tu cuenta (por email o documento) para realizar esta acción',
+        message: 'Debes verificar tu identidad con una foto de cédula o pasaporte para realizar esta acción',
         requiresVerification: true,
       });
     }

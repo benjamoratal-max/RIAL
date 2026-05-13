@@ -108,14 +108,23 @@ router.post('/verify', authenticateToken, asyncHandler(async (req: AuthRequest, 
     data: { used: true },
   });
 
-  // Obtener estado actual del usuario
-  const currentUser = await prisma.user.findUnique({ where: { id: user.id } });
-  const hasDocumentVerification = currentUser?.verified && currentUser.verificationMethod !== 'email';
+  const [currentUser, identityRow] = await Promise.all([
+    prisma.user.findUnique({ where: { id: user.id } }),
+    prisma.verification.findUnique({
+      where: { userId: user.id },
+      select: { status: true, verifiedAt: true },
+    }),
+  ]);
 
-  // Determinar método de verificación
-  const verificationMethod = hasDocumentVerification ? 'both' : 'email';
+  const hadIdentityVerification =
+    identityRow?.status === 'verified' ||
+    currentUser?.verificationMethod === 'document' ||
+    currentUser?.verificationMethod === 'both';
 
-  // Marcar email como verificado y actualizar estado de verificación general
+  // La cuenta "verificada" para operaciones sensibles exige documento (DNI/cédula o pasaporte).
+  // El email solo confirma la dirección; no sustituye la identidad.
+  const verificationMethod = hadIdentityVerification ? 'both' : 'email';
+
   await prisma.user.update({
     where: { id: user.id },
     data: {
@@ -125,19 +134,20 @@ router.post('/verify', authenticateToken, asyncHandler(async (req: AuthRequest, 
       emailLastValidated: new Date(),
       emailVerificationCode: null,
       emailVerificationCodeExpires: null,
-      // Si no estaba verificado, marcar como verificado ahora
-      verified: !currentUser?.verified ? true : currentUser.verified,
-      verifiedAt: !currentUser?.verified ? new Date() : currentUser.verifiedAt,
-      verificationMethod: verificationMethod,
+      verified: hadIdentityVerification ? true : false,
+      verifiedAt: hadIdentityVerification
+        ? (currentUser?.verifiedAt ?? identityRow?.verifiedAt ?? new Date())
+        : null,
+      verificationMethod,
     },
   });
 
   logger.info(`Email verificado para usuario ${user.id}`, 'EmailVerification');
 
-  res.json({ 
+  res.json({
     message: 'Email verificado exitosamente',
-    verified: true,
-    accountVerified: !currentUser?.verified ? true : currentUser.verified,
+    verified: hadIdentityVerification,
+    accountVerified: hadIdentityVerification,
   });
 }));
 

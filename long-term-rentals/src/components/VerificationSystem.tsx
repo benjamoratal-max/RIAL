@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, Clock, Upload, Shield, Mail, FileText, AlertCircle, Camera } from 'lucide-react'
+import { CheckCircle, Shield, Mail, FileText, AlertCircle, Camera } from 'lucide-react'
 import { Button, Input, classNames } from './UI'
 import { toast } from 'react-hot-toast'
-import { api } from '../utils/api'
+import { compressIdentityImageToJpegDataUrl } from '../utils/compressIdentityImage'
 
 interface VerificationSystemProps {
   token: string
@@ -24,9 +24,10 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
   const [sendingEmailCode, setSendingEmailCode] = useState(false)
   
   // Estados para verificación por documento
-  const [documentUrl, setDocumentUrl] = useState('')
-  const [documentType, setDocumentType] = useState<'dni' | 'passport' | 'driver_license'>('dni')
+  const [documentDataUrl, setDocumentDataUrl] = useState('')
+  const [documentType, setDocumentType] = useState<'dni' | 'passport'>('dni')
   const [uploadingDocument, setUploadingDocument] = useState(false)
+  const [idPreviewName, setIdPreviewName] = useState('')
 
   useEffect(() => {
     if (token) {
@@ -79,7 +80,7 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
         token,
         body: { code: emailCode },
       })
-      toast.success('Email verificado exitosamente')
+      toast.success('Email confirmado. Para operar en RIAL aún debes verificar tu identidad con cédula o pasaporte.')
       setEmailCode('')
       setEmailCodeSent(false)
       setSelectedMethod(null)
@@ -91,13 +92,8 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
   }
 
   async function verifyDocument() {
-    if (!documentUrl) {
-      toast.error('Ingresa la URL del documento')
-      return
-    }
-
-    if (!documentType) {
-      toast.error('Selecciona el tipo de documento')
+    if (!documentDataUrl || !documentDataUrl.startsWith('data:image/')) {
+      toast.error('Sube una foto clara de tu cédula o pasaporte (JPG o PNG)')
       return
     }
 
@@ -106,12 +102,13 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
       const result = await api('/api/verification/document', {
         method: 'POST',
         token,
-        body: { documentUrl, documentType },
+        body: { documentUrl: documentDataUrl, documentType },
       })
 
       if (result.verificationResult?.verified) {
-        toast.success('Documento verificado exitosamente')
-        setDocumentUrl('')
+        toast.success('Identidad verificada. Tu cuenta ya está lista para operaciones que lo requieran.')
+        setDocumentDataUrl('')
+        setIdPreviewName('')
         setSelectedMethod(null)
         await loadVerificationStatus()
         onUpdate?.()
@@ -125,19 +122,30 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
     }
   }
 
-  function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
 
-    // En producción, aquí subirías el archivo a un servicio de almacenamiento
-    // Por ahora, usamos una URL local o simulada
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const fileUrl = e.target?.result as string
-      setDocumentUrl(fileUrl)
-      toast.success('Archivo listo. Haz clic en "Verificar Documento" para enviarlo.')
+    const okType = /^image\/(jpeg|jpg|png|webp)$/i.test(file.type)
+    if (!okType) {
+      toast.error('Usa una imagen JPG, PNG o WebP')
+      return
     }
-    reader.readAsDataURL(file)
+    const maxBytes = 15 * 1024 * 1024
+    if (file.size > maxBytes) {
+      toast.error('La imagen es demasiado grande (máx. 15 MB)')
+      return
+    }
+
+    try {
+      const dataUrl = await compressIdentityImageToJpegDataUrl(file)
+      setDocumentDataUrl(dataUrl)
+      setIdPreviewName(file.name)
+      toast.success('Foto lista. Pulsa «Verificar identidad» para enviarla al sistema.')
+    } catch {
+      toast.error('No se pudo procesar la imagen. Prueba con otra foto.')
+    }
   }
 
   if (loading) {
@@ -214,14 +222,15 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
               ⚠️ Verificación requerida
             </p>
             <p className="text-xs text-yellow-700 dark:text-yellow-300">
-              Debes verificar tu cuenta (por email o documento) para poder comprar, alquilar o vender propiedades.
+              Para comprar, alquilar o vender debes <strong>verificar tu identidad</strong> subiendo una foto de tu{' '}
+              <strong>cédula o pasaporte</strong>. Confirmar el email es recomendable pero no sustituye el documento.
             </p>
           </div>
 
           {!selectedMethod ? (
             <div className="space-y-3">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Elige un método de verificación (puedes hacer ambos para mayor seguridad):
+                Confirma tu email y sube una foto de tu documento (puedes hacer ambos):
               </p>
               
               <div className="grid grid-cols-2 gap-3">
@@ -230,9 +239,9 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
                   className="rounded-lg border-2 border-rial-cream-dark/50 p-4 text-left transition-all hover:border-rial-gold dark:border-slate-600 dark:hover:border-rial-gold"
                 >
                   <Mail className="mb-2 h-6 w-6 text-rial-navy dark:text-rial-gold" />
-                  <p className="font-medium text-gray-900 dark:text-white">Por Email</p>
+                  <p className="font-medium text-gray-900 dark:text-white">Email</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {emailVerified ? '✅ Verificado' : 'Código por email'}
+                    {emailVerified ? '✅ Confirmado' : 'Código a tu correo'}
                   </p>
                 </button>
 
@@ -241,9 +250,9 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
                   className="rounded-lg border-2 border-rial-cream-dark/50 p-4 text-left transition-all hover:border-rial-gold dark:border-slate-600 dark:hover:border-rial-gold"
                 >
                   <FileText className="mb-2 h-6 w-6 text-rial-navy dark:text-rial-gold" />
-                  <p className="font-medium text-gray-900 dark:text-white">Por Documento</p>
+                  <p className="font-medium text-gray-900 dark:text-white">Cédula o pasaporte</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {documentVerified ? '✅ Verificado' : 'DNI, Pasaporte o Licencia'}
+                    {documentVerified ? '✅ Identidad verificada' : 'Foto obligatoria'}
                   </p>
                 </button>
               </div>
@@ -275,7 +284,8 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
               {!emailCodeSent ? (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Te enviaremos un código de verificación a tu email.
+                    Te enviaremos un código a tu email para confirmar que es tuyo (no activa por sí solo la verificación
+                    de identidad).
                   </p>
                   <Button
                     onClick={sendEmailCode}
@@ -328,14 +338,15 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  Verificación por Documento
+                  Verificación de identidad
                 </h4>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setSelectedMethod(null)
-                    setDocumentUrl('')
+                    setDocumentDataUrl('')
+                    setIdPreviewName('')
                   }}
                 >
                   ← Volver
@@ -350,66 +361,67 @@ export function VerificationSystem({ token, user, onUpdate }: VerificationSystem
                   <select
                     className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-navy focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
                     value={documentType}
-                    onChange={(e) => setDocumentType(e.target.value as any)}
+                    onChange={(e) => setDocumentType(e.target.value as 'dni' | 'passport')}
                   >
-                    <option value="dni">DNI / Cédula</option>
+                    <option value="dni">Cédula / DNI</option>
                     <option value="passport">Pasaporte</option>
-                    <option value="driver_license">Licencia de Conducir</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    URL del documento o subir archivo
+                    Foto del documento (obligatorio)
                   </label>
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="URL del documento (ej: https://ejemplo.com/documento.jpg)"
-                      value={documentUrl}
-                      onChange={(value) => setDocumentUrl(value)}
-                      icon={<Upload className="w-4 h-4" />}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 z-10 w-full h-full cursor-pointer opacity-0"
                     />
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
-                        onChange={handleFileUpload}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        icon={<Camera className="w-4 h-4" />}
-                      >
-                        O subir archivo desde tu dispositivo
-                      </Button>
-                    </div>
+                    <Button variant="outline" className="w-full pointer-events-none" icon={<Camera className="w-4 h-4" />}>
+                      Elegir foto (JPG, PNG o WebP)
+                    </Button>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Sube una <strong>foto</strong> del documento (JPG o PNG), no PDF. El sistema verificará que sea un DNI, cédula o pasaporte real.
+                  {idPreviewName ? (
+                    <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                      Archivo: <span className="font-medium">{idPreviewName}</span>
+                    </p>
+                  ) : null}
+                  {documentDataUrl ? (
+                    <div className="mt-3 overflow-hidden rounded-lg border border-rial-cream-dark/50 dark:border-slate-600">
+                      <img src={documentDataUrl} alt="Vista previa" className="max-h-48 w-full object-contain bg-black/5 dark:bg-black/30" />
+                    </div>
+                  ) : null}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Toma una foto <strong>frontal</strong>, bien iluminada, sin reflejos. Para pasaporte, incluye la página
+                    con datos y las <strong>líneas MRZ</strong> inferiores. No uses PDF.
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-rial-cream-dark/50 bg-rial-cream-dark/30 p-3 dark:border-slate-600 dark:bg-slate-800/70">
                   <p className="text-xs text-rial-navy dark:text-rial-cream">
-                    ℹ️ Solo se aceptan documentos de identidad reales. Se analiza el contenido (OCR) para verificar que sea un DNI, cédula o pasaporte válido y que seas mayor de 18 años.
+                    El archivo pasa por el verificador automático de RIAL (tamaño, proporción, OCR y MRZ en pasaportes)
+                    para comprobar que corresponde a un documento de identidad real y que la edad sea coherente con mayor
+                    de edad cuando los datos lo permiten.
                   </p>
                 </div>
 
                 <div className="flex gap-2">
                   <Button
                     onClick={verifyDocument}
-                    disabled={!documentUrl || uploadingDocument}
+                    disabled={!documentDataUrl || uploadingDocument}
                     className="flex-1"
                     icon={<Shield className="w-4 h-4" />}
                   >
-                    {uploadingDocument ? 'Verificando...' : 'Verificar Documento'}
+                    {uploadingDocument ? 'Verificando...' : 'Verificar identidad'}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setSelectedMethod(null)
-                      setDocumentUrl('')
+                      setDocumentDataUrl('')
+                    setIdPreviewName('')
                     }}
                   >
                     Cancelar

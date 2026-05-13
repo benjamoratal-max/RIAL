@@ -216,6 +216,29 @@ router.patch('/:userId/status', authenticateToken, async (req: AuthRequest, res)
       },
     });
 
+    const uid = parseInt(userId, 10);
+    if (status === 'verified') {
+      const u = await prisma.user.findUnique({ where: { id: uid }, select: { emailVerified: true } });
+      await prisma.user.update({
+        where: { id: uid },
+        data: {
+          verified: true,
+          verifiedAt: new Date(),
+          verificationMethod: u?.emailVerified ? 'both' : 'document',
+        },
+      });
+    } else if (status === 'rejected') {
+      const u = await prisma.user.findUnique({ where: { id: uid }, select: { emailVerified: true } });
+      await prisma.user.update({
+        where: { id: uid },
+        data: {
+          verified: false,
+          verifiedAt: null,
+          verificationMethod: u?.emailVerified ? 'email' : null,
+        },
+      });
+    }
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar verificación' });
