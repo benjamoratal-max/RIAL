@@ -9,9 +9,9 @@ const API_BASE = import.meta.env.VITE_API_URL || ''; // Si VITE_API_URL está co
 
 export async function api(
   path: string,
-  options: { method?: string; token?: string | null; body?: any; retry?: boolean } = {}
+  options: { method?: string; token?: string | null; body?: any; retry?: boolean; signal?: AbortSignal } = {}
 ) {
-  const { method = 'GET', token, body, retry = false } = options;
+  const { method = 'GET', token, body, retry = false, signal } = options;
   
   const makeRequest = async () => {
     try {
@@ -23,6 +23,7 @@ export async function api(
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: body ? JSON.stringify(body) : undefined,
+        signal,
       });
       
       if (!res.ok) {
@@ -51,6 +52,9 @@ export async function api(
       
       return res.json();
     } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        throw error;
+      }
       // Si es un error de red, lanzar un error más descriptivo
       if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
         const networkError = new APIError(

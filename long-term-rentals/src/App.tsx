@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
+import React, { useEffect, useMemo, useState, useCallback, lazy, Suspense, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -1079,25 +1079,27 @@ export default function App() {
   const [brokerNav, setBrokerNav] = useState<BrokerNavKey>('dashboard')
   const [complianceNav, setComplianceNav] = useState<ComplianceNavKey>('brokerVerifications')
 
+  const loadAbortRef = useRef<AbortController | null>(null)
+
   const loadAssistantCatalog = useCallback(async () => {
     try {
       const pageSize = 200
-      let page = 1
-      let totalPages = 1
-      const allRows: any[] = []
-      const maxPages = 250
+      const authOpts = token ? { token } : {}
+      const first = await api(`/api/ai/property-catalog?verified=true&page=1&pageSize=${pageSize}`, authOpts)
+      const totalPages = Math.min(250, Math.max(1, Number(first?.totalPages) || 1))
+      const allRows: any[] = [...(Array.isArray(first?.items) ? first.items : [])]
 
-      do {
-        const data = await api(
-          `/api/ai/property-catalog?verified=true&page=${page}&pageSize=${pageSize}`,
-          token ? { token } : {}
-        )
-        const rows = Array.isArray(data?.items) ? data.items : []
-        allRows.push(...rows)
-        totalPages = Number(data?.totalPages) || 1
-        page += 1
-        if (page > maxPages) break
-      } while (page <= totalPages)
+      const CONCURRENCY = 6
+      for (let start = 2; start <= totalPages; start += CONCURRENCY) {
+        const batch: Promise<any>[] = []
+        for (let p = start; p < start + CONCURRENCY && p <= totalPages; p++) {
+          batch.push(api(`/api/ai/property-catalog?verified=true&page=${p}&pageSize=${pageSize}`, authOpts))
+        }
+        const pages = await Promise.all(batch)
+        for (const data of pages) {
+          if (Array.isArray(data?.items)) allRows.push(...data.items)
+        }
+      }
 
       const uniqueById = Array.from(new Map(allRows.map((p: any) => [p.id, p])).values())
       setAssistantCatalog(uniqueById)
@@ -1106,11 +1108,33 @@ export default function App() {
     }
   }, [token])
 
+  // Catálogo del asistente: no compite con la primera carga de listados (idle + timeout).
   useEffect(() => {
-    void loadAssistantCatalog()
+    let cancelled = false
+    const run = () => {
+      if (!cancelled) void loadAssistantCatalog()
+    }
+    let idleHandle: number | undefined
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    if (typeof requestIdleCallback !== 'undefined') {
+      idleHandle = requestIdleCallback(run, { timeout: 5000 }) as unknown as number
+    } else {
+      timeoutHandle = setTimeout(run, 600)
+    }
+    return () => {
+      cancelled = true
+      if (idleHandle !== undefined && typeof cancelIdleCallback !== 'undefined') {
+        cancelIdleCallback(idleHandle)
+      }
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle)
+    }
   }, [loadAssistantCatalog])
 
   const load = useCallback(async (customFilters?: any) => {
+    loadAbortRef.current?.abort()
+    const ac = new AbortController()
+    loadAbortRef.current = ac
+
     const activeFilters = customFilters ? { ...customFilters } : { ...filters }
     // Asegurar que page y pageSize tengan valores por defecto
     activeFilters.page = activeFilters.page || 1
@@ -1147,13 +1171,14 @@ export default function App() {
       qs.set('page', String(activeFilters.page))
       qs.set('pageSize', String(activeFilters.pageSize))
       
-      const data = await api(`/api/properties/with-metrics?${qs.toString()}`)
+      const data = await api(`/api/properties/with-metrics?${qs.toString()}`, { signal: ac.signal })
       const apiItems = Array.isArray(data?.items) ? data.items : []
       const apiTotal = Number(data?.total) || 0
 
       setItems(apiItems)
       setTotal(apiTotal)
     } catch (e: any) {
+      if (e?.name === 'AbortError') return
       setPropertiesError(getErrorMessage(e))
       setItems([])
       setTotal(0)
@@ -1161,7 +1186,9 @@ export default function App() {
         console.warn('Properties API failed:', e.message)
       }
     } finally {
-      setLoading(false)
+      if (!ac.signal.aborted) {
+        setLoading(false)
+      }
     }
   }, [filters])
 
@@ -1199,48 +1226,41 @@ export default function App() {
     filters.petsAllowed,
   ])
 
-  useEffect(() => {
-    loadAssistantCatalog()
-  }, [loadAssistantCatalog])
-
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / filters.pageSize)), [total, filters.pageSize])
 
   // Función para cargar contadores de notificaciones y mensajes
   const loadCounters = useCallback(async () => {
     if (!token) return
-    
-    try {
-      // Cargar contador de notificaciones
-      try {
-        const notificationsRes = await api('/api/notifications/unread-count', { token })
-        setNotificationCount(notificationsRes.count || 0)
-      } catch (error) {
-        // Si falla, mantener el contador en 0
-        setNotificationCount(0)
-      }
-
-      // Cargar contador de mensajes
-      try {
-        const messagesRes = await api('/api/chat/unread-count', { token })
-        setMessageCount(messagesRes.count || 0)
-      } catch (error) {
-        // Si falla, mantener el contador en 0
-        setMessageCount(0)
-      }
-    } catch (error) {
-      console.error('Error loading counters:', error)
-      // En caso de error, mantener los contadores en 0
-      setNotificationCount(0)
-      setMessageCount(0)
-    }
+    const opts = { token }
+    const [notifRes, msgRes] = await Promise.allSettled([
+      api('/api/notifications/unread-count', opts),
+      api('/api/chat/unread-count', opts),
+    ])
+    setNotificationCount(notifRes.status === 'fulfilled' ? notifRes.value.count || 0 : 0)
+    setMessageCount(msgRes.status === 'fulfilled' ? msgRes.value.count || 0 : 0)
   }, [token])
 
-  // Cargar contadores de notificaciones y mensajes
+  // Contadores: primera carga en idle para no competir con listados; luego cada 30s.
   useEffect(() => {
-    if (token) {
-      loadCounters()
-      const interval = setInterval(loadCounters, 30000) // Actualizar cada 30 segundos
-      return () => clearInterval(interval)
+    if (!token) return
+
+    const run = () => {
+      void loadCounters()
+    }
+    let idleHandle: number | undefined
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+    if (typeof requestIdleCallback !== 'undefined') {
+      idleHandle = requestIdleCallback(run, { timeout: 3000 }) as unknown as number
+    } else {
+      timeoutHandle = setTimeout(run, 350)
+    }
+    const interval = setInterval(loadCounters, 30000)
+    return () => {
+      if (idleHandle !== undefined && typeof cancelIdleCallback !== 'undefined') {
+        cancelIdleCallback(idleHandle)
+      }
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle)
+      clearInterval(interval)
     }
   }, [token, loadCounters])
 

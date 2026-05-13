@@ -224,7 +224,8 @@ router.get('/', searchLimiter, asyncHandler(async (req, res) => {
     if (shouldTryRealSeed(location, query)) {
       const currentCount = await prisma.property.count();
       if (currentCount < 40) {
-        await ensureRealMiamiSeedSafe();
+        // No bloquear el listado: la sync de Miami puede tardar minutos; el usuario ve datos actuales al instante.
+        void ensureRealMiamiSeedSafe();
       }
     }
 
@@ -543,7 +544,7 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
   if (shouldTryRealSeed(location, query)) {
     const currentCount = await prisma.property.count();
     if (currentCount < 40) {
-      await ensureRealMiamiSeedSafe();
+      void ensureRealMiamiSeedSafe();
     }
   }
 
