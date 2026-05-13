@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import { api } from '../utils/api'
-import { getErrorMessage } from '../utils/errorHandler'
+import { getErrorMessage, APIError } from '../utils/errorHandler'
 
 export function useAuth() {
   const [token, setToken] = useState<string>(() => localStorage.getItem('token') || '')
@@ -63,15 +63,56 @@ export function useAuth() {
       .catch((err) => toast.error(getErrorMessage(err)))
   }, [onLogin])
 
-  const onLogout = useCallback(() => {
+  const onLogout = useCallback((opts?: { quiet?: boolean }) => {
     setToken('')
     setUser(null)
     setRequires2FA(false)
     setPendingLogin(null)
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    toast.success('Sesión cerrada')
+    if (!opts?.quiet) {
+      toast.success('Sesión cerrada')
+    }
   }, [])
+
+  // Validar token contra el backend al cargar (evita JWT inválido/expirado con UI "logueada").
+  useEffect(() => {
+    if (!token || !user?.id) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const profile = await api(`/api/users/${user.id}`, { token })
+        if (cancelled) return
+        setUser((prev: any) => {
+          if (!prev) return prev
+          const next = {
+            ...prev,
+            verified: Boolean((profile as any).verified),
+            emailVerified: Boolean((profile as any).emailVerified),
+            name: (profile as any).name ?? prev.name,
+            email: (profile as any).email ?? prev.email,
+            role: (profile as any).role ?? prev.role,
+          }
+          try {
+            localStorage.setItem('user', JSON.stringify(next))
+          } catch {
+            /* ignore */
+          }
+          return next
+        })
+      } catch (err) {
+        if (cancelled) return
+        const status = err instanceof APIError ? err.status : undefined
+        if (status === 401) {
+          onLogout({ quiet: true })
+          toast.error('Tu sesión no es válida o expiró. Vuelve a iniciar sesión.')
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [token, user?.id, onLogout])
 
   const updateUser = useCallback((userData: any) => {
     setUser((prev: any) => {

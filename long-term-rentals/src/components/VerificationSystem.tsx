@@ -4,7 +4,8 @@ import { CheckCircle, Shield, Mail, FileText, AlertCircle, Camera } from 'lucide
 import { Button, classNames } from './UI'
 import { toast } from 'react-hot-toast'
 import { compressIdentityImageToJpegDataUrl } from '../utils/compressIdentityImage'
-import { api } from '../utils/api'
+import { api, authHeaderForToken, getApiBase } from '../utils/api'
+import { APIError } from '../utils/errorHandler'
 
 interface VerificationSystemProps {
   token: string
@@ -50,11 +51,27 @@ export function VerificationSystem({ token, onUpdate }: VerificationSystemProps)
 
     setUploadingDocument(true)
     try {
-      const result = await api('/api/verification/document', {
+      const blob = await (await fetch(documentDataUrl)).blob()
+      const qs = new URLSearchParams({ documentType })
+      const res = await fetch(`${getApiBase()}/api/verification/document-raw?${qs}`, {
         method: 'POST',
-        token,
-        body: { documentUrl: documentDataUrl, documentType },
+        headers: {
+          ...authHeaderForToken(token),
+          'Content-Type': blob.type && blob.type !== 'application/octet-stream' ? blob.type : 'image/jpeg',
+        },
+        body: blob,
       })
+
+      let result: any
+      try {
+        result = await res.json()
+      } catch {
+        throw new APIError('Respuesta inválida del servidor', res.status)
+      }
+
+      if (!res.ok) {
+        throw new APIError(result?.error || 'Error al verificar documento', res.status)
+      }
 
       if (result.verificationResult?.verified) {
         toast.success('Identidad verificada. Tu cuenta ya está lista para operaciones que lo requieran.')
@@ -66,7 +83,11 @@ export function VerificationSystem({ token, onUpdate }: VerificationSystemProps)
         toast.error(result.verificationResult?.reason || 'El documento no pudo ser verificado')
       }
     } catch (error: any) {
-      toast.error(error.message || 'Error al verificar documento')
+      const msg =
+        error instanceof APIError
+          ? error.message
+          : error?.message || 'Error al verificar documento'
+      toast.error(msg)
     } finally {
       setUploadingDocument(false)
     }

@@ -5,13 +5,17 @@
 
 import { APIError, handleAPIError, logError } from './errorHandler';
 
-const API_BASE = import.meta.env.VITE_API_URL || ''; // Si VITE_API_URL está configurada, usar esa, sino usar proxy de Vite
+/** Base URL del API (vacío = mismo origen / proxy de Vite). */
+export function getApiBase(): string {
+  return import.meta.env.VITE_API_URL || '';
+}
 
-/** Evita `Authorization: Bearer Bearer ...` si el token en localStorage ya incluía el prefijo. */
+/** Evita `Authorization: Bearer Bearer ...` y caracteres que rompen el JWT (saltos de línea, BOM, espacios). */
 function normalizeBearerToken(token: string): string {
-  const t = token.trim();
-  if (/^bearer\s+/i.test(t)) return t.replace(/^bearer\s+/i, '').trim();
-  return t;
+  let t = token.trim();
+  if (t.charCodeAt(0) === 0xfeff) t = t.slice(1).trim();
+  if (/^bearer\s+/i.test(t)) t = t.replace(/^bearer\s+/i, '').trim();
+  return t.replace(/\s+/g, '');
 }
 
 export async function api(
@@ -24,7 +28,7 @@ export async function api(
 
   const makeRequest = async () => {
     try {
-      const url = `${API_BASE}${path}`;
+      const url = `${getApiBase()}${path}`;
       const res = await fetch(url, {
         method,
         headers: {
@@ -67,7 +71,7 @@ export async function api(
       // Si es un error de red, lanzar un error más descriptivo
       if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
         const networkError = new APIError(
-          API_BASE
+          getApiBase()
             ? 'No se pudo conectar con el servidor. Verifica que el backend esté corriendo y accesible.'
             : 'No se pudo conectar con el servidor. Asegúrate de que el backend esté corriendo.',
           0,
@@ -99,3 +103,7 @@ export async function api(
   return makeRequest();
 }
 
+export function authHeaderForToken(token: string | null | undefined): HeadersInit {
+  if (!token || !String(token).trim()) return {};
+  return { Authorization: `Bearer ${normalizeBearerToken(String(token))}` };
+}

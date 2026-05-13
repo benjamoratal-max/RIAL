@@ -13,7 +13,7 @@ interface ExtractedDocumentData {
   rawData?: Record<string, any>;
 }
 
-interface VerificationResult {
+export interface VerificationResult {
   verified: boolean;
   score: number;
   reason?: string;
@@ -192,39 +192,13 @@ function checkIdOrLicenseInText(
 }
 
 /**
- * Verificación automática de documento de identidad usando OCR y MRZ.
- * Solo acepta imágenes (JPG, PNG, WebP). Rechaza PDF para esta verificación.
+ * Analiza un buffer de imagen ya decodificado (OCR + reglas).
  */
-export async function verifyDocumentAutomatically(
-  documentUrl: string,
-  documentType?: 'dni' | 'passport' | 'driver_license'
+async function analyzeIdentityImageBuffer(
+  buffer: Buffer,
+  documentType: 'dni' | 'passport' | 'driver_license'
 ): Promise<VerificationResult> {
   try {
-    if (!documentUrl || !documentUrl.trim()) {
-      return { verified: false, score: 0, reason: 'Documento no proporcionado.' };
-    }
-
-    if (!documentType || !['dni', 'passport', 'driver_license'].includes(documentType)) {
-      return {
-        verified: false,
-        score: 0,
-        reason: 'Tipo de documento inválido. Debe ser DNI/Cédula, Pasaporte o Licencia de conducir.',
-      };
-    }
-
-    const imageResult = await getImageBuffer(documentUrl);
-    if (!imageResult) {
-      const isPdf = documentUrl.startsWith('data:') && documentUrl.includes('application/pdf');
-      return {
-        verified: false,
-        score: 0,
-        reason: isPdf
-          ? 'Para verificar tu identidad debes subir una foto del documento (JPG o PNG), no un PDF. Toma una foto clara del DNI, cédula o pasaporte.'
-          : 'No se pudo obtener la imagen. Usa una foto en JPG o PNG.',
-      };
-    }
-
-    const { buffer, extension } = imageResult;
     const dims = getImageDimensions(buffer);
     if (!dims) {
       return {
@@ -247,7 +221,8 @@ export async function verifyDocumentAutomatically(
       return {
         verified: false,
         score: 0,
-        reason: 'La imagen no tiene la proporción típica de un documento de identidad. Asegúrate de fotografiar el documento completo (DNI, cédula o pasaporte).',
+        reason:
+          'La imagen no tiene la proporción típica de un documento de identidad. Asegúrate de fotografiar el documento completo (DNI, cédula o pasaporte).',
       };
     }
 
@@ -267,7 +242,8 @@ export async function verifyDocumentAutomatically(
       return {
         verified: false,
         score: 0,
-        reason: 'No se detectó texto legible en la imagen. Asegúrate de subir una foto nítida del documento (frontal o página de datos).',
+        reason:
+          'No se detectó texto legible en la imagen. Asegúrate de subir una foto nítida del documento (frontal o página de datos).',
       };
     }
 
@@ -286,13 +262,16 @@ export async function verifyDocumentAutomatically(
         extractedData.isAdult = false;
         if (mrzResult.birthDate) {
           extractedData.birthDate = mrzResult.birthDate;
-          const age = Math.floor((now.getTime() - mrzResult.birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+          const age = Math.floor(
+            (now.getTime() - mrzResult.birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+          );
           extractedData.age = age;
           extractedData.isAdult = age >= 18;
         } else {
           verified = false;
           score = 0;
-          reason = 'No se pudo leer la fecha de nacimiento en el pasaporte. Intenta con una foto más nítida de la MRZ (líneas inferiores).';
+          reason =
+            'No se pudo leer la fecha de nacimiento en el pasaporte. Intenta con una foto más nítida de la MRZ (líneas inferiores).';
         }
         if (mrzResult.expiryDate) {
           extractedData.expiryDate = mrzResult.expiryDate;
@@ -305,7 +284,8 @@ export async function verifyDocumentAutomatically(
         extractedData.name = 'Extraído del pasaporte';
       }
       if (!verified && !reason) {
-        reason = 'No se detectó la zona legible (MRZ) del pasaporte. Fotografía la página de datos con las dos líneas de caracteres en la parte inferior.';
+        reason =
+          'No se detectó la zona legible (MRZ) del pasaporte. Fotografía la página de datos con las dos líneas de caracteres en la parte inferior.';
       }
     } else {
       const check = checkIdOrLicenseInText(ocrText, documentType);
@@ -313,8 +293,6 @@ export async function verifyDocumentAutomatically(
         score = 0.85;
         extractedData.number = check.docNumber;
         extractedData.name = 'Extraído del documento';
-        // La edad exacta no está en todos los formatos de cédula; la verificación de mayoría
-        // para DNI/licencia se refuerza en flujos con MRZ o revisión manual.
         extractedData.isAdult = true;
         extractedData.age = 18;
         verified = true;
@@ -353,6 +331,68 @@ export async function verifyDocumentAutomatically(
 }
 
 /**
+ * Verificación automática de documento de identidad usando OCR y MRZ.
+ * Solo acepta imágenes (JPG, PNG, WebP). Rechaza PDF para esta verificación.
+ */
+export async function verifyDocumentAutomatically(
+  documentUrl: string,
+  documentType?: 'dni' | 'passport' | 'driver_license'
+): Promise<VerificationResult> {
+  try {
+    if (!documentUrl || !documentUrl.trim()) {
+      return { verified: false, score: 0, reason: 'Documento no proporcionado.' };
+    }
+
+    if (!documentType || !['dni', 'passport', 'driver_license'].includes(documentType)) {
+      return {
+        verified: false,
+        score: 0,
+        reason: 'Tipo de documento inválido. Debe ser DNI/Cédula, Pasaporte o Licencia de conducir.',
+      };
+    }
+
+    const imageResult = await getImageBuffer(documentUrl);
+    if (!imageResult) {
+      const isPdf = documentUrl.startsWith('data:') && documentUrl.includes('application/pdf');
+      return {
+        verified: false,
+        score: 0,
+        reason: isPdf
+          ? 'Para verificar tu identidad debes subir una foto del documento (JPG o PNG), no un PDF. Toma una foto clara del DNI, cédula o pasaporte.'
+          : 'No se pudo obtener la imagen. Usa una foto en JPG o PNG.',
+      };
+    }
+
+    return analyzeIdentityImageBuffer(imageResult.buffer, documentType);
+  } catch (error) {
+    logger.error('Error en verificación automática de documento', 'DocumentVerification', error as Error);
+    return {
+      verified: false,
+      score: 0,
+      reason: 'Error al procesar el documento. Intenta con otra foto o formato.',
+    };
+  }
+}
+
+/** Misma lógica que `verifyDocumentAutomatically` pero con imagen ya en buffer (p. ej. multipart / raw). */
+export async function verifyDocumentAutomaticallyFromBuffer(
+  buffer: Buffer,
+  documentType: 'dni' | 'passport' | 'driver_license'
+): Promise<VerificationResult> {
+  if (!buffer || buffer.length < 100) {
+    return { verified: false, score: 0, reason: 'Imagen vacía o demasiado pequeña.' };
+  }
+  if (!documentType || !['dni', 'passport', 'driver_license'].includes(documentType)) {
+    return {
+      verified: false,
+      score: 0,
+      reason: 'Tipo de documento inválido. Debe ser DNI/Cédula, Pasaporte o Licencia de conducir.',
+    };
+  }
+  return analyzeIdentityImageBuffer(buffer, documentType);
+}
+
+/**
  * Procesa y verifica una solicitud de verificación de documento (uso en rutas).
  */
 export async function processDocumentVerification(
@@ -363,6 +403,24 @@ export async function processDocumentVerification(
   const result = await verifyDocumentAutomatically(documentUrl, documentType);
 
   logger.info(`Verificación automática procesada para usuario ${userId}`, 'DocumentVerification', {
+    verified: result.verified,
+    score: result.score,
+    type: documentType,
+    isAdult: result.extractedData?.isAdult,
+    age: result.extractedData?.age,
+  });
+
+  return result;
+}
+
+export async function processDocumentVerificationFromBuffer(
+  buffer: Buffer,
+  documentType: 'dni' | 'passport' | 'driver_license',
+  userId: number
+): Promise<VerificationResult> {
+  const result = await verifyDocumentAutomaticallyFromBuffer(buffer, documentType);
+
+  logger.info(`Verificación automática (buffer) para usuario ${userId}`, 'DocumentVerification', {
     verified: result.verified,
     score: result.score,
     type: documentType,

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import config from '../config/env';
 
 export interface AuthRequest extends Request {
@@ -14,7 +14,13 @@ export function auth(req: AuthRequest, res: Response, next: NextFunction) {
     const payload = jwt.verify(token, config.jwtSecret) as { id: number; role: string };
     req.user = payload;
     next();
-  } catch {
+  } catch (err) {
+    if (err instanceof TokenExpiredError) {
+      return res.status(401).json({ error: 'Sesión expirada. Vuelve a iniciar sesión.', code: 'TOKEN_EXPIRED' });
+    }
+    if (err instanceof JsonWebTokenError) {
+      return res.status(401).json({ error: 'Token inválido. Cierra sesión y entra de nuevo.', code: 'TOKEN_INVALID' });
+    }
     return res.status(401).json({ error: 'Token inválido' });
   }
 }

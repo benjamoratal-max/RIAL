@@ -6,8 +6,8 @@ export async function compressIdentityImageToJpegDataUrl(
   file: File,
   options?: { maxLongEdge?: number; quality?: number }
 ): Promise<string> {
-  const maxLongEdge = options?.maxLongEdge ?? 1800
-  const quality = options?.quality ?? 0.88
+  const maxLongEdge = options?.maxLongEdge ?? 1400
+  const quality = options?.quality ?? 0.78
 
   const bitmap = await createImageBitmap(file)
   try {

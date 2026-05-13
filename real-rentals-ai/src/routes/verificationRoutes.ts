@@ -1,11 +1,20 @@
 import express from 'express';
 import prisma from '../lib/prisma';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
-import { processDocumentVerification } from '../utils/documentVerification';
+import {
+  processDocumentVerification,
+  processDocumentVerificationFromBuffer,
+  type VerificationResult,
+} from '../utils/documentVerification';
 import { asyncHandler } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 
 const router = express.Router();
+
+/** Cuerpo binario (JPEG/PNG/WebP) sin JSON gigante: evita fallos de proxy/cliente con data URLs enormes. */
+const rawImageParser = express.raw({ limit: '25mb', type: '*/*' });
+
+type IdentityDocType = 'dni' | 'passport' | 'driver_license';
 
 function toValidDateOrNull(value: unknown): Date | null {
   if (!value) return null;
@@ -13,74 +22,46 @@ function toValidDateOrNull(value: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-// Solicitar verificación por documento (automática)
-router.post('/document', authenticateToken, asyncHandler(async (req: AuthRequest, res) => {
-  if (!req.user) return res.status(401).json({ error: 'No autorizado' });
-  
-  const { documentUrl, documentType } = req.body;
+async function commitIdentityVerification(
+  req: AuthRequest,
+  documentUrl: string,
+  documentType: IdentityDocType,
+  verificationResult: VerificationResult
+) {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
 
-  if (!documentUrl) {
-    return res.status(400).json({ error: 'URL del documento requerida' });
-  }
+  let status: string;
+  let verifiedAt: Date | null = null;
+  let verifiedBy: number | null = null;
+  let notes: string | null = null;
 
-  if (!documentType || !['dni', 'passport', 'driver_license'].includes(documentType)) {
-    return res.status(400).json({ error: 'Tipo de documento inválido. Debe ser: dni, passport o driver_license' });
-  }
+  if (verificationResult.verified && verificationResult.extractedData?.isAdult) {
+    status = 'verified';
+    verifiedAt = new Date();
+    verifiedBy = req.user!.id;
+    notes = `Verificación automática exitosa (Score: ${(verificationResult.score * 100).toFixed(1)}%)`;
 
-  try {
-    // Obtener usuario y verificación existente
-    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-    const existingVerification = await prisma.verification.findUnique({
-      where: { userId: req.user.id },
+    const verificationMethods = user?.emailVerified ? 'both' : 'document';
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: {
+        verified: true,
+        verifiedAt: new Date(),
+        verificationMethod: verificationMethods,
+      },
     });
+  } else {
+    status = 'rejected';
+    notes = verificationResult.reason || 'El documento no cumple con los criterios de verificación';
+  }
 
-    // Si ya hay una verificación de documento aprobada, no permitir otra
-    if (existingVerification?.status === 'verified' && existingVerification.type === 'identity') {
-      return res.status(400).json({ error: 'Ya tienes un documento verificado' });
-    }
+  const extractedBirthDate = toValidDateOrNull(verificationResult.extractedData?.birthDate);
+  const extractedExpiryDate = toValidDateOrNull(verificationResult.extractedData?.expiryDate);
 
-    // Procesar verificación automáticamente
-    const verificationResult = await processDocumentVerification(
-      documentUrl,
-      documentType,
-      req.user.id
-    );
-
-    // Determinar estado basado en el resultado
-    let status: string;
-    let verifiedAt: Date | null = null;
-    let verifiedBy: number | null = null;
-    let notes: string | null = null;
-
-    if (verificationResult.verified && verificationResult.extractedData?.isAdult) {
-      status = 'verified';
-      verifiedAt = new Date();
-      verifiedBy = req.user.id; // Auto-verificado por el sistema
-      notes = `Verificación automática exitosa (Score: ${(verificationResult.score * 100).toFixed(1)}%)`;
-    
-      // Actualizar usuario como verificado
-      const verificationMethods = user?.emailVerified ? 'both' : 'document';
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: {
-          verified: true,
-          verifiedAt: new Date(),
-          verificationMethod: verificationMethods,
-        },
-      });
-    } else {
-      status = 'rejected';
-      notes = verificationResult.reason || 'El documento no cumple con los criterios de verificación';
-    }
-
-    const extractedBirthDate = toValidDateOrNull(verificationResult.extractedData?.birthDate);
-    const extractedExpiryDate = toValidDateOrNull(verificationResult.extractedData?.expiryDate);
-
-    // Guardar o actualizar verificación
-    const verification = await prisma.verification.upsert({
-    where: { userId: req.user.id },
+  const verification = await prisma.verification.upsert({
+    where: { userId: req.user!.id },
     create: {
-      userId: req.user.id,
+      userId: req.user!.id,
       type: 'identity',
       status,
       documentUrl,
@@ -89,7 +70,7 @@ router.post('/document', authenticateToken, asyncHandler(async (req: AuthRequest
       notes,
       autoVerified: verificationResult.verified,
       verificationScore: verificationResult.score,
-      documentType: documentType,
+      documentType,
       extractedName: verificationResult.extractedData?.name,
       extractedNumber: verificationResult.extractedData?.number,
       extractedBirthDate,
@@ -107,7 +88,7 @@ router.post('/document', authenticateToken, asyncHandler(async (req: AuthRequest
       notes,
       autoVerified: verificationResult.verified,
       verificationScore: verificationResult.score,
-      documentType: documentType,
+      documentType,
       extractedName: verificationResult.extractedData?.name,
       extractedNumber: verificationResult.extractedData?.number,
       extractedBirthDate,
@@ -118,12 +99,51 @@ router.post('/document', authenticateToken, asyncHandler(async (req: AuthRequest
     },
   });
 
-    logger.info(`Verificación por documento ${status} para usuario ${req.user.id}`, 'Verification', {
-      documentType,
-      verified: verificationResult.verified,
-      score: verificationResult.score,
-      isAdult: verificationResult.extractedData?.isAdult,
+  logger.info(`Verificación por documento ${status} para usuario ${req.user!.id}`, 'Verification', {
+    documentType,
+    verified: verificationResult.verified,
+    score: verificationResult.score,
+    isAdult: verificationResult.extractedData?.isAdult,
+  });
+
+  return verification;
+}
+
+// Solicitar verificación por documento (automática) — JSON + data URL (legacy)
+router.post('/document', authenticateToken, asyncHandler(async (req: AuthRequest, res) => {
+  if (!req.user) return res.status(401).json({ error: 'No autorizado' });
+
+  const { documentUrl, documentType } = req.body;
+
+  if (!documentUrl) {
+    return res.status(400).json({ error: 'URL del documento requerida' });
+  }
+
+  if (!documentType || !['dni', 'passport', 'driver_license'].includes(documentType)) {
+    return res.status(400).json({ error: 'Tipo de documento inválido. Debe ser: dni, passport o driver_license' });
+  }
+
+  try {
+    const existingVerification = await prisma.verification.findUnique({
+      where: { userId: req.user.id },
     });
+
+    if (existingVerification?.status === 'verified' && existingVerification.type === 'identity') {
+      return res.status(400).json({ error: 'Ya tienes un documento verificado' });
+    }
+
+    const verificationResult = await processDocumentVerification(
+      documentUrl,
+      documentType,
+      req.user.id
+    );
+
+    const verification = await commitIdentityVerification(
+      req,
+      documentUrl,
+      documentType as IdentityDocType,
+      verificationResult
+    );
 
     res.status(201).json({
       ...verification,
@@ -144,11 +164,90 @@ router.post('/document', authenticateToken, asyncHandler(async (req: AuthRequest
       verificationResult: {
         verified: false,
         score: 0,
-        reason: 'No pudimos procesar tu documento en este momento. Intenta con una foto más clara (JPG/PNG) o vuelve a intentar en unos minutos.',
+        reason:
+          'No pudimos procesar tu documento en este momento. Intenta con una foto más clara (JPG/PNG) o vuelve a intentar en unos minutos.',
       },
     });
   }
 }));
+
+// Misma verificación pero con cuerpo binario (recomendado para fotos grandes)
+router.post(
+  '/document-raw',
+  authenticateToken,
+  rawImageParser,
+  asyncHandler(async (req: AuthRequest, res) => {
+    if (!req.user) return res.status(401).json({ error: 'No autorizado' });
+
+    const documentType = String(req.query.documentType || '').trim();
+    if (!documentType || !['dni', 'passport', 'driver_license'].includes(documentType)) {
+      return res
+        .status(400)
+        .json({ error: 'Parámetro query documentType requerido: dni | passport | driver_license' });
+    }
+
+    const buf = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body as ArrayBuffer);
+    if (!buf || buf.length < 100) {
+      return res.status(400).json({ error: 'Imagen vacía o demasiado pequeña' });
+    }
+
+    const rawCt = String(req.headers['content-type'] || 'application/octet-stream').split(';')[0].trim().toLowerCase();
+    const mime =
+      rawCt === 'image/png' || rawCt === 'image/webp' || rawCt === 'image/jpeg' || rawCt === 'image/jpg'
+        ? rawCt === 'image/jpg'
+          ? 'image/jpeg'
+          : rawCt
+        : 'image/jpeg';
+    const documentUrl = `data:${mime};base64,${buf.toString('base64')}`;
+
+    try {
+      const existingVerification = await prisma.verification.findUnique({
+        where: { userId: req.user.id },
+      });
+
+      if (existingVerification?.status === 'verified' && existingVerification.type === 'identity') {
+        return res.status(400).json({ error: 'Ya tienes un documento verificado' });
+      }
+
+      const verificationResult = await processDocumentVerificationFromBuffer(
+        buf,
+        documentType as IdentityDocType,
+        req.user.id
+      );
+
+      const verification = await commitIdentityVerification(
+        req,
+        documentUrl,
+        documentType as IdentityDocType,
+        verificationResult
+      );
+
+      res.status(201).json({
+        ...verification,
+        verificationResult: {
+          verified: verificationResult.verified,
+          score: verificationResult.score,
+          reason: verificationResult.reason,
+          isAdult: verificationResult.extractedData?.isAdult,
+          age: verificationResult.extractedData?.age,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Error interno procesando verificación de documento (raw)', 'Verification', error as Error, {
+        userId: req.user.id,
+        documentType,
+      });
+      return res.status(200).json({
+        verificationResult: {
+          verified: false,
+          score: 0,
+          reason:
+            'No pudimos procesar tu documento en este momento. Intenta con una foto más clara (JPG/PNG) o vuelve a intentar en unos minutos.',
+        },
+      });
+    }
+  })
+);
 
 // Obtener estado de verificación del usuario
 router.get('/status', authenticateToken, asyncHandler(async (req: AuthRequest, res) => {
