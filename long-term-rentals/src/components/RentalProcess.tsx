@@ -27,6 +27,7 @@ import { Button, Input, classNames } from './UI'
 import { PhoneInput } from './PhoneInput'
 import { api, getSessionToken } from '../utils/api'
 import { normalizeDocumentNumber } from '../utils/documentNumber'
+import { fetchServerToday, formatLocalToday } from '../utils/serverDate'
 import { DEFAULT_OLLAMA_MODEL } from '../utils/generativeAI'
 import type { BrokerContext } from '../utils/brokerAI'
 
@@ -93,9 +94,9 @@ Estoy aquí para:
   const [isDrawing, setIsDrawing] = useState(false)
   const [signatureMode, setSignatureMode] = useState<'draw' | 'upload'>('draw')
   const [signatureUploadPreview, setSignatureUploadPreview] = useState<string | null>(null)
-  // Fecha del servidor (fuente de verdad; no se usa la del dispositivo para evitar manipulación)
-  const [serverToday, setServerToday] = useState<string | null>(null)
-  const [serverDateError, setServerDateError] = useState(false)
+  // Fecha mínima para inicio de alquiler (servidor preferido; respaldo local si el API no responde)
+  const [serverToday, setServerToday] = useState<string>(() => formatLocalToday())
+  const [usingLocalDateFallback, setUsingLocalDateFallback] = useState(false)
   /** Número de documento de la verificación de cuenta (fuente de verdad). */
   const [verifiedDocumentNumber, setVerifiedDocumentNumber] = useState<string | null>(null)
 
@@ -128,18 +129,10 @@ Estoy aquí para:
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      try {
-        const data = await api('/api/server-date', { retry: true })
-        if (cancelled) return
-        if (data?.date && /^\d{4}-\d{2}-\d{2}$/.test(data.date)) {
-          setServerToday(data.date)
-          setServerDateError(false)
-        } else {
-          setServerDateError(true)
-        }
-      } catch {
-        if (!cancelled) setServerDateError(true)
-      }
+      const { date, source } = await fetchServerToday()
+      if (cancelled) return
+      setServerToday(date)
+      setUsingLocalDateFallback(source === 'local')
     })()
     return () => {
       cancelled = true
@@ -180,9 +173,7 @@ Estoy aquí para:
         if (!formData.address || formData.address.trim().length < 5) errors.push('Debe ingresar una dirección válida')
         break
       case 2:
-        if (serverDateError) errors.push('No se pudo verificar la fecha con el servidor. Intente de nuevo.')
-        else if (!serverToday) errors.push('Espere a que se cargue la fecha válida.')
-        else if (!formData.startDate) errors.push('Debe seleccionar una fecha de inicio')
+        if (!formData.startDate) errors.push('Debe seleccionar una fecha de inicio')
         else if (!isTodayOrFutureDate(formData.startDate, serverToday)) errors.push('La fecha de inicio debe ser hoy o una fecha futura.')
         if (!formData.duration) errors.push('Debe seleccionar una duración')
         break
@@ -952,17 +943,17 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Fecha de inicio *
                         </label>
-                        {serverDateError && (
-                          <p className="text-sm text-amber-600 dark:text-amber-400 mb-2">
-                            No se pudo obtener la fecha del servidor. Recargue la página o intente más tarde.
+                        {usingLocalDateFallback && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
+                            Usando fecha local (no se pudo contactar al servidor). Asegúrate de que el backend esté
+                            encendido para mayor precisión.
                           </p>
                         )}
                         <Input
                           type="date"
-                          min={serverToday ?? undefined}
+                          min={serverToday}
                           value={formData.startDate}
-                          placeholder={serverToday ? 'Selecciona fecha' : 'Cargando fecha...'}
-                          disabled={!serverToday || serverDateError}
+                          placeholder="Selecciona fecha"
                           onChange={(value) => {
                             setFormData(prev => ({ ...prev, startDate: value }))
                             if (validationErrors[2]) {

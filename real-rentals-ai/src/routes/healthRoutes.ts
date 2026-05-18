@@ -13,9 +13,12 @@ const router = express.Router();
  * Health check básico
  */
 router.get('/', asyncHandler(async (req, res) => {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const health = {
     status: 'ok',
-    timestamp: new Date().toISOString(),
+    timestamp: now.toISOString(),
+    today,
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
   };

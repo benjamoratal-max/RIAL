@@ -37,6 +37,18 @@ export default defineConfig({
         secure: false,
         configure: configureProxySilent('Backend (/api)'),
       },
+      '/health': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: false,
+        configure: configureProxySilent('Backend (/health)'),
+      },
+      '/server-date': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: false,
+        configure: configureProxySilent('Backend (/server-date)'),
+      },
       '/contracts': {
         target: API_TARGET,
         changeOrigin: true,

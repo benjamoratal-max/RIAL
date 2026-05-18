@@ -121,11 +121,19 @@ app.use(express.json({ limit: '15mb', type: 'application/json' }));
 // Request logging (antes de rate limiting para capturar todas las peticiones)
 app.use(requestLogger);
 
-// Fecha del servidor (pública, sin rate limit; usada en proceso de alquiler)
-app.get('/api/server-date', (req, res) => {
+function getServerTodayIsoDate(): string {
   const now = new Date();
-  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  res.json({ date });
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+// Fecha del servidor (pública, sin rate limit; usada en proceso de alquiler)
+app.get('/api/server-date', (_req, res) => {
+  res.json({ date: getServerTodayIsoDate() });
+});
+
+// Alias sin prefijo /api (útil si el proxy solo reenvía /health)
+app.get('/server-date', (_req, res) => {
+  res.json({ date: getServerTodayIsoDate() });
 });
 
 // Aplicar rate limiting general a todas las rutas API (excepto las definidas arriba)
