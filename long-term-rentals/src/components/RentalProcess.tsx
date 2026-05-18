@@ -27,7 +27,7 @@ import { Button, Input, classNames } from './UI'
 import { PhoneInput } from './PhoneInput'
 import { api, getSessionToken } from '../utils/api'
 import { normalizeDocumentNumber } from '../utils/documentNumber'
-import { fetchServerToday, formatLocalToday } from '../utils/serverDate'
+import { isTodayOrFutureDate, minRentalStartDate } from '../utils/serverDate'
 import { DEFAULT_OLLAMA_MODEL } from '../utils/generativeAI'
 import type { BrokerContext } from '../utils/brokerAI'
 
@@ -94,9 +94,6 @@ Estoy aquí para:
   const [isDrawing, setIsDrawing] = useState(false)
   const [signatureMode, setSignatureMode] = useState<'draw' | 'upload'>('draw')
   const [signatureUploadPreview, setSignatureUploadPreview] = useState<string | null>(null)
-  // Fecha mínima para inicio de alquiler (servidor preferido; respaldo local si el API no responde)
-  const [serverToday, setServerToday] = useState<string>(() => formatLocalToday())
-  const [usingLocalDateFallback, setUsingLocalDateFallback] = useState(false)
   /** Número de documento de la verificación de cuenta (fuente de verdad). */
   const [verifiedDocumentNumber, setVerifiedDocumentNumber] = useState<string | null>(null)
 
@@ -126,19 +123,6 @@ Estoy aquí para:
     }
   }, [token])
 
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      const { date, source } = await fetchServerToday()
-      if (cancelled) return
-      setServerToday(date)
-      setUsingLocalDateFallback(source === 'local')
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const isValidPhone = (phone: string) => {
     if (!phone) return false
@@ -147,10 +131,6 @@ Estoy aquí para:
   }
   const isValidDNI = (dni: string) => /^[A-Za-z0-9]{6,}$/.test(dni)
 
-  const isTodayOrFutureDate = (dateString: string, minDate: string) => {
-    if (!dateString || !minDate) return false
-    return dateString >= minDate
-  }
   const validateStep = (step: number): string[] => {
     const errors: string[] = []
     switch (step) {
@@ -174,7 +154,7 @@ Estoy aquí para:
         break
       case 2:
         if (!formData.startDate) errors.push('Debe seleccionar una fecha de inicio')
-        else if (!isTodayOrFutureDate(formData.startDate, serverToday)) errors.push('La fecha de inicio debe ser hoy o una fecha futura.')
+        else if (!isTodayOrFutureDate(formData.startDate)) errors.push('La fecha de inicio debe ser hoy o una fecha futura.')
         if (!formData.duration) errors.push('Debe seleccionar una duración')
         break
       case 3:
@@ -943,15 +923,9 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Fecha de inicio *
                         </label>
-                        {usingLocalDateFallback && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
-                            No se pudo obtener la fecha del API (Render). Revisa VITE_API_URL en Vercel y CORS en Render;
-                            puedes seguir con la fecha local.
-                          </p>
-                        )}
                         <Input
                           type="date"
-                          min={serverToday}
+                          min={minRentalStartDate()}
                           value={formData.startDate}
                           placeholder="Selecciona fecha"
                           onChange={(value) => {

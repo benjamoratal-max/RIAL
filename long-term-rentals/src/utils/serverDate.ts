@@ -1,14 +1,22 @@
-import { apiUrl } from './api'
-
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
-/** Fecha local YYYY-MM-DD (respaldo si el API no responde). */
+/** Fecha local del navegador en formato YYYY-MM-DD (input type="date"). */
 export function formatLocalToday(): string {
   const now = new Date()
   const y = now.getFullYear()
   const m = String(now.getMonth() + 1).padStart(2, '0')
   const d = String(now.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+/** Fecha mínima para inicio de alquiler: hoy en la zona horaria del usuario. */
+export function minRentalStartDate(): string {
+  return formatLocalToday()
+}
+
+export function isTodayOrFutureDate(dateString: string, minDate: string = minRentalStartDate()): boolean {
+  if (!dateString || !minDate || !DATE_RE.test(dateString) || !DATE_RE.test(minDate)) return false
+  return dateString >= minDate
 }
 
 async function tryFetchDate(url: string): Promise<string | null> {
@@ -32,11 +40,9 @@ async function tryFetchDate(url: string): Promise<string | null> {
   }
 }
 
-/**
- * Fecha de referencia para alquiler (Render en producción).
- * Usa rutas relativas en Vercel (rewrites) o VITE_API_URL si está definida.
- */
+/** @deprecated El proceso de alquiler usa fecha local; se mantiene por si otros módulos lo necesitan. */
 export async function fetchServerToday(): Promise<{ date: string; source: 'server' | 'local' }> {
+  const { apiUrl } = await import('./api')
   const urls = [apiUrl('/api/server-date'), apiUrl('/server-date'), apiUrl('/health')]
 
   if (import.meta.env.DEV) {

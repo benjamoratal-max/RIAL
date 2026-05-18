@@ -18,6 +18,7 @@ router.get('/', asyncHandler(async (req, res) => {
   const health = {
     status: 'ok',
     timestamp: now.toISOString(),
+    date: today,
     today,
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
