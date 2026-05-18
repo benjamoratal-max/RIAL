@@ -121,7 +121,14 @@ app.use(express.json({ limit: '15mb', type: 'application/json' }));
 // Request logging (antes de rate limiting para capturar todas las peticiones)
 app.use(requestLogger);
 
-// Aplicar rate limiting general a todas las rutas
+// Fecha del servidor (pública, sin rate limit; usada en proceso de alquiler)
+app.get('/api/server-date', (req, res) => {
+  const now = new Date();
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  res.json({ date });
+});
+
+// Aplicar rate limiting general a todas las rutas API (excepto las definidas arriba)
 app.use('/api', generalLimiter);
 
 // Servir archivos estáticos de contratos (PDFs)
@@ -160,13 +167,6 @@ app.get('/', (req, res) => {
     },
     environment: config.nodeEnv,
   });
-});
-
-// Fecha del servidor (fuente de verdad para validar fechas de alquiler; no depende del reloj del cliente)
-app.get('/api/server-date', (req, res) => {
-  const now = new Date();
-  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  res.json({ date });
 });
 
 // Rutas API

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { Button, Input, classNames } from './UI'
 import { PhoneInput } from './PhoneInput'
+import { api } from '../utils/api'
 import { DEFAULT_OLLAMA_MODEL } from '../utils/generativeAI'
 import type { BrokerContext } from '../utils/brokerAI'
 
@@ -96,10 +97,24 @@ Estoy aquí para:
   const [serverDateError, setServerDateError] = useState(false)
 
   useEffect(() => {
-    fetch('/api/server-date')
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('No ok'))))
-      .then((data: { date: string }) => setServerToday(data.date || null))
-      .catch(() => setServerDateError(true))
+    let cancelled = false
+    void (async () => {
+      try {
+        const data = await api('/api/server-date', { retry: true })
+        if (cancelled) return
+        if (data?.date && /^\d{4}-\d{2}-\d{2}$/.test(data.date)) {
+          setServerToday(data.date)
+          setServerDateError(false)
+        } else {
+          setServerDateError(true)
+        }
+      } catch {
+        if (!cancelled) setServerDateError(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
