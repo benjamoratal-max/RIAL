@@ -945,8 +945,8 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                         </label>
                         {usingLocalDateFallback && (
                           <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
-                            Usando fecha local (no se pudo contactar al servidor). Asegúrate de que el backend esté
-                            encendido para mayor precisión.
+                            No se pudo obtener la fecha del API (Render). Revisa VITE_API_URL en Vercel y CORS en Render;
+                            puedes seguir con la fecha local.
                           </p>
                         )}
                         <Input

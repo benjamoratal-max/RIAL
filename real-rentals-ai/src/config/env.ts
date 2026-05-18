@@ -47,6 +47,9 @@ export const config = {
   
   // URL pública del frontend (para ngrok u otros túneles)
   publicFrontendUrl: getEnvVarOptional('PUBLIC_FRONTEND_URL'),
+
+  /** URL del frontend en Vercel (CORS en Render). Alias: PUBLIC_FRONTEND_URL */
+  frontendUrl: getEnvVarOptional('FRONTEND_URL') || getEnvVarOptional('PUBLIC_FRONTEND_URL'),
   
   // Base de datos
   databaseUrl: getEnvVarOptional('DATABASE_URL'),

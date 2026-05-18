@@ -5,9 +5,22 @@
 
 import { APIError, handleAPIError, logError } from './errorHandler';
 
-/** Base URL del API (vacío = mismo origen / proxy de Vite). */
+/**
+ * Base URL del API.
+ * - Vacío: rutas relativas `/api/...` (Vite dev proxy, o Vercel rewrites → Render).
+ * - Con valor: llamada directa al backend (requiere CORS en Render).
+ */
 export function getApiBase(): string {
-  return import.meta.env.VITE_API_URL || '';
+  const raw = (import.meta.env.VITE_API_URL || '').trim();
+  if (!raw) return '';
+  return raw.replace(/\/$/, '');
+}
+
+/** URL absoluta para un path del API (respeta getApiBase). */
+export function apiUrl(path: string): string {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const base = getApiBase();
+  return base ? `${base}${p}` : p;
 }
 
 /** Evita `Authorization: Bearer Bearer ...` y caracteres que rompen el JWT (saltos de línea, BOM, espacios). */
@@ -38,7 +51,7 @@ export async function api(
 
   const makeRequest = async () => {
     try {
-      const url = `${getApiBase()}${path}`;
+      const url = apiUrl(path);
       const res = await fetch(url, {
         method,
         headers: {

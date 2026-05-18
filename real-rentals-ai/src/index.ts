@@ -52,6 +52,16 @@ app.use(compression({
   threshold: 1024, // Solo comprimir respuestas mayores a 1KB
 }));
 
+function isAllowedCorsOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (config.corsOrigins.includes(origin)) return true;
+  if (config.publicFrontendUrl && origin === config.publicFrontendUrl) return true;
+  if (config.frontendUrl && origin === config.frontendUrl) return true;
+  // Vercel (producción y preview deployments)
+  if (/^https:\/\/[\w.-]+\.vercel\.app$/i.test(origin)) return true;
+  return false;
+}
+
 // Configurar CORS con orígenes permitidos específicos
 app.use(cors({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -100,11 +110,8 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // En producción, usar la lista de orígenes permitidos estrictamente
-    if (origin && config.corsOrigins.includes(origin)) {
-      callback(null, true);
-    } else if (!origin) {
-      // Permitir requests sin Origin (health checks, server-to-server, navegación directa a la URL del backend)
+    // Producción: lista configurada + dominios Vercel (*.vercel.app)
+    if (isAllowedCorsOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('CORS: Origen no permitido'));

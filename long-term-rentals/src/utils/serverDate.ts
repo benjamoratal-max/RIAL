@@ -1,4 +1,4 @@
-import { getApiBase } from './api'
+import { apiUrl } from './api'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -33,25 +33,20 @@ async function tryFetchDate(url: string): Promise<string | null> {
 }
 
 /**
- * Obtiene la fecha de referencia para validar inicio de alquiler.
- * Prueba varias URLs (proxy Vite, VITE_API_URL, localhost en dev) y, si todo falla, usa la fecha local.
+ * Fecha de referencia para alquiler (Render en producción).
+ * Usa rutas relativas en Vercel (rewrites) o VITE_API_URL si está definida.
  */
 export async function fetchServerToday(): Promise<{ date: string; source: 'server' | 'local' }> {
-  const bases = new Set<string>()
-  const configured = getApiBase().replace(/\/$/, '')
-  if (configured) bases.add(configured)
+  const urls = [apiUrl('/api/server-date'), apiUrl('/server-date'), apiUrl('/health')]
+
   if (import.meta.env.DEV) {
-    bases.add('http://127.0.0.1:3000')
-    bases.add('http://localhost:3000')
+    urls.push('http://127.0.0.1:3000/api/server-date', 'http://localhost:3000/api/server-date')
   }
 
-  const urls: string[] = []
-  for (const base of bases) {
-    urls.push(`${base}/api/server-date`, `${base}/server-date`, `${base}/health`)
-  }
-  urls.push('/api/server-date', '/server-date', '/health')
-
+  const seen = new Set<string>()
   for (const url of urls) {
+    if (seen.has(url)) continue
+    seen.add(url)
     const date = await tryFetchDate(url)
     if (date) return { date, source: 'server' }
   }
