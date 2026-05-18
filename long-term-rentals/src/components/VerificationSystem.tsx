@@ -4,7 +4,7 @@ import { CheckCircle, Shield, Mail, FileText, AlertCircle, Camera } from 'lucide
 import { Button, classNames } from './UI'
 import { toast } from 'react-hot-toast'
 import { compressIdentityImageToJpegDataUrl } from '../utils/compressIdentityImage'
-import { api, authHeaderForToken, getApiBase } from '../utils/api'
+import { api, authHeaderForToken, getApiBase, getSessionToken } from '../utils/api'
 import { APIError } from '../utils/errorHandler'
 
 interface VerificationSystemProps {
@@ -24,16 +24,25 @@ export function VerificationSystem({ token, onUpdate }: VerificationSystemProps)
   const [idPreviewName, setIdPreviewName] = useState('')
 
   useEffect(() => {
-    if (token) {
+    if (resolveToken()) {
       void loadVerificationStatus()
     } else {
       setLoading(false)
     }
   }, [token])
 
+  function resolveToken(): string {
+    return getSessionToken() || token || ''
+  }
+
   async function loadVerificationStatus() {
+    const sessionToken = resolveToken()
+    if (!sessionToken) {
+      setLoading(false)
+      return
+    }
     try {
-      const data = await api('/api/verification/status', { token })
+      const data = await api('/api/verification/status', { token: sessionToken })
       setStatus(data || { verified: false })
     } catch (error: any) {
       console.error('Error loading verification status:', error)
@@ -49,6 +58,12 @@ export function VerificationSystem({ token, onUpdate }: VerificationSystemProps)
       return
     }
 
+    const sessionToken = resolveToken()
+    if (!sessionToken) {
+      toast.error('No hay sesión activa. Cierra sesión y vuelve a entrar.')
+      return
+    }
+
     setUploadingDocument(true)
     try {
       const blob = await (await fetch(documentDataUrl)).blob()
@@ -56,7 +71,7 @@ export function VerificationSystem({ token, onUpdate }: VerificationSystemProps)
       const res = await fetch(`${getApiBase()}/api/verification/document-raw?${qs}`, {
         method: 'POST',
         headers: {
-          ...authHeaderForToken(token),
+          ...authHeaderForToken(sessionToken),
           'Content-Type': blob.type && blob.type !== 'application/octet-stream' ? blob.type : 'image/jpeg',
         },
         body: blob,
@@ -70,7 +85,12 @@ export function VerificationSystem({ token, onUpdate }: VerificationSystemProps)
       }
 
       if (!res.ok) {
-        throw new APIError(result?.error || 'Error al verificar documento', res.status)
+        const authMsg =
+          res.status === 401
+            ? result?.error ||
+              'Tu sesión expiró o no es válida. Cierra sesión, vuelve a entrar e intenta de nuevo.'
+            : result?.error || 'Error al verificar documento'
+        throw new APIError(authMsg, res.status, result?.code)
       }
 
       if (result.verificationResult?.verified) {
@@ -127,7 +147,7 @@ export function VerificationSystem({ token, onUpdate }: VerificationSystemProps)
     )
   }
 
-  if (!token) {
+  if (!resolveToken()) {
     return (
       <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
         <div className="text-center text-gray-500 dark:text-gray-400">

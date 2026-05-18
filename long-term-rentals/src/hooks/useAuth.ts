@@ -1,10 +1,17 @@
 import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
-import { api } from '../utils/api'
+import { api, normalizeBearerToken } from '../utils/api'
 import { getErrorMessage, APIError } from '../utils/errorHandler'
 
 export function useAuth() {
-  const [token, setToken] = useState<string>(() => localStorage.getItem('token') || '')
+  const [token, setToken] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem('token')
+      return raw ? normalizeBearerToken(raw) : ''
+    } catch {
+      return ''
+    }
+  })
   const [user, setUser] = useState<any>(() => {
     const raw = localStorage.getItem('user')
     try {
@@ -27,9 +34,10 @@ export function useAuth() {
           setPendingLogin({ email, password })
           toast('Código 2FA enviado por email')
         } else {
-          setToken(res.token)
+          const cleanToken = normalizeBearerToken(String(res.token || ''))
+          setToken(cleanToken)
           setUser(res.user)
-          localStorage.setItem('token', res.token)
+          localStorage.setItem('token', cleanToken)
           localStorage.setItem('user', JSON.stringify(res.user))
           setRequires2FA(false)
           setPendingLogin(null)

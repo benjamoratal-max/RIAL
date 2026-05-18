@@ -115,8 +115,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Soportar payloads base64 de imágenes de documento (DNI/pasaporte) en verificación
-app.use(express.json({ limit: '15mb' }));
+// Solo parsear JSON explícito (no tocar cuerpos binarios de /api/verification/document-raw)
+app.use(express.json({ limit: '15mb', type: 'application/json' }));
 
 // Request logging (antes de rate limiting para capturar todas las peticiones)
 app.use(requestLogger);

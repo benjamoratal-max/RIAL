@@ -11,11 +11,21 @@ export function getApiBase(): string {
 }
 
 /** Evita `Authorization: Bearer Bearer ...` y caracteres que rompen el JWT (saltos de línea, BOM, espacios). */
-function normalizeBearerToken(token: string): string {
+export function normalizeBearerToken(token: string): string {
   let t = token.trim();
   if (t.charCodeAt(0) === 0xfeff) t = t.slice(1).trim();
   if (/^bearer\s+/i.test(t)) t = t.replace(/^bearer\s+/i, '').trim();
   return t.replace(/\s+/g, '');
+}
+
+/** Token de sesión actual (siempre lee localStorage para evitar props desactualizados). */
+export function getSessionToken(): string {
+  try {
+    const raw = localStorage.getItem('token');
+    return raw ? normalizeBearerToken(raw) : '';
+  } catch {
+    return '';
+  }
 }
 
 export async function api(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { setAppLanguage } from '../i18n'
@@ -96,7 +96,6 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
   const [bookings, setBookings] = useState<any[]>([])
   const [reviews, setReviews] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [showVerification, setShowVerification] = useState(false)
   const [renterLeads, setRenterLeads] = useState<any[]>([])
   const [selectedLeadForDocs, setSelectedLeadForDocs] = useState<any | null>(null)
 
@@ -222,7 +221,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
 
       setFavorites(favoriteProperties)
       
-      // Actualizar estadísticas localmente y en el componente padre
+      // Actualizar estadÃ­sticas localmente y en el componente padre
       const updatedStats = {
         ...user.stats,
         totalFavorites: favoriteProperties.length
@@ -260,7 +259,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
   }
 
   const loadReviews = async () => {
-    // Simular reseñas
+    // Simular reseÃ±as
     const mockReviews = [
       {
         id: 1,
@@ -269,7 +268,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
           title: 'Casa Playa'
         },
         rating: 5,
-        comment: 'Excelente ubicación y muy limpia',
+        comment: 'Excelente ubicaciÃ³n y muy limpia',
         date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
       }
     ]
@@ -318,7 +317,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header con botón de cerrar */}
+        {/* Header con botÃ³n de cerrar */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('profile.myProfile')}</h2>
           {onClose && (
@@ -339,7 +338,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="rounded-2xl border border-rial-cream-dark/40 bg-white/90 p-6 shadow-lg backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/85">
-            {/* Información del usuario */}
+            {/* InformaciÃ³n del usuario */}
             <div className="text-center mb-6">
               <div className="relative inline-block mb-4">
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-rial-navy to-rial-navy-light text-2xl font-bold text-rial-cream ring-2 ring-rial-gold/50">
@@ -372,10 +371,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      setShowVerification(true)
-                      setActiveTab('security')
-                    }}
+                    onClick={() => setActiveTab('security')}
                     icon={<AlertTriangle className="w-3 h-3" />}
                   >
                     {t('profile.verify')}
@@ -388,7 +384,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
               </p>
             </div>
 
-            {/* Navegación */}
+            {/* NavegaciÃ³n */}
             <nav className="space-y-2">
               {tabs.map((tab) => {
                 const Icon = tab.icon
@@ -410,7 +406,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
               })}
             </nav>
 
-            {/* Botón de cerrar sesión */}
+            {/* BotÃ³n de cerrar sesiÃ³n */}
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
               <Button
                 variant="outline"
@@ -562,20 +558,6 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
       </div>
         </div>
         
-        {/* Modal de verificación - fuera del contenido scrolleable */}
-        <AnimatePresence>
-          {showVerification && token && (
-            <IdentityVerificationModal
-              token={token}
-              onClose={() => setShowVerification(false)}
-              onVerified={() => {
-                onUpdate({ verified: true })
-                setShowVerification(false)
-              }}
-            />
-          )}
-        </AnimatePresence>
-
         {/* Modal de Application Readiness para renter */}
         <AnimatePresence>
           {selectedLeadForDocs && (
@@ -607,7 +589,7 @@ function DashboardTab({ user, activities, favorites }: { user: UserProfileData, 
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t('profile.dashboard')}</h2>
         
-        {/* Estadísticas */}
+        {/* EstadÃ­sticas */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           {stats.map((stat, index) => {
             const Icon = stat.icon
@@ -801,13 +783,13 @@ function ProfileTab({ user, editData, setEditData, isEditing, setIsEditing, onSa
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Teléfono
+            TelÃ©fono
           </label>
           {isEditing ? (
             <PhoneInput
               value={editData.phone || ''}
               onChange={(value) => setEditData({ ...editData, phone: value })}
-              placeholder="Número de teléfono"
+              placeholder="NÃºmero de telÃ©fono"
             />
           ) : (
             <p className="text-gray-900 dark:text-white">{user.phone || 'No especificado'}</p>
@@ -839,7 +821,7 @@ function ActivityTab({ activities, favorites, bookings, reviews }: {
     { id: 'all', label: 'Todas', count: activities.length },
     { id: 'favorites', label: 'Favoritos', count: favorites.length },
     { id: 'bookings', label: 'Reservas', count: bookings.length },
-    { id: 'reviews', label: 'Reseñas', count: reviews.length }
+    { id: 'reviews', label: 'ReseÃ±as', count: reviews.length }
   ]
 
   return (
@@ -971,7 +953,7 @@ function ActivityTab({ activities, favorites, bookings, reviews }: {
   )
 }
 
-// Componente Configuración
+// Componente ConfiguraciÃ³n
 function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (data: Partial<UserProfileData>) => void }) {
   const { t } = useTranslation()
   const [settings, setSettings] = useState(user.preferences)
@@ -1061,7 +1043,7 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
                 onChange={(e) => updateSetting('privacy.showPhone', e.target.checked)}
                 className="h-4 w-4 rounded text-rial-navy focus:ring-rial-gold dark:text-rial-gold"
               />
-              <span className="text-gray-700 dark:text-gray-300">Mostrar teléfono en perfil</span>
+              <span className="text-gray-700 dark:text-gray-300">Mostrar telÃ©fono en perfil</span>
             </label>
           </div>
         </div>
@@ -1105,43 +1087,6 @@ function SettingsTab({ user, onUpdate }: { user: UserProfileData, onUpdate: (dat
   )
 }
 
-// Modal rápido desde "Verificar" en la barra lateral: mismo flujo que Seguridad (solo documento).
-function IdentityVerificationModal({
-  token,
-  onClose,
-  onVerified,
-}: {
-  token: string
-  onClose: () => void
-  onVerified: () => void
-}) {
-  return (
-    <motion.div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
-        initial={{ scale: 0.96, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.96, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Verificación de identidad</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />} />
-        </div>
-        <div className="p-2 sm:p-3">
-          <VerificationSystem token={token} onUpdate={onVerified} />
-        </div>
-      </motion.div>
-    </motion.div>
-  )
-}
-
 // Componente Seguridad
 function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdate: (data: Partial<UserProfileData>) => void, token: string }) {
   const { t } = useTranslation()
@@ -1153,7 +1098,7 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
   })
 
   const handlePasswordChange = async () => {
-    // Implementar cambio de contraseña
+    // Implementar cambio de contraseÃ±a
     console.log('Changing password...')
     setShowPasswordForm(false)
     setPasswordData({ current: '', new: '', confirm: '' })
@@ -1164,7 +1109,7 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t('profile.security')}</h2>
       
       <div className="space-y-6">
-        {/* Verificación de identidad */}
+        {/* VerificaciÃ³n de identidad */}
         <VerificationSystem
           token={token}
           user={user}
@@ -1173,15 +1118,15 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
           }}
         />
 
-        {/* Cambio de contraseña */}
+        {/* Cambio de contraseÃ±a */}
         <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                Contraseña
+                ContraseÃ±a
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Cambia tu contraseña regularmente para mantener tu cuenta segura
+                Cambia tu contraseÃ±a regularmente para mantener tu cuenta segura
               </p>
             </div>
             <Button
@@ -1189,7 +1134,7 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
               variant="outline"
               onClick={() => setShowPasswordForm(!showPasswordForm)}
             >
-              Cambiar contraseña
+              Cambiar contraseÃ±a
             </Button>
           </div>
 
@@ -1202,25 +1147,25 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
             >
               <Input
                 type="password"
-                placeholder="Contraseña actual"
+                placeholder="ContraseÃ±a actual"
                 value={passwordData.current}
                 onChange={(value) => setPasswordData({ ...passwordData, current: value })}
               />
               <Input
                 type="password"
-                placeholder="Nueva contraseña"
+                placeholder="Nueva contraseÃ±a"
                 value={passwordData.new}
                 onChange={(value) => setPasswordData({ ...passwordData, new: value })}
               />
               <Input
                 type="password"
-                placeholder="Confirmar nueva contraseña"
+                placeholder="Confirmar nueva contraseÃ±a"
                 value={passwordData.confirm}
                 onChange={(value) => setPasswordData({ ...passwordData, confirm: value })}
               />
               <div className="flex gap-2">
                 <Button onClick={handlePasswordChange}>
-                  Cambiar contraseña
+                  Cambiar contraseÃ±a
                 </Button>
                 <Button variant="outline" onClick={() => setShowPasswordForm(false)}>
                   Cancelar
@@ -1230,14 +1175,14 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
           )}
         </div>
 
-        {/* Verificación de email */}
+        {/* VerificaciÃ³n de email */}
         <EmailVerification 
           token={token} 
           user={user} 
           onUpdate={() => onUpdate({ emailVerified: true })}
         />
 
-        {/* Autenticación de dos factores */}
+        {/* AutenticaciÃ³n de dos factores */}
         <TwoFactorAuth 
           token={token} 
           user={user} 
@@ -1253,7 +1198,7 @@ function SecurityTab({ user, onUpdate, token }: { user: UserProfileData, onUpdat
             <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
               <div>
                 <p className="font-medium text-gray-900 dark:text-white">Chrome - Windows</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">192.168.1.100 • Hace 2 horas</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">192.168.1.100 â€¢ Hace 2 horas</p>
               </div>
               <Button size="sm" variant="outline" className="text-red-600">
                 {t('profile.logout')}

@@ -6,10 +6,21 @@ export interface AuthRequest extends Request {
   user?: { id: number; role: string };
 }
 
+/** Extrae el JWT del header Authorization (tolera espacios, BOM y "Bearer" duplicado). */
+export function extractBearerToken(header: string | undefined): string | null {
+  if (!header || typeof header !== 'string') return null;
+  let h = header.trim();
+  if (h.charCodeAt(0) === 0xfeff) h = h.slice(1).trim();
+  const match = h.match(/^Bearer\s+(.+)$/i);
+  let token = (match ? match[1] : h.startsWith('Bearer ') ? h.slice(7) : h).trim();
+  if (/^bearer\s+/i.test(token)) token = token.replace(/^bearer\s+/i, '').trim();
+  token = token.replace(/\s+/g, '');
+  return token.length > 0 ? token : null;
+}
+
 export function auth(req: AuthRequest, res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) return res.status(401).json({ error: 'No autorizado' });
-  const token = header.split(' ')[1];
+  const token = extractBearerToken(req.headers.authorization);
+  if (!token) return res.status(401).json({ error: 'No autorizado', code: 'NO_TOKEN' });
   try {
     const payload = jwt.verify(token, config.jwtSecret) as { id: number; role: string };
     req.user = payload;
@@ -43,11 +54,10 @@ export const authenticateToken = auth;
  * Útil para endpoints de solo lectura (p. ej. catálogo público para el asistente).
  */
 export function optionalAuthenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
+  const token = extractBearerToken(req.headers.authorization);
+  if (!token) {
     return next();
   }
-  const token = header.split(' ')[1];
   try {
     const payload = jwt.verify(token, config.jwtSecret) as { id: number; role: string };
     req.user = payload;
