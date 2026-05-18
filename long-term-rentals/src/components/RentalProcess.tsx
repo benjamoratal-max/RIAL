@@ -25,7 +25,8 @@ import {
 } from 'lucide-react'
 import { Button, Input, classNames } from './UI'
 import { PhoneInput } from './PhoneInput'
-import { api } from '../utils/api'
+import { api, getSessionToken } from '../utils/api'
+import { normalizeDocumentNumber } from '../utils/documentNumber'
 import { DEFAULT_OLLAMA_MODEL } from '../utils/generativeAI'
 import type { BrokerContext } from '../utils/brokerAI'
 
@@ -95,6 +96,34 @@ Estoy aquí para:
   // Fecha del servidor (fuente de verdad; no se usa la del dispositivo para evitar manipulación)
   const [serverToday, setServerToday] = useState<string | null>(null)
   const [serverDateError, setServerDateError] = useState(false)
+  /** Número de documento de la verificación de cuenta (fuente de verdad). */
+  const [verifiedDocumentNumber, setVerifiedDocumentNumber] = useState<string | null>(null)
+
+  useEffect(() => {
+    const sessionToken = getSessionToken() || token
+    if (!sessionToken) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const status = await api('/api/verification/status', { token: sessionToken, retry: true })
+        if (cancelled) return
+        const raw = status?.documentNumber
+        if (raw && typeof raw === 'string') {
+          const normalized = normalizeDocumentNumber(raw)
+          setVerifiedDocumentNumber(normalized)
+          setFormData((prev) => ({
+            ...prev,
+            dni: prev.dni ? normalizeDocumentNumber(prev.dni) : normalized,
+          }))
+        }
+      } catch {
+        /* sin verificación previa o sesión inválida */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [token])
 
   useEffect(() => {
     let cancelled = false
@@ -136,7 +165,18 @@ Estoy aquí para:
         if (!formData.fullName || formData.fullName.trim().length < 3) errors.push('El nombre completo debe tener al menos 3 caracteres')
         if (!formData.email || !isValidEmail(formData.email)) errors.push('Debe ingresar un email válido')
         if (!formData.phone || !isValidPhone(formData.phone)) errors.push('Debe ingresar un teléfono válido con prefijo internacional (ej: +54 11 1234-5678)')
-        if (!formData.dni || !isValidDNI(formData.dni)) errors.push('Debe ingresar un DNI válido (mínimo 6 caracteres)')
+        if (verifiedDocumentNumber) {
+          const entered = normalizeDocumentNumber(formData.dni)
+          if (!entered) {
+            errors.push('El documento de identidad verificado en tu cuenta es obligatorio para alquilar.')
+          } else if (entered !== verifiedDocumentNumber) {
+            errors.push(
+              'El número de documento debe ser el mismo que en tu verificación de identidad. Si cambiaste de documento, actualízalo en Seguridad → Verificación.'
+            )
+          }
+        } else if (!formData.dni || !isValidDNI(formData.dni)) {
+          errors.push('Debe ingresar un DNI válido (mínimo 6 caracteres)')
+        }
         if (!formData.address || formData.address.trim().length < 5) errors.push('Debe ingresar una dirección válida')
         break
       case 2:
@@ -828,16 +868,33 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                         />
                       </div>
                       <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Documento de identidad *
+                        </label>
+                        {verifiedDocumentNumber ? (
+                          <p className="text-xs text-green-700 dark:text-green-400 mb-2">
+                            Usamos el número de tu cédula verificada en RIAL. Debe coincidir con la foto que subiste al
+                            verificar tu cuenta.
+                          </p>
+                        ) : null}
                         <Input
-                          placeholder="DNI / Documento de identidad *"
+                          placeholder={
+                            verifiedDocumentNumber
+                              ? 'Documento verificado en tu cuenta'
+                              : 'DNI / Documento de identidad *'
+                          }
                           value={formData.dni}
+                          disabled={Boolean(verifiedDocumentNumber)}
                           onChange={(value) => {
-                            setFormData(prev => ({ ...prev, dni: value }))
+                            if (verifiedDocumentNumber) return
+                            setFormData((prev) => ({ ...prev, dni: value }))
                             if (validationErrors[1]) {
-                              setValidationErrors(prev => {
+                              setValidationErrors((prev) => {
                                 const newErrors = { ...prev }
                                 if (newErrors[1]) {
-                                  newErrors[1] = newErrors[1].filter(e => !e.includes('DNI'))
+                                  newErrors[1] = newErrors[1].filter(
+                                    (e) => !e.includes('DNI') && !e.includes('documento')
+                                  )
                                 }
                                 return newErrors
                               })

@@ -278,6 +278,9 @@ router.get('/status', authenticateToken, asyncHandler(async (req: AuthRequest, r
     documentStatus: verification?.status || 'none',
     documentType: verification?.documentType,
     documentVerifiedAt: verification?.verifiedAt,
+    /** Número extraído del documento en la verificación de identidad (para alquiler/compra). */
+    documentNumber: verification?.extractedNumber || null,
+    documentName: verification?.extractedName || null,
   });
 }));
 
