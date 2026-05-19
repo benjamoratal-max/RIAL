@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, 
@@ -27,7 +27,7 @@ import { Button, Input, classNames } from './UI'
 import { PhoneInput } from './PhoneInput'
 import { api, getSessionToken } from '../utils/api'
 import { normalizeDocumentNumber } from '../utils/documentNumber'
-import { isTodayOrFutureDate, minRentalStartDate } from '../utils/serverDate'
+import { isTodayOrFutureDate, minRentalStartDate } from '../utils/rentalDate'
 import { DEFAULT_OLLAMA_MODEL } from '../utils/generativeAI'
 import type { BrokerContext } from '../utils/brokerAI'
 
@@ -96,6 +96,8 @@ Estoy aquí para:
   const [signatureUploadPreview, setSignatureUploadPreview] = useState<string | null>(null)
   /** Número de documento de la verificación de cuenta (fuente de verdad). */
   const [verifiedDocumentNumber, setVerifiedDocumentNumber] = useState<string | null>(null)
+  /** Fecha mínima (hoy, zona horaria del navegador). No depende del API. */
+  const minStartDate = useMemo(() => minRentalStartDate(), [])
 
   useEffect(() => {
     const sessionToken = getSessionToken() || token
@@ -154,7 +156,7 @@ Estoy aquí para:
         break
       case 2:
         if (!formData.startDate) errors.push('Debe seleccionar una fecha de inicio')
-        else if (!isTodayOrFutureDate(formData.startDate)) errors.push('La fecha de inicio debe ser hoy o una fecha futura.')
+        else if (!isTodayOrFutureDate(formData.startDate, minStartDate)) errors.push('La fecha de inicio debe ser hoy o una fecha futura.')
         if (!formData.duration) errors.push('Debe seleccionar una duración')
         break
       case 3:
@@ -925,7 +927,7 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                         </label>
                         <Input
                           type="date"
-                          min={minRentalStartDate()}
+                          min={minStartDate}
                           value={formData.startDate}
                           placeholder="Selecciona fecha"
                           onChange={(value) => {

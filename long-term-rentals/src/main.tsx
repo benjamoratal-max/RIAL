@@ -3,6 +3,23 @@ import { createRoot } from 'react-dom/client'
 import './i18n'
 import './index.css'
 import App from './App.tsx'
+import { APP_VERSION } from './appVersion'
+
+/** Quita service workers viejos que cacheaban JS con el bug de fechas del alquiler. */
+async function clearStaleServiceWorkersIfNeeded(): Promise<boolean> {
+  if (!('serviceWorker' in navigator)) return false
+  const key = 'rial-app-version'
+  const prev = localStorage.getItem(key)
+  if (prev === APP_VERSION) return false
+  const regs = await navigator.serviceWorker.getRegistrations()
+  await Promise.all(regs.map((r) => r.unregister()))
+  localStorage.setItem(key, APP_VERSION)
+  if (prev || regs.length > 0) {
+    window.location.reload()
+    return true
+  }
+  return false
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -160,7 +177,11 @@ if (import.meta.env.DEV) {
   console.log('Starting React app...')
 }
 
-try {
+async function bootstrap() {
+  const reloaded = await clearStaleServiceWorkersIfNeeded()
+  if (reloaded) return
+  if (!rootElement) throw new Error('Root element not found')
+
   createRoot(rootElement).render(
     <StrictMode>
       <ErrorBoundary>
@@ -168,7 +189,9 @@ try {
       </ErrorBoundary>
     </StrictMode>,
   )
-} catch (error) {
+}
+
+void bootstrap().catch((error) => {
   console.error('Error rendering React app:', error)
   const err = error instanceof Error ? error : new Error(String(error))
   const { title, description, detail } = getErrorBoundaryFriendlyCopy(err)
@@ -192,4 +215,4 @@ try {
       </div>
     </div>
   `
-}
+})

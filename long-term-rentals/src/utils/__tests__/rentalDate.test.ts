@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { formatLocalToday, isTodayOrFutureDate, minRentalStartDate } from '../serverDate'
+import { formatLocalToday, isTodayOrFutureDate, minRentalStartDate } from '../rentalDate'
 
-describe('serverDate', () => {
+describe('rentalDate', () => {
   it('formatLocalToday returns YYYY-MM-DD', () => {
     expect(formatLocalToday()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
