@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd long-term-rentals && npm ci && npm run build",
+  "outputDirectory": "long-term-rentals/dist",
+  "installCommand": "cd long-term-rentals && npm ci",
+  "framework": "vite"
+}

@@ -46,18 +46,16 @@ export async function api(
   options: { method?: string; token?: string | null; body?: any; retry?: boolean; signal?: AbortSignal } = {}
 ) {
   const { method = 'GET', token, body, retry = false, signal } = options;
-  const authHeader =
-    token && String(token).trim() ? { Authorization: `Bearer ${normalizeBearerToken(String(token))}` } : {};
-
   const makeRequest = async () => {
     try {
       const url = apiUrl(path);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token && String(token).trim()) {
+        headers.Authorization = `Bearer ${normalizeBearerToken(String(token))}`;
+      }
       const res = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeader,
-        },
+        headers,
         body: body ? JSON.stringify(body) : undefined,
         signal,
       });

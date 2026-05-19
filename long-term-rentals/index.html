@@ -41,18 +41,9 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Service Worker: actualización forzada tras deploy -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js?v=4').then((registration) => {
-            registration.update();
-            if (registration.waiting) {
-              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-          }).catch(() => {});
-        });
+        navigator.serviceWorker.register('/sw.js').catch(function () {});
       }
     </script>
   </body>

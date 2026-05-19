@@ -5,20 +5,23 @@ import './index.css'
 import App from './App.tsx'
 import { APP_VERSION } from './appVersion'
 
-/** Quita service workers viejos que cacheaban JS con el bug de fechas del alquiler. */
-async function clearStaleServiceWorkersIfNeeded(): Promise<boolean> {
+/** Elimina SW/caché viejos (mostraban el bug "fecha del servidor" en alquiler). */
+async function purgeLegacyCaches(): Promise<boolean> {
   if (!('serviceWorker' in navigator)) return false
   const key = 'rial-app-version'
   const prev = localStorage.getItem(key)
-  if (prev === APP_VERSION) return false
+  const needsPurge = prev !== APP_VERSION
+  if (!needsPurge) return false
+
   const regs = await navigator.serviceWorker.getRegistrations()
   await Promise.all(regs.map((r) => r.unregister()))
-  localStorage.setItem(key, APP_VERSION)
-  if (prev || regs.length > 0) {
-    window.location.reload()
-    return true
+  if ('caches' in window) {
+    const keys = await caches.keys()
+    await Promise.all(keys.map((k) => caches.delete(k)))
   }
-  return false
+  localStorage.setItem(key, APP_VERSION)
+  window.location.reload()
+  return true
 }
 
 function escapeHtml(text: string): string {
@@ -178,7 +181,7 @@ if (import.meta.env.DEV) {
 }
 
 async function bootstrap() {
-  const reloaded = await clearStaleServiceWorkersIfNeeded()
+  const reloaded = await purgeLegacyCaches()
   if (reloaded) return
   if (!rootElement) throw new Error('Root element not found')
 

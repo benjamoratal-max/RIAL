@@ -8,7 +8,7 @@
     "setup:tunnel": "npm --prefix .. run setup:tunnel",
     "dev:tunnel": "npm --prefix .. run dev:tunnel",
     "dev:tunnel-temp": "npm --prefix .. run dev:tunnel-temp",
-    "build": "node scripts/generate-vercel-config.mjs && tsc -b && vite build",
+    "build": "node scripts/generate-vercel-config.mjs && tsc -b && vite build && node scripts/verify-build.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",

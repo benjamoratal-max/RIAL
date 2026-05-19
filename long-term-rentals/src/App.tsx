@@ -29,6 +29,7 @@ import {
   AnimatedCounter,
   classNames 
 } from './components/UI'
+import { RentalProcess } from './components/RentalProcess'
 // Lazy loading de componentes pesados para mejorar el rendimiento inicial
 const FavoritesSystem = lazy(() => import('./components/FavoritesSystem').then(m => ({ default: m.FavoritesSystem })))
 const AdvancedFilters = lazy(() => import('./components/AdvancedFilters').then(m => ({ default: m.AdvancedFilters })))
@@ -40,7 +41,6 @@ const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').
 const VerificationSystem = lazy(() => import('./components/VerificationSystem').then(m => ({ default: m.VerificationSystem })))
 const PropertyComparator = lazy(() => import('./components/PropertyComparator').then(m => ({ default: m.PropertyComparator })))
 const AIAssistant = lazy(() => import('./components/AIAssistant').then(m => ({ default: m.AIAssistant })))
-const RentalProcess = lazy(() => import('./components/RentalProcess').then(m => ({ default: m.RentalProcess })))
 const PurchaseProcess = lazy(() => import('./components/PurchaseProcess').then(m => ({ default: m.PurchaseProcess })))
 const CreatePropertyForm = lazy(() => import('./components/CreatePropertyForm').then(m => ({ default: m.CreatePropertyForm })))
 const NotificationPanel = lazy(() => import('./components/NotificationPanel').then(m => ({ default: m.NotificationPanel })))

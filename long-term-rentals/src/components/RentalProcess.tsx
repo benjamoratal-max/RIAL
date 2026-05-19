@@ -925,25 +925,32 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Fecha de inicio *
                         </label>
-                        <Input
-                          type="date"
-                          min={minStartDate}
-                          value={formData.startDate}
-                          placeholder="Selecciona fecha"
-                          onChange={(value) => {
-                            setFormData(prev => ({ ...prev, startDate: value }))
-                            if (validationErrors[2]) {
-                              setValidationErrors(prev => {
-                                const newErrors = { ...prev }
-                                if (newErrors[2]) {
-                                  newErrors[2] = newErrors[2].filter(e => !e.includes('fecha'))
-                                }
-                                return newErrors
-                              })
-                            }
-                          }}
-                          icon={<Calendar className="w-4 h-4" />}
-                        />
+                        <motion.div
+                          className="relative"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                          <input
+                            type="date"
+                            min={minStartDate}
+                            value={formData.startDate}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setFormData((prev) => ({ ...prev, startDate: value }))
+                              if (validationErrors[2]) {
+                                setValidationErrors((prev) => {
+                                  const newErrors = { ...prev }
+                                  if (newErrors[2]) {
+                                    newErrors[2] = newErrors[2].filter((err) => !err.includes('fecha'))
+                                  }
+                                  return newErrors
+                                })
+                              }
+                            }}
+                            className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-10 pr-3 text-rial-navy focus:outline-none focus:ring-2 focus:ring-rial-gold focus:border-transparent dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                          />
+                        </motion.div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
