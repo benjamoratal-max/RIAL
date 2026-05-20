@@ -452,89 +452,6 @@ router.post('/', auth, requireVerification, createLimiter, validateBody(createPr
   }
 }));
 
-// PATCH (protegido): solo el dueño o admin
-router.patch('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
-  const propertyId = Number(req.params.id);
-  const updates = req.body as Partial<{ title: string; description: string; price: number | string; location: string; images: string[]; bedrooms: number | string; rooms: number | string; bathrooms: number | string; latitude: number; longitude: number }>;
-
-  try {
-    const prop = await prisma.property.findUnique({ where: { id: propertyId } });
-    if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' });
-
-    const isAdmin = req.user!.role === 'admin';
-    const isOwner = (prop as any).ownerId === req.user!.id;
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'No tenés permiso para editar esta propiedad' });
-    }
-
-    const allowed: any = {};
-    if (updates.title !== undefined) allowed.title = updates.title;
-    if (updates.description !== undefined) allowed.description = updates.description;
-    if (updates.price !== undefined) allowed.price = Number(updates.price);
-    if (updates.location !== undefined) allowed.location = updates.location;
-    if (updates.bedrooms !== undefined) allowed.bedrooms = Number(updates.bedrooms);
-    if (updates.rooms !== undefined) allowed.rooms = Number(updates.rooms);
-    if (updates.bathrooms !== undefined) allowed.bathrooms = Number(updates.bathrooms);
-    if (updates.latitude !== undefined) {
-      const lat = updates.latitude as unknown
-      allowed.latitude = lat === null || lat === '' ? null : Number(lat)
-    }
-    if (updates.longitude !== undefined) {
-      const lng = updates.longitude as unknown
-      allowed.longitude = lng === null || lng === '' ? null : Number(lng)
-    }
-
-    const updated = await prisma.property.update({
-      where: { id: propertyId },
-      data: allowed,
-      include: { images: true, reviews: true, bookings: true },
-    });
-    
-    // Invalidar caché
-    cache.delete(CacheKeys.property(propertyId));
-    cache.delete(CacheKeys.propertySummary(propertyId));
-    
-    // Transformar imágenes de objetos a URLs (strings)
-    const updatedWithUrls = {
-      ...updated,
-      images: updated.images ? updated.images.map((img: any) => img.url) : []
-    };
-    logger.info(`Propiedad actualizada: ${updated.title}`, 'Property', { propertyId });
-    res.json(updatedWithUrls);
-  } catch (error) {
-    logger.error('Error al actualizar propiedad', 'Property', error as Error, { propertyId });
-    throw error;
-  }
-}));
-
-// DELETE (protegido): solo el dueño o admin
-router.delete('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
-  const propertyId = Number(req.params.id);
-
-  try {
-    const prop = await prisma.property.findUnique({ where: { id: propertyId } });
-    if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' });
-
-    const isAdmin = req.user!.role === 'admin';
-    const isOwner = (prop as any).ownerId === req.user!.id;
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'No tenés permiso para borrar esta propiedad' });
-    }
-
-    await prisma.property.delete({ where: { id: propertyId } });
-    
-    // Invalidar caché
-    cache.delete(CacheKeys.property(propertyId));
-    cache.delete(CacheKeys.propertySummary(propertyId));
-    
-    logger.info(`Propiedad eliminada`, 'Property', { propertyId });
-    res.json({ success: true });
-  } catch (error) {
-    logger.error('Error al borrar propiedad', 'Property', error as Error, { propertyId });
-    throw error;
-  }
-}));
-
 // Listado con métricas: disponibilidad + promedio y cantidad de reviews + paginación (con caché)
 const WITH_METRICS_CACHE_TTL = 2 * 60 * 1000; // 2 minutos
 
@@ -756,6 +673,89 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
   const response = { items, total, page: Number(page), pageSize: take };
   cache.set(cacheKey, response, WITH_METRICS_CACHE_TTL);
   res.json(response);
+}));
+
+// PATCH (protegido): solo el dueño o admin
+router.patch('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
+  const propertyId = Number(req.params.id);
+  const updates = req.body as Partial<{ title: string; description: string; price: number | string; location: string; images: string[]; bedrooms: number | string; rooms: number | string; bathrooms: number | string; latitude: number; longitude: number }>;
+
+  try {
+    const prop = await prisma.property.findUnique({ where: { id: propertyId } });
+    if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' });
+
+    const isAdmin = req.user!.role === 'admin';
+    const isOwner = (prop as any).ownerId === req.user!.id;
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: 'No tenés permiso para editar esta propiedad' });
+    }
+
+    const allowed: any = {};
+    if (updates.title !== undefined) allowed.title = updates.title;
+    if (updates.description !== undefined) allowed.description = updates.description;
+    if (updates.price !== undefined) allowed.price = Number(updates.price);
+    if (updates.location !== undefined) allowed.location = updates.location;
+    if (updates.bedrooms !== undefined) allowed.bedrooms = Number(updates.bedrooms);
+    if (updates.rooms !== undefined) allowed.rooms = Number(updates.rooms);
+    if (updates.bathrooms !== undefined) allowed.bathrooms = Number(updates.bathrooms);
+    if (updates.latitude !== undefined) {
+      const lat = updates.latitude as unknown
+      allowed.latitude = lat === null || lat === '' ? null : Number(lat)
+    }
+    if (updates.longitude !== undefined) {
+      const lng = updates.longitude as unknown
+      allowed.longitude = lng === null || lng === '' ? null : Number(lng)
+    }
+
+    const updated = await prisma.property.update({
+      where: { id: propertyId },
+      data: allowed,
+      include: { images: true, reviews: true, bookings: true },
+    });
+    
+    // Invalidar caché
+    cache.delete(CacheKeys.property(propertyId));
+    cache.delete(CacheKeys.propertySummary(propertyId));
+    
+    // Transformar imágenes de objetos a URLs (strings)
+    const updatedWithUrls = {
+      ...updated,
+      images: updated.images ? updated.images.map((img: any) => img.url) : []
+    };
+    logger.info(`Propiedad actualizada: ${updated.title}`, 'Property', { propertyId });
+    res.json(updatedWithUrls);
+  } catch (error) {
+    logger.error('Error al actualizar propiedad', 'Property', error as Error, { propertyId });
+    throw error;
+  }
+}));
+
+// DELETE (protegido): solo el dueño o admin
+router.delete('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
+  const propertyId = Number(req.params.id);
+
+  try {
+    const prop = await prisma.property.findUnique({ where: { id: propertyId } });
+    if (!prop) return res.status(404).json({ error: 'Propiedad no encontrada' });
+
+    const isAdmin = req.user!.role === 'admin';
+    const isOwner = (prop as any).ownerId === req.user!.id;
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: 'No tenés permiso para borrar esta propiedad' });
+    }
+
+    await prisma.property.delete({ where: { id: propertyId } });
+    
+    // Invalidar caché
+    cache.delete(CacheKeys.property(propertyId));
+    cache.delete(CacheKeys.propertySummary(propertyId));
+    
+    logger.info(`Propiedad eliminada`, 'Property', { propertyId });
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error al borrar propiedad', 'Property', error as Error, { propertyId });
+    throw error;
+  }
 }));
 
 // Alertas de posible duplicado para una propiedad (propietario o admin)

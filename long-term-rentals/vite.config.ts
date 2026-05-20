@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // Proxy al backend: usar 127.0.0.1 cuando corren en la misma máquina.
@@ -24,7 +24,15 @@ function configureProxySilent(_prefix: string) {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  // En Vercel suele definirse RENDER_API_URL; sin esto el bundle usa /api relativo y falla si no hay rewrites.
+  const apiBase = (env.VITE_API_URL || env.RENDER_API_URL || '').trim().replace(/\/$/, '')
+  if (apiBase && !env.VITE_API_URL) {
+    process.env.VITE_API_URL = apiBase
+  }
+
+  return {
   plugins: [react()],
   server: {
     host: true, // Permite acceso desde otros dispositivos
@@ -90,5 +98,6 @@ export default defineConfig({
     },
     // Optimizar tamaño del bundle
     chunkSizeWarningLimit: 1000,
+  },
   }
 })

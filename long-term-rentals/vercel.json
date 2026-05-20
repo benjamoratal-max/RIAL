@@ -3,17 +3,41 @@
   "installCommand": "npm ci",
   "outputDirectory": "dist",
   "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://rial-zwv8.onrender.com/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://rial-zwv8.onrender.com/health"
+    },
+    {
+      "source": "/server-date",
+      "destination": "https://rial-zwv8.onrender.com/server-date"
+    },
+    {
+      "source": "/contracts/:path*",
+      "destination": "https://rial-zwv8.onrender.com/contracts/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/index.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     }
   ]
