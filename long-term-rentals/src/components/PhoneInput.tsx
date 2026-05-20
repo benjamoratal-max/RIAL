@@ -12,8 +12,8 @@ interface Country {
 
 // Lista completa de países con prefijos telefónicos y banderas
 const COUNTRIES: Country[] = [
-  { code: 'AR', name: 'Argentina', flag: '🇦🇷', dialCode: '+54' },
   { code: 'US', name: 'United States', flag: '🇺🇸', dialCode: '+1' },
+  { code: 'AR', name: 'Argentina', flag: '🇦🇷', dialCode: '+54' },
   { code: 'MX', name: 'México', flag: '🇲🇽', dialCode: '+52' },
   { code: 'ES', name: 'España', flag: '🇪🇸', dialCode: '+34' },
   { code: 'CO', name: 'Colombia', flag: '🇨🇴', dialCode: '+57' },
@@ -91,7 +91,7 @@ export function PhoneInput({
   className = "",
   disabled = false
 }: PhoneInputProps) {
-  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]) // Argentina por defecto
+  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]) // EE. UU. por defecto (Miami)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -103,7 +103,7 @@ export function PhoneInput({
     try {
       // Intentar detectar por timezone
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-      const locale = navigator.language || 'es-AR'
+      const locale = navigator.language || 'en-US'
       
       // Mapeo directo de timezones completos a países
       const timezoneToCountry: Record<string, string> = {
@@ -180,10 +180,10 @@ export function PhoneInput({
       }
 
       // Buscar país por timezone exacto
-      let detectedCode = timezoneToCountry[timezone] || 'AR'
+      let detectedCode = timezoneToCountry[timezone] || 'US'
 
       // Si no se encontró por timezone exacto, buscar por parte del timezone
-      if (detectedCode === 'AR') {
+      if (detectedCode === 'US') {
         const timezoneParts = timezone.split('/')
         if (timezoneParts.length > 1) {
           const region = timezoneParts[1]
@@ -199,7 +199,7 @@ export function PhoneInput({
       }
 
       // Si aún no se encontró, intentar por locale
-      if (detectedCode === 'AR') {
+      if (detectedCode === 'US') {
         const localeCode = locale.split('-')[1]?.toUpperCase()
         const country = COUNTRIES.find(c => c.code === localeCode)
         if (country) {
@@ -211,7 +211,7 @@ export function PhoneInput({
       setSelectedCountry(detectedCountry)
     } catch (error) {
       console.error('Error detecting country:', error)
-      // Mantener Argentina por defecto
+      // Mantener EE. UU. por defecto
     }
   }
 

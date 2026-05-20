@@ -133,7 +133,7 @@ describe('Validation Utils', () => {
         title: 'Beautiful Apartment',
         description: 'Nice place',
         price: 1000,
-        location: 'Buenos Aires',
+        location: 'Miami, FL',
         images: 'https://a.com/1.jpg,https://a.com/2.jpg,https://a.com/3.jpg,https://a.com/4.jpg,https://a.com/5.jpg,https://a.com/6.jpg,https://a.com/7.jpg,https://a.com/8.jpg',
         ownerDniDocument: new File(['dni'], 'dni.png', { type: 'image/png' }),
         contractOrTitle: new File(['contract'], 'contract.pdf', { type: 'application/pdf' }),

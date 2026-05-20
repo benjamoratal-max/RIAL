@@ -96,7 +96,7 @@ const DEFAULT_FILTERS = {
   pool: false
 } as const
 
-const MOCK_CENTER = { lat: -34.6037, lng: -58.3816 }
+const MOCK_CENTER = { lat: 25.7617, lng: -80.1918 }
 
 // Función eliminada - ahora usamos directamente getMockProperties
 

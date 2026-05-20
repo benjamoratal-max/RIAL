@@ -92,13 +92,13 @@ const AMENITY_KEYS = [
 
 /** Chips de búsqueda rápida: key para i18n, query opcional, o solo filtro (verified) */
 const QUICK_SEARCH_CHIPS: { key: string; query?: string; verified?: boolean }[] = [
-  { key: 'pool', query: 'pileta' },
+  { key: 'pool', query: 'pool' },
   { key: 'petFriendly', query: 'mascotas' },
   { key: 'furnished', query: 'amueblado' },
   { key: 'parking', query: 'cochera' },
-  { key: 'puertoMadero', query: 'Puerto Madero' },
-  { key: 'palermo', query: 'Palermo' },
-  { key: 'recoleta', query: 'Recoleta' },
+  { key: 'brickell', query: 'Brickell' },
+  { key: 'southBeach', query: 'South Beach' },
+  { key: 'coralGables', query: 'Coral Gables' },
   { key: 'twoRooms', query: '2 ambientes' },
   { key: 'threeRooms', query: '3 ambientes' },
   { key: 'studio', query: 'monoambiente' },

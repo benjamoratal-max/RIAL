@@ -787,7 +787,7 @@ export class GenerativeAIService {
 
     // Ayuda genérica
     if (/^(ayuda|help|qu[eé]\s*pod[eé]s\s*hacer|puedes\s*hacer)\s*[?]?$/i.test(lowerQuestion)) {
-      return `Puedo ayudarte a buscar propiedades, comparar opciones, explicar el proceso de alquiler, documentos necesarios y dudas sobre contratos. Decime qué necesitás (por ejemplo: "buscar depto en Palermo" o "qué documentos pido").`
+      return `Puedo ayudarte a buscar propiedades, comparar opciones, explicar el proceso de alquiler, documentos necesarios y dudas sobre contratos. Decime qué necesitás (por ejemplo: "buscar apartamento en Brickell" o "qué documentos pido").`
     }
 
     // Para el resto: respuesta útil sin hablar de "IA generativa" ni pedir reformular

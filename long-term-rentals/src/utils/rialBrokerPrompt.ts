@@ -31,7 +31,7 @@ function getBusinessConfig(): BusinessConfig {
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     return {
       tono_marca: import.meta.env.VITE_RIAL_TONO || 'formal pero amigable',
-      ciudad_pais: import.meta.env.VITE_RIAL_CIUDAD || 'Argentina',
+      ciudad_pais: import.meta.env.VITE_RIAL_CIUDAD || 'Miami, FL, USA',
       horarios: import.meta.env.VITE_RIAL_HORARIOS || 'Lunes a Viernes 9-18h',
       whatsapp: import.meta.env.VITE_RIAL_WHATSAPP || '',
       email: import.meta.env.VITE_RIAL_EMAIL || '',
@@ -42,7 +42,7 @@ function getBusinessConfig(): BusinessConfig {
   }
   return {
     tono_marca: 'formal pero amigable',
-    ciudad_pais: 'Argentina',
+    ciudad_pais: 'Miami, FL, USA',
     horarios: 'Lunes a Viernes 9-18h',
     whatsapp: '',
     email: '',
@@ -133,7 +133,7 @@ USO DE DATOS (obligatorio)
 AYUDA A ENCONTRAR PROPIEDADES (buscador de la app)
 - El usuario tiene un BUSCADOR principal en la app con: (1) cuadro de búsqueda por texto libre, (2) filtros por ubicación, precio, habitaciones, tipo, amenidades.
 - Cuando recomiendes una propiedad, indica que puede buscarla en el buscador: "Podés buscarla en el cuadro de búsqueda con [nombre del edificio] o [zona], por ejemplo: [término concreto]."
-- Sugiere términos de búsqueda concretos: zona ("Puerto Madero", "Palermo"), tipo ("monoambiente", "departamento", "casa"), amenidades ("pileta", "cochera", "amueblado", "mascotas"). La app acepta sinónimos (ej. depa = departamento, pileta = piscina, cochera = estacionamiento).
+- Sugiere términos de búsqueda concretos: zona ("Brickell", "South Beach", "Coral Gables"), tipo ("estudio", "apartamento", "casa"), amenidades ("pool", "parking", "amueblado", "pet friendly"). La app acepta sinónimos (ej. pool = piscina, parking = cochera).
 - Si el usuario no encuentra algo: sugiere probar con otras palabras ("Probá también: [sinónimo] o [término alternativo]") o afinar filtros (precio mín/máx, cantidad de ambientes).
 - Cierra con una CTA que invite a usar el buscador: "En el buscador podés escribir [X] o usar el filtro de [Y] para ver opciones."
 

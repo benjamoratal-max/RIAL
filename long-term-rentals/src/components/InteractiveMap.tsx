@@ -265,7 +265,6 @@ function fallbackByCity(address: string, seedText: string): { lat: number; lng: 
   let base = { lat: 25.7617, lng: -80.1918 } // Miami por defecto
 
   if (normalized.includes('miami')) base = { lat: 25.7617, lng: -80.1918 }
-  else if (normalized.includes('buenos aires')) base = { lat: -34.6037, lng: -58.3816 }
   else if (normalized.includes('madrid')) base = { lat: 40.4168, lng: -3.7038 }
   else if (normalized.includes('barcelona')) base = { lat: 41.3851, lng: 2.1734 }
   else if (normalized.includes('lisboa')) base = { lat: 38.7223, lng: -9.1393 }

@@ -9,7 +9,7 @@ En `long-term-rentals/.env` puedes definir:
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
 | `VITE_RIAL_TONO` | Marca/tono de comunicación | `formal pero amigable` |
-| `VITE_RIAL_CIUDAD` | Zona de operación principal | `Buenos Aires, Argentina` |
+| `VITE_RIAL_CIUDAD` | Zona de operación principal | `Miami, FL, USA` |
 | `VITE_RIAL_HORARIOS` | Horarios de atención humana / derivación | `Lunes a Viernes 9-18h` |
 | `VITE_RIAL_WHATSAPP` | WhatsApp oficial (si existe) | `+54 11 1234-5678` |
 | `VITE_RIAL_EMAIL` | Email oficial | `contacto@rial.com` |
@@ -17,7 +17,7 @@ En `long-term-rentals/.env` puedes definir:
 | `VITE_RIAL_POLITICA_COMISION` | Política de comisión/honorarios | `Sin comisión para inquilinos` |
 | `VITE_RIAL_POLITICA_RESERVA` | Política de reservas/señas | `Seña 1 mes; reembolsable si no se concreta` |
 
-Si no defines alguna variable, se usan valores por defecto (por ejemplo, "Argentina", "Lunes a Viernes 9-18h", "Consultar con el equipo").
+Si no defines alguna variable, se usan valores por defecto (por ejemplo, "Miami, FL, USA", "Lunes a Viernes 9-18h", "Consultar con el equipo").
 
 ## Ejemplo de `.env`
 
@@ -29,7 +29,7 @@ VITE_OLLAMA_BASE_URL=http://localhost:11434
 
 # Rial AI Broker - contexto de negocio
 VITE_RIAL_TONO=formal pero amigable
-VITE_RIAL_CIUDAD=Buenos Aires, Argentina
+VITE_RIAL_CIUDAD=Miami, FL, USA
 VITE_RIAL_HORARIOS=Lunes a Viernes 9-18h. Urgencias: WhatsApp 24/7
 VITE_RIAL_WHATSAPP=+54 9 11 1234-5678
 VITE_RIAL_EMAIL=hola@rial.com

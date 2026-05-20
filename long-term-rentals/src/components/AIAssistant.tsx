@@ -999,7 +999,7 @@ export function AIAssistant({
             : []
         
         if (propsToCompare.length < 2) {
-          return 'Para comparar, necesito que menciones al menos 2 propiedades. Puedes decirme "compara las propiedades en Palermo" o mencionar propiedades específicas.'
+          return 'Para comparar, necesito que menciones al menos 2 propiedades. Puedes decirme "compara las propiedades en South Beach" o mencionar propiedades específicas.'
         }
         
         const comparison = propsToCompare.slice(0, 4).map(p => ({
@@ -1471,7 +1471,7 @@ export function AIAssistant({
           return `**RIAL vs Airbnb/Booking:**\n\n🏠 **RIAL**:\n• **Enfoque**: Alquileres de largo plazo (6+ meses)\n• **Contratos**: Formales, con depósitos y garantías\n• **Proceso**: Más similar a alquiler tradicional pero digitalizado\n• **Público**: Personas buscando hogar permanente o semi-permanente\n\n🏨 **Airbnb/Booking**:\n• **Enfoque**: Alojamiento temporal (días/semanas)\n• **Contratos**: Más informales, sin depósitos grandes\n• **Proceso**: Reserva rápida, check-in/out\n• **Público**: Viajeros y turistas\n\n💡 **Resumen**: RIAL es para vivir, Airbnb/Booking es para visitar.\n\n¿Buscas alquiler de largo plazo?`
         }
         if (lowerQuestion.includes('países') || lowerQuestion.includes('paises') || lowerQuestion.includes('ciudades disponibles')) {
-          return `**RIAL está disponible en:**\n\n🌎 **Países actuales:**\n• Argentina\n• Chile\n• Colombia\n• México\n• Perú\n• Uruguay\n• Y expandiéndonos a más países\n\n🏙️ **Ciudades principales:**\n• Buenos Aires, Córdoba (Argentina)\n• Santiago, Valparaíso (Chile)\n• Bogotá, Medellín (Colombia)\n• Ciudad de México, Guadalajara (México)\n• Lima (Perú)\n• Montevideo (Uruguay)\n• Y muchas más...\n\n💡 **¿No ves tu ciudad?** Estamos expandiéndonos constantemente. Regístrate para recibir notificaciones cuando lleguemos a tu zona.\n\n¿En qué ciudad estás buscando?`
+          return `**RIAL está enfocado en alquileres de largo plazo en el área de Miami, Florida (EE. UU.).**\n\n🏙️ **Zonas principales:**\n• Brickell\n• South Beach / Miami Beach\n• Coral Gables\n• Wynwood\n• Downtown Miami\n\n💡 Puedes buscar por barrio, dirección o frases naturales (ej. "apartamento 2 habitaciones con pool en Brickell").\n\n¿En qué zona de Miami estás buscando?`
         }
         return 'Sobre RIAL, puedo ayudarte con:\n\n• Qué es RIAL\n• Cómo funciona\n• Dónde está disponible\n• Diferencias con otras plataformas\n\n¿Qué te gustaría saber?'
       }
@@ -1785,7 +1785,7 @@ export function AIAssistant({
           }
         }
         
-        return `Entiendo tu pregunta. ${contextHints.length > 0 ? `Veo que mencionaste ${contextHints.join(' y ')}. ` : ''}Basándome en nuestro catálogo de **${totalProperties} propiedades**, puedo ayudarte con:\n\n🔍 **Búsquedas:**\n• Por ubicación, precio, características\n• Con filtros específicos (habitaciones, baños, amenities)\n\n📋 **Información:**\n• Detalles de propiedades\n• Proceso de alquiler\n• Requisitos y documentación\n\n💡 **Recomendaciones:**\n• Según tu presupuesto y necesidades\n• Comparaciones entre opciones\n\n¿Podrías ser más específico? Por ejemplo:\n• "Busco un departamento de 2 habitaciones en Palermo por menos de $2000"\n• "¿Qué propiedades tienen piscina y aceptan mascotas?"\n• "¿Cuál es el proceso para alquilar?"`
+        return `Entiendo tu pregunta. ${contextHints.length > 0 ? `Veo que mencionaste ${contextHints.join(' y ')}. ` : ''}Basándome en nuestro catálogo de **${totalProperties} propiedades**, puedo ayudarte con:\n\n🔍 **Búsquedas:**\n• Por ubicación, precio, características\n• Con filtros específicos (habitaciones, baños, amenities)\n\n📋 **Información:**\n• Detalles de propiedades\n• Proceso de alquiler\n• Requisitos y documentación\n\n💡 **Recomendaciones:**\n• Según tu presupuesto y necesidades\n• Comparaciones entre opciones\n\n¿Podrías ser más específico? Por ejemplo:\n• "Busco un departamento de 2 habitaciones en South Beach por menos de $2000"\n• "¿Qué propiedades tienen piscina y aceptan mascotas?"\n• "¿Cuál es el proceso para alquilar?"`
       }
     }
 
@@ -1838,7 +1838,7 @@ export function AIAssistant({
           return `Basándome en calificaciones y precios, te recomiendo estas propiedades:\n\n${ratedProps.map((p, i) => `${i + 1}. **${p.title || 'Sin título'}**\n   📍 ${p.location || 'Ubicación no especificada'}\n   💰 $${(p.price || 0).toLocaleString()}/mes\n   ⭐ ${(p.averageRating || 0).toFixed(1)}/5`).join('\n\n')}`
         }
       }
-      return 'Para comparar propiedades, puedes usar la herramienta de comparación o preguntarme sobre características específicas. Por ejemplo: "¿Qué diferencia hay entre las propiedades en Palermo y las del Centro?"'
+      return 'Para comparar propiedades, puedes usar la herramienta de comparación o preguntarme sobre características específicas. Por ejemplo: "¿Qué diferencia hay entre las propiedades en South Beach y las del Centro?"'
     }
 
     if (lowerQuestion.includes('buscar') || lowerQuestion.includes('encontrar') || lowerQuestion.includes('propiedad')) {
@@ -1873,7 +1873,7 @@ export function AIAssistant({
       }
       
       if (filtered.length === 0) {
-        return 'No encontré propiedades que coincidan con tus criterios. ¿Podrías ser más específico? Por ejemplo: "Busco propiedades en Palermo por menos de $1500"'
+        return 'No encontré propiedades que coincidan con tus criterios. ¿Podrías ser más específico? Por ejemplo: "Busco propiedades en South Beach por menos de $1500"'
       }
       
       return `Encontré **${filtered.length} propiedades** que coinciden:\n\n${filtered.slice(0, 5).map((p, i) => `${i + 1}. **${p.title || 'Sin título'}**\n   📍 ${p.location || 'Ubicación no especificada'}\n   💰 $${(p.price || 0).toLocaleString()}/mes`).join('\n\n')}${filtered.length > 5 ? `\n\n...y ${filtered.length - 5} más.` : ''}`
@@ -1884,7 +1884,7 @@ export function AIAssistant({
     }
 
     // Respuesta genérica inteligente
-    return `Entiendo que preguntas sobre "${question}". Basándome en nuestro catálogo de ${totalProperties} propiedades, puedo ayudarte con:\n\n• Información sobre precios (promedio: $${Math.round(avgPrice).toLocaleString()}/mes)\n• Propiedades por ubicación\n• Comparaciones y recomendaciones\n• Búsquedas personalizadas\n\n¿Podrías ser más específico sobre lo que buscas? Por ejemplo: "¿Cuántas propiedades hay en Palermo?" o "¿Cuál es la propiedad más barata?"`
+    return `Entiendo que preguntas sobre "${question}". Basándome en nuestro catálogo de ${totalProperties} propiedades, puedo ayudarte con:\n\n• Información sobre precios (promedio: $${Math.round(avgPrice).toLocaleString()}/mes)\n• Propiedades por ubicación\n• Comparaciones y recomendaciones\n• Búsquedas personalizadas\n\n¿Podrías ser más específico sobre lo que buscas? Por ejemplo: "¿Cuántas propiedades hay en South Beach?" o "¿Cuál es la propiedad más barata?"`
   }
 
   function localizeAssistantText(text: string): string {

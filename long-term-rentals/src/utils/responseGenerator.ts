@@ -989,7 +989,7 @@ function generateHelpResponse(memory: ConversationMemory): string {
     '💬 Entender contexto y recordar nuestra conversación'
   ]
   
-  return `**¿Qué puedo hacer por ti?**\n\n${capabilities.join('\n')}\n\n💡 **Puedo entender:**\n• Preguntas en lenguaje natural\n• Referencias a conversaciones anteriores\n• Contexto y preferencias\n• Preguntas complejas con múltiples criterios\n\n**Ejemplos de preguntas:**\n• "Busca departamentos en Palermo por menos de $500"\n• "¿Cuál es la diferencia entre estas dos propiedades?"\n• "Recomiéndame algo para trabajar desde casa"\n• "¿Qué documentos necesito para alquilar?"\n\n¿En qué puedo ayudarte específicamente?`
+  return `**¿Qué puedo hacer por ti?**\n\n${capabilities.join('\n')}\n\n💡 **Puedo entender:**\n• Preguntas en lenguaje natural\n• Referencias a conversaciones anteriores\n• Contexto y preferencias\n• Preguntas complejas con múltiples criterios\n\n**Ejemplos de preguntas:**\n• "Busca apartamentos en Brickell por menos de $2,000"\n• "¿Cuál es la diferencia entre estas dos propiedades?"\n• "Recomiéndame algo para trabajar desde casa"\n• "¿Qué documentos necesito para alquilar?"\n\n¿En qué puedo ayudarte específicamente?`
 }
 
 function generateCalculateResponse(entities: ExtractedEntities, allProperties: any[], memory: ConversationMemory): string {

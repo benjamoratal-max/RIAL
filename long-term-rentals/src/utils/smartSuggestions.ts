@@ -25,7 +25,7 @@ export function generateSmartSuggestions(
   // Si es el inicio de la conversación
   if (memory.conversationHistory.length === 0) {
     suggestions.push(
-      { text: 'Buscar departamentos en Palermo', intent: 'search', priority: 1, contextual: false },
+      { text: 'Buscar apartamentos en South Beach', intent: 'search', priority: 1, contextual: false },
       { text: '¿Cuál es el precio promedio?', intent: 'price', priority: 1, contextual: false },
       { text: 'Recomiéndame propiedades', intent: 'recommend', priority: 1, contextual: false },
       { text: '¿Cómo funciona el proceso de alquiler?', intent: 'rental_process', priority: 1, contextual: false }
