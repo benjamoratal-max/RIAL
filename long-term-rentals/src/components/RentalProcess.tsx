@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, 
@@ -97,7 +97,7 @@ Estoy aquí para:
   /** Número de documento de la verificación de cuenta (fuente de verdad). */
   const [verifiedDocumentNumber, setVerifiedDocumentNumber] = useState<string | null>(null)
   /** Fecha mínima (hoy, zona horaria del navegador). No depende del API. */
-  const minStartDate = useMemo(() => minRentalStartDate(), [])
+  const minStartDate = minRentalStartDate()
 
   useEffect(() => {
     const sessionToken = getSessionToken() || token

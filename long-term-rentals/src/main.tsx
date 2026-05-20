@@ -7,19 +7,23 @@ import { APP_VERSION } from './appVersion'
 
 /** Elimina SW/caché viejos (mostraban el bug "fecha del servidor" en alquiler). */
 async function purgeLegacyCaches(): Promise<boolean> {
-  if (!('serviceWorker' in navigator)) return false
-  const key = 'rial-app-version'
-  const prev = localStorage.getItem(key)
-  const needsPurge = prev !== APP_VERSION
+  const versionKey = 'rial-app-version'
+  const rentalFixKey = 'rial-rental-date-fix-v3'
+  const prevVersion = localStorage.getItem(versionKey)
+  const rentalFixApplied = localStorage.getItem(rentalFixKey) === '1'
+  const needsPurge = prevVersion !== APP_VERSION || !rentalFixApplied
   if (!needsPurge) return false
 
-  const regs = await navigator.serviceWorker.getRegistrations()
-  await Promise.all(regs.map((r) => r.unregister()))
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(regs.map((r) => r.unregister()))
+  }
   if ('caches' in window) {
     const keys = await caches.keys()
     await Promise.all(keys.map((k) => caches.delete(k)))
   }
-  localStorage.setItem(key, APP_VERSION)
+  localStorage.setItem(versionKey, APP_VERSION)
+  localStorage.setItem(rentalFixKey, '1')
   window.location.reload()
   return true
 }
