@@ -28,12 +28,12 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   // En Vercel suele definirse RENDER_API_URL; sin esto el bundle usa /api relativo y falla si no hay rewrites.
   const apiBase = (env.VITE_API_URL || env.RENDER_API_URL || '').trim().replace(/\/$/, '')
-  if (apiBase && !env.VITE_API_URL) {
-    process.env.VITE_API_URL = apiBase
-  }
 
   return {
   plugins: [react()],
+  define: apiBase
+    ? { 'import.meta.env.VITE_API_URL': JSON.stringify(apiBase) }
+    : {},
   server: {
     host: true, // Permite acceso desde otros dispositivos
     port: 5173,
