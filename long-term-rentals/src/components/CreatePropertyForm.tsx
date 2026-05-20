@@ -78,22 +78,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
   }
 
   if (!canCreate) {
-    return (
-      <motion.div
-        className="rounded-2xl border border-dashed border-rial-cream-dark/60 bg-white/90 p-4 shadow-lg backdrop-blur-sm dark:border-slate-600 dark:bg-slate-900/85"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-1">
-          Solo cuentas de <span className="font-semibold">broker verificado</span> pueden publicar propiedades en RIAL.
-        </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Si eres propietario o usuario final, puedes usar la app para buscar propiedades y contactar brokers verificados. Si quieres publicar como broker,
-          completa el onboarding de broker y espera la aprobación de tu cuenta.
-        </p>
-      </motion.div>
-    )
+    return null
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
