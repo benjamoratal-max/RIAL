@@ -1,7 +1,7 @@
 {
-  "buildCommand": "bash scripts/vercel-build.sh",
-  "installCommand": "bash scripts/vercel-install.sh",
-  "outputDirectory": "long-term-rentals/dist",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "outputDirectory": "dist",
   "framework": "vite",
   "headers": [
     {
