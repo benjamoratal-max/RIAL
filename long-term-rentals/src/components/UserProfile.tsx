@@ -42,6 +42,7 @@ import { VerificationSystem } from './VerificationSystem'
 import { PhoneInput } from './PhoneInput'
 import { EmailVerification } from './EmailVerification'
 import { TwoFactorAuth } from './TwoFactorAuth'
+import { BrokerCalendarSettings } from './BrokerCalendarSettings'
 
 interface UserProfileData {
   id: number
@@ -49,7 +50,7 @@ interface UserProfileData {
   email: string
   phone?: string
   avatar?: string
-  role: 'tenant' | 'owner' | 'admin'
+  role: 'tenant' | 'owner' | 'admin' | 'broker' | 'broker_admin' | 'broker_applicant'
   verified: boolean
   emailVerified?: boolean
   joinDate: string
@@ -537,6 +538,9 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                     className="space-y-6"
                   >
                     <SettingsTab user={user} onUpdate={onUpdate} />
+                    {(user.role === 'broker' || user.role === 'broker_admin') && token && (
+                      <BrokerCalendarSettings token={token} />
+                    )}
                   </motion.div>
                 )}
                 

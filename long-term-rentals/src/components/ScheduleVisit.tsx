@@ -58,7 +58,10 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
     if (!canSubmit || !token) return
     setSubmitting(true)
     try {
-      await api(`/api/properties/${property.id}/visits`, {
+      const result = await api<{
+        googleEventLink?: string
+        calendarConnected?: boolean
+      }>(`/api/properties/${property.id}/visits`, {
         method: 'POST',
         token,
         body: {
@@ -68,7 +71,13 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
           message: message.trim() || undefined
         }
       })
-      toast.success(t('scheduleVisit.success'))
+      if (result.googleEventLink) {
+        toast.success(t('scheduleVisit.successWithCalendar'))
+      } else if (result.calendarConnected === false) {
+        toast.success(t('scheduleVisit.successPendingCalendar'))
+      } else {
+        toast.success(t('scheduleVisit.success'))
+      }
       onSuccess?.()
       onClose()
     } catch (err) {
@@ -208,7 +217,7 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
                   disabled={!canSubmit || submitting}
                   icon={<Send className="w-4 h-4" />}
                 >
-                  {submitting ? t('scheduleVisit.sending') : t('scheduleVisit.submit')}
+                  {submitting ? t('scheduleVisit.sending') : t('scheduleVisit.submitConfirm')}
                 </Button>
               </div>
             </form>

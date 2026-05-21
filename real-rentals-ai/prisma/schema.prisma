@@ -544,6 +544,8 @@ model Showing {
   visitType    String   @default("in_person") // in_person | virtual
   notes        String?
   feedback     String?
+  googleEventId   String?
+  googleHtmlLink  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -652,6 +654,10 @@ model BrokerProfile {
   verificationStatus   String    @default("pending_review") // pending_review | approved | rejected | more_info | expired | suspended
   verifiedAt           DateTime?
   verifiedBy           Int?
+
+  // Google Calendar OAuth (refresh token del broker)
+  googleCalendarRefreshToken   String?   @db.Text
+  googleCalendarConnectedAt    DateTime?
 
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

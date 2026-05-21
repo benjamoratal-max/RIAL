@@ -1071,6 +1071,22 @@ export default function App() {
     setComparisonIds(ids)
     setComparisonItems((prev) => prev.filter((it) => ids.includes(it.property.id)))
   }, [])
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const calendar = params.get('calendar')
+    if (!calendar) return
+    if (calendar === 'connected') {
+      toast.success(t('brokerCalendar.oauthSuccess'))
+      setShowUserProfile(true)
+    } else if (calendar === 'error') {
+      toast.error(t('brokerCalendar.oauthError'))
+    }
+    params.delete('calendar')
+    params.delete('reason')
+    const qs = params.toString()
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
+  }, [t])
+
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
     return saved ? JSON.parse(saved) : false

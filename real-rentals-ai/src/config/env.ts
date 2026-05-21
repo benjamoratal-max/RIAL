@@ -61,6 +61,11 @@ export const config = {
   rentcastApiKey: getEnvVarOptional('RENTCAST_API_KEY'),
   googleMapsApiKey: getEnvVarOptional('GOOGLE_MAPS_API_KEY'),
 
+  // Google Calendar OAuth (brokers)
+  googleClientId: getEnvVarOptional('GOOGLE_CLIENT_ID'),
+  googleClientSecret: getEnvVarOptional('GOOGLE_CLIENT_SECRET'),
+  googleRedirectUri: getEnvVarOptional('GOOGLE_REDIRECT_URI'),
+
   // Entorno
   nodeEnv: getEnvVarOptional('NODE_ENV', 'development'),
   isProduction,

@@ -14,6 +14,7 @@ import { getSuggestedPricing } from '../services/pricingService';
 import { checkDuplicateProperty, saveDuplicateAlerts, getDuplicateAlertsForProperty } from '../services/duplicateDetectionService';
 import { enrichMiamiListingsFromRentcast, enrichMiamiListingsWithAIGeneratedPhotos, enrichMiamiListingsWithStreetView, resetMiamiListingsPhotosWithAIGenerated, syncMiamiRealListings } from '../services/realListingsService';
 import { parsePropertySearchQuery } from '../utils/searchQueryParser';
+import { schedulePropertyVisit } from '../services/visitSchedulingService';
 
 const router = express.Router();
 let lastRealSeedAt = 0;
@@ -781,6 +782,44 @@ router.delete('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
 }));
 
 // Alertas de posible duplicado para una propiedad (propietario o admin)
+router.post('/:id/visits', auth, asyncHandler(async (req: AuthRequest, res) => {
+  const propertyId = Number(req.params.id);
+  if (!Number.isFinite(propertyId)) {
+    return res.status(400).json({ error: 'ID de propiedad inválido' });
+  }
+
+  const { date, time, visitType, message } = req.body as {
+    date?: string;
+    time?: string;
+    visitType?: 'in_person' | 'video_call';
+    message?: string;
+  };
+
+  if (!date || !time) {
+    return res.status(400).json({ error: 'date y time son requeridos' });
+  }
+
+  try {
+    const result = await schedulePropertyVisit(propertyId, req.user!.id, {
+      date,
+      time,
+      visitType,
+      message,
+    });
+    return res.status(201).json(result);
+  } catch (err: unknown) {
+    const statusCode =
+      err && typeof err === 'object' && 'statusCode' in err
+        ? Number((err as { statusCode: number }).statusCode)
+        : 500;
+    const errorMessage =
+      err instanceof Error ? err.message : 'Error al agendar la visita';
+    return res.status(statusCode >= 400 && statusCode < 500 ? statusCode : 500).json({
+      error: errorMessage,
+    });
+  }
+}));
+
 router.get('/:id/duplicate-alerts', auth, asyncHandler(async (req: AuthRequest, res) => {
   const propertyId = Number(req.params.id);
   if (isNaN(propertyId)) return res.status(400).json({ error: 'ID inválido' });

@@ -30,6 +30,7 @@ import complianceRoutes from './routes/complianceRoutes';
 import reservationRoutes from './routes/reservationRoutes';
 import configRoutes from './routes/configRoutes';
 import leadRoutes from './routes/leadRoutes';
+import calendarRoutes from './routes/calendarRoutes';
 import healthRoutes from './routes/healthRoutes';
 
 const app = express();
@@ -207,6 +208,7 @@ app.use('/api/leads', leadRoutes);
 app.use('/api/brokers', brokerRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/calendar', calendarRoutes);
 app.use('/health', healthRoutes);
 
 // Manejar rutas no encontradas (debe ir antes del error handler)
