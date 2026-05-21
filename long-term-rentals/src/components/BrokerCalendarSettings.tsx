@@ -25,7 +25,7 @@ export function BrokerCalendarSettings({ token }: BrokerCalendarSettingsProps) {
   const loadStatus = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await api<CalendarStatus>('/api/calendar/status', { token })
+      const data = (await api('/api/calendar/status', { token })) as CalendarStatus
       setStatus(data)
     } catch (err) {
       toast.error(getErrorMessage(err))
@@ -41,7 +41,7 @@ export function BrokerCalendarSettings({ token }: BrokerCalendarSettingsProps) {
   async function handleConnect() {
     setConnecting(true)
     try {
-      const { url } = await api<{ url: string }>('/api/calendar/auth/url', { token })
+      const { url } = (await api('/api/calendar/auth/url', { token })) as { url: string }
       window.location.href = url
     } catch (err) {
       toast.error(getErrorMessage(err))

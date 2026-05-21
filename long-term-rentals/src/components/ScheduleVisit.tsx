@@ -58,10 +58,7 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
     if (!canSubmit || !token) return
     setSubmitting(true)
     try {
-      const result = await api<{
-        googleEventLink?: string
-        calendarConnected?: boolean
-      }>(`/api/properties/${property.id}/visits`, {
+      const result = (await api(`/api/properties/${property.id}/visits`, {
         method: 'POST',
         token,
         body: {
@@ -70,7 +67,10 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
           visitType,
           message: message.trim() || undefined
         }
-      })
+      })) as {
+        googleEventLink?: string
+        calendarConnected?: boolean
+      }
       if (result.googleEventLink) {
         toast.success(t('scheduleVisit.successWithCalendar'))
       } else if (result.calendarConnected === false) {
