@@ -26,6 +26,27 @@ export function validateEmail(email: string): string | null {
   return null;
 }
 
+export type PasswordRequirementId = 'minLength' | 'uppercase' | 'lowercase' | 'number';
+
+export interface PasswordRequirementStatus {
+  id: PasswordRequirementId;
+  met: boolean;
+}
+
+/** Requisitos de contraseña (misma lógica que el backend). */
+export function getPasswordRequirements(password: string): PasswordRequirementStatus[] {
+  return [
+    { id: 'minLength', met: password.length >= 8 },
+    { id: 'uppercase', met: /[A-Z]/.test(password) },
+    { id: 'lowercase', met: /[a-z]/.test(password) },
+    { id: 'number', met: /[0-9]/.test(password) },
+  ];
+}
+
+export function isPasswordRequirementsMet(password: string): boolean {
+  return getPasswordRequirements(password).every((r) => r.met);
+}
+
 /**
  * Validador de contraseña
  */
@@ -33,19 +54,17 @@ export function validatePassword(password: string): string | null {
   if (!password) {
     return 'La contraseña es requerida';
   }
-  if (password.length < 8) {
-    return 'La contraseña debe tener al menos 8 caracteres';
-  }
-  if (!/[A-Z]/.test(password)) {
-    return 'La contraseña debe contener al menos una mayúscula';
-  }
-  if (!/[a-z]/.test(password)) {
-    return 'La contraseña debe contener al menos una minúscula';
-  }
-  if (!/[0-9]/.test(password)) {
-    return 'La contraseña debe contener al menos un número';
-  }
-  return null;
+  const requirements = getPasswordRequirements(password);
+  const firstUnmet = requirements.find((r) => !r.met);
+  if (!firstUnmet) return null;
+
+  const messages: Record<PasswordRequirementId, string> = {
+    minLength: 'La contraseña debe tener al menos 8 caracteres',
+    uppercase: 'La contraseña debe contener al menos una mayúscula',
+    lowercase: 'La contraseña debe contener al menos una minúscula',
+    number: 'La contraseña debe contener al menos un número',
+  };
+  return messages[firstUnmet.id];
 }
 
 /**
@@ -136,7 +155,8 @@ export function validateRegisterForm(data: {
   const passwordError = validatePassword(data.password);
   if (passwordError) errors.push({ field: 'password', message: passwordError });
 
-  if (data.role && !['tenant', 'owner', 'admin'].includes(data.role)) {
+  const allowedRoles = ['tenant', 'broker_applicant', 'owner', 'admin'];
+  if (data.role && !allowedRoles.includes(data.role)) {
     errors.push({ field: 'role', message: 'Rol inválido' });
   }
 

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import ReCAPTCHA from 'react-google-recaptcha'
 import { Users, Settings, LogOut, Search, Shield, Mail, Phone, ShieldAlert } from 'lucide-react'
 import { Button, Input } from './UI'
+import { PasswordRequirementsHint } from './PasswordRequirementsHint'
 import { validateRegisterForm, validateLoginForm, getFieldError } from '../utils/validation'
 import { toast } from 'react-hot-toast'
 import { api } from '../utils/api'
@@ -259,17 +260,24 @@ export function AuthPanel({
               }}
               icon={<Settings className="w-4 h-4" />}
             />
+            <PasswordRequirementsHint password={form.password} />
             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
           </div>
-          <select 
-            className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-            value={form.role} 
-            onChange={e => setForm({ ...form, role: e.target.value })}
-          >
-            {/* tenant = inquilino/prospecto; broker_applicant = postulante a broker */}
-            <option value="tenant">{t('auth.roleTenant')}</option>
-            <option value="broker_applicant">{t('auth.roleBrokerApplicant')}</option>
-          </select>
+          <div>
+            <select 
+              className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+              value={form.role} 
+              onChange={e => {
+                setForm({ ...form, role: e.target.value })
+                if (errors.role) setErrors({ ...errors, role: '' })
+              }}
+            >
+              {/* tenant = inquilino/prospecto; broker_applicant = postulante a broker */}
+              <option value="tenant">{t('auth.roleTenant')}</option>
+              <option value="broker_applicant">{t('auth.roleBrokerApplicant')}</option>
+            </select>
+            {errors.role && <p className="text-red-500 text-xs mt-1">{errors.role}</p>}
+          </div>
           <p className="text-center text-xs text-rial-muted dark:text-slate-400">
             {t('auth.adminRequestHint')}
             <button

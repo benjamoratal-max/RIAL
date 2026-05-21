@@ -348,7 +348,14 @@
     "adminRequestReasonPlaceholder": "Motivo de la solicitud (opcional)",
     "sendAdminRequest": "Enviar solicitud",
     "adminRequestSent": "Solicitud enviada. Un administrador la revisará y te contactará.",
-    "sending": "Enviando..."
+    "sending": "Enviando...",
+    "passwordRequirements": {
+      "title": "Tu contraseña debe incluir:",
+      "minLength": "Al menos 8 caracteres",
+      "uppercase": "Al menos una letra mayúscula (A-Z)",
+      "lowercase": "Al menos una letra minúscula (a-z)",
+      "number": "Al menos un número (0-9)"
+    }
   },
   "adminRequests": {
     "title": "Solicitudes de administrador",

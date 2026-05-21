@@ -7,6 +7,8 @@ import {
   validateUrl,
   validateUrls,
   validateRegisterForm,
+  getPasswordRequirements,
+  isPasswordRequirementsMet,
   validateLoginForm,
   validatePropertyForm,
 } from '../validation'
@@ -41,6 +43,20 @@ describe('Validation Utils', () => {
 
     it('should return error for password without number', () => {
       expect(validatePassword('Password')).not.toBeNull()
+    })
+  })
+
+  describe('getPasswordRequirements', () => {
+    it('should track each requirement independently', () => {
+      const reqs = getPasswordRequirements('Pass1')
+      expect(reqs.find((r) => r.id === 'minLength')?.met).toBe(false)
+      expect(reqs.find((r) => r.id === 'uppercase')?.met).toBe(true)
+      expect(reqs.find((r) => r.id === 'lowercase')?.met).toBe(true)
+      expect(reqs.find((r) => r.id === 'number')?.met).toBe(true)
+    })
+
+    it('should report all met for a valid password', () => {
+      expect(isPasswordRequirementsMet('AdminBroker1')).toBe(true)
     })
   })
 
@@ -106,6 +122,17 @@ describe('Validation Utils', () => {
       })
       expect(result.isValid).toBe(false)
       expect(result.errors.length).toBeGreaterThan(0)
+    })
+
+    it('should accept broker_applicant role', () => {
+      const result = validateRegisterForm({
+        name: 'Admin Broker',
+        email: 'broker@example.com',
+        password: 'Password123',
+        role: 'broker_applicant',
+      })
+      expect(result.isValid).toBe(true)
+      expect(result.errors).toHaveLength(0)
     })
   })
 
