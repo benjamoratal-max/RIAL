@@ -144,8 +144,9 @@ export function AppSidebar({
         <RialBrand
           name={t('app.name')}
           size="sm"
+          surface="dark"
           showTagline={false}
-          className="pointer-events-none select-none"
+          className="pointer-events-none w-full select-none"
         />
       </div>
 

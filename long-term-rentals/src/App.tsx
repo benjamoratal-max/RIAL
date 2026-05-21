@@ -1360,7 +1360,13 @@ export default function App() {
 
       <header className="border-b border-rial-cream-dark/50 bg-rial-cream/95 px-4 py-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/90 md:px-6 md:py-5">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
-          <RialBrand name={t('app.name')} tagline={t('app.tagline')} size="lg" className="min-w-0" />
+          <RialBrand
+            name={t('app.name')}
+            tagline={t('app.tagline')}
+            size="xl"
+            surface={darkMode ? 'dark' : 'light'}
+            className="min-w-0 shrink-0"
+          />
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Globe className="h-4 w-4 shrink-0 text-rial-muted dark:text-slate-400" aria-hidden />
             <select
