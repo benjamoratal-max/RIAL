@@ -18,11 +18,22 @@ export async function requireVerification(
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { verified: true, verificationMethod: true },
+      select: { verified: true, verificationMethod: true, role: true },
     });
 
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // Brokers aprobados publican con verificación de licencia, no con verified de inquilino
+    if (user.role === 'broker' || user.role === 'broker_admin') {
+      const brokerProfile = await (prisma as any).brokerProfile.findUnique({
+        where: { userId: req.user.id },
+        select: { verificationStatus: true },
+      });
+      if (brokerProfile?.verificationStatus === 'approved') {
+        return next();
+      }
     }
 
     if (!user.verified) {

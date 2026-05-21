@@ -1,4 +1,33 @@
 import { z } from 'zod';
+const dataUrlImage = z
+  .string()
+  .refine((s) => s.startsWith('data:image/') || /^https?:\/\/.+/i.test(s), 'Cada imagen debe ser una URL o data URL válida');
+
+const dataUrlDocument = z
+  .string()
+  .refine(
+    (s) =>
+      s.startsWith('data:image/') ||
+      s.startsWith('data:application/pdf') ||
+      /^https?:\/\/.+/i.test(s),
+    'Documento inválido'
+  );
+
+const dataUrlVideo = z
+  .string()
+  .refine(
+    (s) => s.startsWith('data:video/') || s.startsWith('data:application/') || /^https?:\/\/.+/i.test(s),
+    'Video tour inválido'
+  );
+
+const rentalMonthsSchema = z
+  .array(z.union([z.literal(3), z.literal(6), z.literal(12)]))
+  .min(1, 'Debe indicar al menos una opción de alquiler: 3, 6 o 12 meses')
+  .max(3)
+  .transform((arr) => {
+    const unique = [...new Set(arr)].sort((a, b) => a - b) as (3 | 6 | 12)[];
+    return unique;
+  });
 
 // Validador para crear propiedad
 export const createPropertySchema = z.object({
@@ -19,10 +48,14 @@ export const createPropertySchema = z.object({
     .trim(),
   latitude: z.number().gte(-90).lte(90).optional(),
   longitude: z.number().gte(-180).lte(180).optional(),
-  images: z.array(z.string().url('Cada imagen debe ser una URL válida'))
-    .max(20, 'No se pueden agregar más de 20 imágenes')
-    .optional()
-    .default([]),
+  images: z
+    .array(dataUrlImage)
+    .min(8, 'Debes subir al menos 8 fotos de la propiedad')
+    .max(30, 'No se pueden agregar más de 30 imágenes'),
+  rentalMonths: rentalMonthsSchema,
+  videoTourUrl: dataUrlVideo,
+  ownerDniDocumentUrl: dataUrlDocument,
+  contractOrTitleUrl: dataUrlDocument,
   ownerId: z.number().int().positive().optional(),
   bedrooms: z.number().int().min(0).max(50).optional(),
   rooms: z.number().int().min(0).max(50).optional(),
@@ -112,4 +145,3 @@ export const propertyFiltersSchema = z.object({
 export type CreatePropertyInput = z.infer<typeof createPropertySchema>;
 export type UpdatePropertyInput = z.infer<typeof updatePropertySchema>;
 export type PropertyFiltersInput = z.infer<typeof propertyFiltersSchema>;
-

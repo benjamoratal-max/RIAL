@@ -91,6 +91,16 @@ export function useAuth() {
       try {
         const profile = await api(`/api/users/${user.id}`, { token })
         if (cancelled) return
+        let brokerData: { profile: any } | null = null
+        const role = (profile as any).role ?? user.role
+        if (role === 'broker' || role === 'broker_admin' || role === 'broker_applicant') {
+          try {
+            brokerData = (await api('/api/brokers/me', { token })) as { profile: any }
+          } catch {
+            brokerData = null
+          }
+        }
+        if (cancelled) return
         setUser((prev: any) => {
           if (!prev) return prev
           const next = {
@@ -99,7 +109,9 @@ export function useAuth() {
             emailVerified: Boolean((profile as any).emailVerified),
             name: (profile as any).name ?? prev.name,
             email: (profile as any).email ?? prev.email,
-            role: (profile as any).role ?? prev.role,
+            role,
+            brokerProfile: brokerData?.profile ?? null,
+            brokerVerificationStatus: brokerData?.profile?.verificationStatus ?? null,
           }
           try {
             localStorage.setItem('user', JSON.stringify(next))

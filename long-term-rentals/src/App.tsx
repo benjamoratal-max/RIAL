@@ -30,6 +30,7 @@ import {
   classNames 
 } from './components/UI'
 import { RentalProcess } from './components/RentalProcess'
+import { RialBrand } from './components/RialBrand'
 // Lazy loading de componentes pesados para mejorar el rendimiento inicial
 const FavoritesSystem = lazy(() => import('./components/FavoritesSystem').then(m => ({ default: m.FavoritesSystem })))
 const AdvancedFilters = lazy(() => import('./components/AdvancedFilters').then(m => ({ default: m.AdvancedFilters })))
@@ -285,11 +286,26 @@ function PropertyDetail({ id, onClose, token, user }: any) {
     { title: t('propertyDetail.security'), items: property.safety || [] },
   ]
 
+  const rentalMonthsLabel = (() => {
+    const raw = (property as { rentalMonths?: string }).rentalMonths
+    if (!raw) return null
+    const months = raw
+      .split(',')
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((m) => [3, 6, 12].includes(m))
+      .sort((a, b) => a - b)
+    if (!months.length) return null
+    return months.map((m) => t('createProperty.rentalMonthOption', { months: m })).join(' · ')
+  })()
+
   const detailFacts = [
     { label: t('propertyDetail.neighborhood'), value: property.neighborhood },
     { label: t('propertyDetail.city'), value: `${property.city}, ${property.country}` },
     { label: t('propertyDetail.totalRooms'), value: `${property.rooms ?? property.bedrooms}` },
     { label: t('propertyDetail.yearBuilt'), value: property.yearBuilt },
+    ...(rentalMonthsLabel
+      ? [{ label: t('propertyDetail.rentalTerms'), value: rentalMonthsLabel }]
+      : []),
     { label: t('propertyDetail.deposit'), value: formatMoney(property.deposit) },
     { label: t('propertyDetail.expenses'), value: property.hoa ? formatMoney(property.hoa) : t('propertyDetail.included') },
     { label: t('propertyDetail.modality'), value: property.availableFor?.map((mode: string) => (mode === 'buy' ? t('propertyDetail.modalityBuy') : t('propertyDetail.modalityRent'))).join(' · ') || t('common.consult') }
@@ -697,7 +713,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
         )}
       </motion.div>
       
-      {/* Proceso de Alquiler Virtual */}
+      {/* Proceso digital de Alquilar */}
       <AnimatePresence>
         {showRentalProcess && summary && summary.property && (
           <Suspense fallback={<LoadingSpinner text={t('app.loadingProcess')} />}>
@@ -1326,16 +1342,9 @@ export default function App() {
         }}
       />
 
-      <header className="border-b border-rial-cream-dark/50 bg-rial-cream/95 px-4 py-3 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/90">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-rial-muted dark:text-slate-400">
-              {t('app.tagline')}
-            </p>
-            <h1 className="text-lg font-semibold tracking-tight text-rial-navy dark:text-rial-cream">
-              {t('app.name')}
-            </h1>
-          </div>
+      <header className="border-b border-rial-cream-dark/50 bg-rial-cream/95 px-4 py-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/90 md:px-6 md:py-5">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
+          <RialBrand name={t('app.name')} tagline={t('app.tagline')} size="lg" className="min-w-0" />
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Globe className="h-4 w-4 shrink-0 text-rial-muted dark:text-slate-400" aria-hidden />
             <select
@@ -1585,7 +1594,7 @@ export default function App() {
             {propertiesError}
           </div>
         ) : showMap ? (
-          <div className="h-[600px] rounded-2xl overflow-hidden">
+          <div className="h-[min(70vh,640px)] rounded-2xl overflow-hidden">
             {(() => {
               const validProperties = items
                 .filter((item) => Boolean(item?.property))

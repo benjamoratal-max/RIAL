@@ -16,7 +16,8 @@ import {
   SlidersHorizontal,
   Map,
   Star,
-  Users
+  Users,
+  ChevronDown,
 } from 'lucide-react'
 import { Button, Input, classNames } from './UI'
 
@@ -115,7 +116,7 @@ export function AdvancedFilters({
   onToggleMap 
 }: AdvancedFiltersProps) {
   const { t } = useTranslation()
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   // Store amenity keys in filters; display translated labels
   const AMENITIES = AMENITY_KEYS
 
@@ -197,72 +198,86 @@ export function AdvancedFilters({
   }
 
   return (
-    <motion.div 
-      className="rounded-2xl border border-rial-cream-dark/50 bg-white p-6 shadow-md dark:border-slate-700 dark:bg-slate-900/95"
-      initial={{ opacity: 0, y: 20 }}
+    <motion.div
+      className="rounded-2xl border border-rial-cream-dark/50 bg-white p-4 shadow-md dark:border-slate-700 dark:bg-slate-900/95 md:p-5"
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.25 }}
     >
-      {/* Header con botones principales */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-rial-navy dark:text-rial-gold" />
-            <h3 className="text-lg font-semibold text-rial-navy dark:text-rial-cream">{t('filtersAdvanced.title')}</h3>
-            {activeFilters > 0 && (
-              <motion.span 
-                className="rounded-full bg-rial-gold px-2 py-1 text-xs font-semibold text-rial-navy"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              >
-                {activeFilters}
-              </motion.span>
-            )}
-          </div>
+      {/* Búsqueda principal — siempre visible */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+        <div className="min-w-0 flex-1">
+          <label htmlFor="rial-search-query" className="mb-1.5 block text-sm font-medium text-rial-ink dark:text-slate-200">
+            {t('filtersAdvanced.searchLabel')}
+          </label>
+          <Input
+            id="rial-search-query"
+            placeholder={t('filtersAdvanced.searchHeroPlaceholder')}
+            value={filters.query || ''}
+            onChange={(value) => updateFilter('query', value)}
+            onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+            icon={<Search className="h-5 w-5" />}
+            className="!py-3 !text-base"
+          />
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
+        <div className="flex shrink-0 flex-wrap items-end gap-2 sm:flex-nowrap">
+          <Button onClick={onSearch} icon={<Search className="h-4 w-4" />} className="min-w-[7.5rem]">
+            {t('filtersAdvanced.search')}
+          </Button>
+          <Button
+            variant="outline"
             onClick={onToggleMap}
-            icon={showMap ? <Search className="w-4 h-4" /> : <Map className="w-4 h-4" />}
+            icon={showMap ? <Search className="h-4 w-4" /> : <Map className="h-4 w-4" />}
           >
             {showMap ? t('filtersAdvanced.list') : t('filtersAdvanced.map')}
           </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            icon={isExpanded ? <X className="w-4 h-4" /> : <SlidersHorizontal className="w-4 h-4" />}
+          <Button
+            variant="outline"
+            onClick={() => setIsFiltersOpen((open) => !open)}
+            icon={
+              isFiltersOpen ? (
+                <ChevronDown className="h-4 w-4 rotate-180 transition-transform" />
+              ) : (
+                <SlidersHorizontal className="h-4 w-4" />
+              )
+            }
+            className="relative"
           >
-            {isExpanded ? t('filtersAdvanced.less') : t('filtersAdvanced.more')}
+            {isFiltersOpen ? t('filtersAdvanced.hideFilters') : t('filtersAdvanced.showFilters')}
+            {activeFilters > 0 && !isFiltersOpen && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rial-gold px-1 text-[10px] font-bold text-rial-navy">
+                {activeFilters}
+              </span>
+            )}
           </Button>
         </div>
       </div>
 
-      {/* Búsqueda principal: texto libre con ejemplos */}
-      <div className="mb-4">
-        <label className="mb-1.5 block text-sm font-medium text-rial-ink dark:text-slate-200">
-          {t('filtersAdvanced.searchLabel')}
-        </label>
-        <Input 
-          placeholder={t('filtersAdvanced.searchPlaceholder')} 
-          value={filters.query || ''} 
-          onChange={(value) => updateFilter('query', value)}
-          onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-          icon={<Search className="w-4 h-4" />}
-          className="text-base"
-        />
-        <p className="mt-1.5 text-xs text-rial-muted dark:text-slate-400">
-          {t('filtersAdvanced.searchHint')}
-        </p>
-      </div>
+      {!isFiltersOpen && activeFilters > 0 && (
+        <button
+          type="button"
+          onClick={() => setIsFiltersOpen(true)}
+          className="mt-3 text-left text-xs font-medium text-rial-navy underline-offset-2 hover:underline dark:text-rial-gold"
+        >
+          {t('filtersAdvanced.activeFiltersSummary', { count: activeFilters })}
+        </button>
+      )}
+
+      <AnimatePresence initial={false}>
+        {isFiltersOpen && (
+          <motion.div
+            key="filters-panel"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-4 space-y-5 border-t border-rial-cream-dark/40 pt-5 dark:border-slate-700">
+              <p className="text-xs text-rial-muted dark:text-slate-400">{t('filtersAdvanced.searchHint')}</p>
 
       {/* Chips de búsqueda rápida */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2">
         <span className="mr-1 self-center text-xs text-rial-muted dark:text-slate-400">{t('filtersAdvanced.quickSearch')}</span>
         {QUICK_SEARCH_CHIPS.map(({ key, query, verified }) => {
           const label = t(`filtersAdvanced.quickChip_${key}`)
@@ -298,8 +313,8 @@ export function AdvancedFilters({
         })}
       </div>
 
-      {/* Filtros básicos siempre visibles */}
-      <div className="grid md:grid-cols-5 gap-4 mb-6">
+      {/* Filtros básicos */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Input 
           placeholder={t('filtersAdvanced.location')} 
           value={filters.location} 
@@ -331,17 +346,7 @@ export function AdvancedFilters({
         </select>
       </div>
 
-      {/* Filtros avanzados expandibles */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Características básicas */}
+            {/* Características */}
             <div>
               <h4 className="mb-3 font-medium text-rial-navy dark:text-rial-cream">{t('filtersAdvanced.characteristics')}</h4>
               <div className="grid md:grid-cols-5 gap-4">
@@ -596,35 +601,29 @@ export function AdvancedFilters({
                 />
               </div>
             </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-rial-cream-dark/40 pt-4 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={resetFilters} icon={<X className="w-4 h-4" />}>
+                    {t('filtersAdvanced.clearFilters')}
+                  </Button>
+                  {activeFilters > 0 && (
+                    <span className="text-sm text-rial-muted dark:text-slate-400">
+                      {activeFilters}{' '}
+                      {activeFilters !== 1
+                        ? t('filtersAdvanced.activeFiltersCount')
+                        : t('filtersAdvanced.activeFilters')}
+                    </span>
+                  )}
+                </div>
+                <Button onClick={onSearch} icon={<Search className="w-4 h-4" />} className="min-w-[120px]">
+                  {t('filtersAdvanced.search')}
+                </Button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Botones de acción */}
-      <div className="flex items-center justify-between border-t border-rial-cream-dark/40 pt-6 dark:border-slate-700">
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={resetFilters}
-            icon={<X className="w-4 h-4" />}
-          >
-            {t('filtersAdvanced.clearFilters')}
-          </Button>
-          {activeFilters > 0 && (
-            <span className="text-sm text-rial-muted dark:text-slate-400">
-              {activeFilters} {activeFilters !== 1 ? t('filtersAdvanced.activeFiltersCount') : t('filtersAdvanced.activeFilters')}
-            </span>
-          )}
-        </div>
-        
-        <Button 
-          onClick={onSearch}
-          icon={<Search className="w-4 h-4" />}
-          className="min-w-[120px]"
-        >
-          {t('filtersAdvanced.search')}
-        </Button>
-      </div>
     </motion.div>
   )
 }

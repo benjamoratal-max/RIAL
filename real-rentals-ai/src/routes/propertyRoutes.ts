@@ -5,6 +5,7 @@ import { requireVerification } from '../middleware/requireVerification';
 import NotificationService from '../utils/notificationService';
 import { validateBody, validateQuery } from '../middleware/validate';
 import { createPropertySchema, propertyFiltersSchema, PropertyFiltersInput } from '../validators/property.validator';
+import { rentalMonthsToString } from '../utils/rentalMonths';
 import { createLimiter, searchLimiter } from '../middleware/rateLimiter';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -365,8 +366,23 @@ router.get('/', searchLimiter, asyncHandler(async (req, res) => {
 }));
 
 // CREATE (protegido): solo brokers verificados pueden publicar
-router.post('/', auth, requireVerification, createLimiter, validateBody(createPropertySchema), asyncHandler(async (req: AuthRequest, res) => {
-  const { title, description, price, location, images, bedrooms, rooms, bathrooms, latitude, longitude, ownerId: ownerIdFromBody } = req.body;
+router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncHandler(async (req: AuthRequest, res) => {
+  const {
+    title,
+    description,
+    price,
+    location,
+    images,
+    bedrooms,
+    rooms,
+    bathrooms,
+    latitude,
+    longitude,
+    rentalMonths,
+    videoTourUrl,
+    ownerDniDocumentUrl,
+    contractOrTitleUrl,
+  } = req.body;
 
   const role = req.user!.role;
   const userId = req.user!.id;
@@ -409,6 +425,10 @@ router.post('/', auth, requireVerification, createLimiter, validateBody(createPr
         bathrooms: bathrooms != null && bathrooms !== '' ? Number(bathrooms) : null,
         latitude: typeof latitude === 'number' && Number.isFinite(latitude) ? latitude : null,
         longitude: typeof longitude === 'number' && Number.isFinite(longitude) ? longitude : null,
+        rentalMonths: rentalMonthsToString(rentalMonths),
+        videoTourUrl: videoTourUrl ?? null,
+        ownerDniDocumentUrl: ownerDniDocumentUrl ?? null,
+        contractOrTitleUrl: contractOrTitleUrl ?? null,
         // ownerId actúa como brokerId (dueño operativo del listing)
         ...(ownerId ? { ownerId } : {} as any),
         images: Array.isArray(images) && images.length > 0
@@ -553,6 +573,8 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
         bathrooms: true,
         latitude: true,
         longitude: true,
+        rentalMonths: true,
+        videoTourUrl: true,
         images: true,
       },
     }),

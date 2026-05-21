@@ -27,6 +27,7 @@ import adminRoutes from './routes/adminRoutes';
 import aiRoutes from './routes/aiRoutes';
 import brokerRoutes from './routes/brokerRoutes';
 import complianceRoutes from './routes/complianceRoutes';
+import reservationRoutes from './routes/reservationRoutes';
 import configRoutes from './routes/configRoutes';
 import leadRoutes from './routes/leadRoutes';
 import healthRoutes from './routes/healthRoutes';
@@ -205,6 +206,7 @@ app.use('/api/config', configRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/brokers', brokerRoutes);
 app.use('/api/compliance', complianceRoutes);
+app.use('/api/reservations', reservationRoutes);
 app.use('/health', healthRoutes);
 
 // Manejar rutas no encontradas (debe ir antes del error handler)

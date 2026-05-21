@@ -30,6 +30,17 @@ import { normalizeDocumentNumber } from '../utils/documentNumber'
 import { isTodayOrFutureDate, minRentalStartDate } from '../utils/rentalDate'
 import { DEFAULT_OLLAMA_MODEL } from '../utils/generativeAI'
 import type { BrokerContext } from '../utils/brokerAI'
+import {
+  RIAL_CONTRACT_SCOPE_INTRO,
+  RIAL_GOVERNING_LAW_CLAUSE,
+  RIAL_GOVERNING_LAW_SHORT,
+  RIAL_RENTAL_MARKET_LABEL,
+  RIAL_RENTAL_PROCESS_TITLE,
+  RIAL_DEPOSIT_48H_CLAUSE,
+} from '../constants/rentalLegal'
+import { useTranslation } from 'react-i18next'
+import { ReservationPaymentStep } from './ReservationPaymentStep'
+import { toast } from 'react-hot-toast'
 
 interface RentalProcessProps {
   property: any
@@ -46,7 +57,22 @@ interface BrokerMessage {
   timestamp: Date
 }
 
+function parsePropertyRentalMonths(property: any): number[] {
+  const raw = property?.rentalMonths
+  if (!raw) return [3, 6, 12]
+  const months =
+    typeof raw === 'string'
+      ? raw.split(',').map((s: string) => parseInt(s.trim(), 10))
+      : Array.isArray(raw)
+        ? raw.map((n: unknown) => Number(n))
+        : []
+  const valid = [...new Set(months.filter((m) => [3, 6, 12].includes(m)))].sort((a, b) => a - b)
+  return valid.length > 0 ? valid : [3, 6, 12]
+}
+
 export function RentalProcess({ property, user, token, onClose, onComplete }: RentalProcessProps) {
+  const { t } = useTranslation()
+  const allowedDurations = React.useMemo(() => parsePropertyRentalMonths(property), [property?.rentalMonths, property?.id])
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
@@ -55,7 +81,7 @@ export function RentalProcess({ property, user, token, onClose, onComplete }: Re
     dni: '',
     address: '',
     startDate: '',
-    duration: '12',
+    duration: '',
     monthlyRent: property?.price ?? 0,
     deposit: property?.deposit ?? 0,
     identityDocument: null as File | null,
@@ -197,12 +223,16 @@ Estoy aquí para:
     })
   }, [formData, currentStep])
 
+  const [reservationId, setReservationId] = useState<number | null>(null)
+  const [isFinalizing, setIsFinalizing] = useState(false)
+
   const steps = [
     { id: 1, title: 'Información Personal', icon: User },
     { id: 2, title: 'Detalles del Alquiler', icon: Calendar },
     { id: 3, title: 'Documentación', icon: FileText },
     { id: 4, title: 'Revisar Contrato', icon: FileCheck },
-    { id: 5, title: 'Firma Digital', icon: Check }
+    { id: 5, title: 'Firma Digital', icon: Check },
+    { id: 6, title: t('reservation.stepTitle', { defaultValue: 'Seña y pago' }), icon: CreditCard },
   ]
 
   // Broker virtual con IA mejorado (HÍBRIDO: reglas + generativa)
@@ -321,12 +351,12 @@ Actualmente estás en el paso ${currentStep} de ${steps.length}: **${steps[curre
 **Resumen de lo que incluyen:**
 • **Relación:** El alquiler es entre vos (Locatario) y el Propietario (Locador). RIAL es la plataforma de gestión.
 • **Pago:** Solo tarjeta de crédito; débito automático para alquiler, seña, garantía y cargos por daños/mora.
-• **Seña 50%** al confirmar; el saldo debe estar acreditado antes del Acceso Digital.
+• **Seña 50%** al confirmar; tenés **48 horas** para pagar el saldo o perdés la seña.
 • **Alquiler 3 meses:** se cobran los 3 meses por adelantado + 1 mes de Garantía.
 • **Mora:** Si no pagás en 15 días, el Locador puede resolver el contrato y restringir el Acceso Digital.
 • **Acceso Digital** (código/QR): personal e intransferible; compartirlo es incumplimiento grave.
 • **Devolución:** misma condición que entrega; daños/faltantes se cobran de la Garantía o de la tarjeta.
-• **Ley:** República del Paraguay.
+• **Ley aplicable:** ${RIAL_GOVERNING_LAW_SHORT}
 
 Para esta reserva: **Duración** ${formData.duration} meses, **renta** $${formData.monthlyRent.toLocaleString()}/mes, **depósito** $${formData.deposit.toLocaleString()}, **inicio** ${formData.startDate || 'A definir'}.
 
@@ -557,9 +587,8 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
       return newErrors
     })
     
-    // Avanzar al siguiente paso solo si estamos dentro del rango
-    if (currentStep < steps.length) {
-      setCurrentStep(prev => prev + 1)
+    if (currentStep < 5) {
+      setCurrentStep((prev) => prev + 1)
     }
   }
 
@@ -585,18 +614,53 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
     }
   }
 
-  async function handleSubmit() {
-    // Aquí se enviaría la información al backend
-    try {
-      // Simular envío
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      if (onComplete) {
-        onComplete()
+  async function finalizeAndReserve() {
+    for (let step = 1; step <= 5; step++) {
+      const errs = validateStep(step)
+      if (errs.length > 0) {
+        setValidationErrors((prev) => ({ ...prev, [step]: errs }))
+        setCurrentStep(step)
+        toast.error(t('reservation.completePreviousSteps'))
+        return
       }
-      onClose()
-    } catch (error) {
-      console.error('Error submitting rental process:', error)
+    }
+
+    const sessionToken = token || getSessionToken()
+    if (!sessionToken) {
+      toast.error(t('reservation.loginRequired'))
+      return
+    }
+
+    setIsFinalizing(true)
+    try {
+      const lease = (await api('/api/leases', {
+        method: 'POST',
+        token: sessionToken,
+        body: {
+          propertyId: property.id,
+          durationMonths: Number(formData.duration),
+        },
+      })) as { id: number }
+
+      const reservation = (await api('/api/reservations', {
+        method: 'POST',
+        token: sessionToken,
+        body: {
+          propertyId: property.id,
+          durationMonths: Number(formData.duration),
+          startDate: formData.startDate || null,
+          leaseRequestId: lease.id,
+          securityDeposit: Number(formData.deposit) || 0,
+        },
+      })) as { id: number }
+
+      setReservationId(reservation.id)
+      setCurrentStep(6)
+      toast.success(t('reservation.created'))
+    } catch (error: any) {
+      toast.error(error?.message || t('reservation.createError'))
+    } finally {
+      setIsFinalizing(false)
     }
   }
 
@@ -619,6 +683,7 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
 
   // Verificar si se puede navegar a un paso específico
   const canNavigateToStep = (targetStep: number): boolean => {
+    if (targetStep === 6) return reservationId != null
     // Puede ir hacia atrás siempre
     if (targetStep < currentStep) return true
     
@@ -662,8 +727,9 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
         {/* Header */}
         <div className="flex items-center justify-between border-b border-rial-cream-dark/30 bg-gradient-to-r from-rial-navy to-rial-navy-light p-6 dark:border-slate-600">
           <div>
-            <h2 className="text-2xl font-bold text-white">Proceso de Alquiler Virtual</h2>
-            <p className="text-sm text-white/80">{property?.title || 'Propiedad'}</p>
+            <h2 className="text-2xl font-bold text-white">{t('rentalProcess.title', { defaultValue: RIAL_RENTAL_PROCESS_TITLE })}</h2>
+            <p className="text-sm text-white/80">{property?.title || t('rentalProcess.propertyFallback')}</p>
+            <p className="text-xs text-white/60 mt-0.5">{t('rentalProcess.market', { defaultValue: RIAL_RENTAL_MARKET_LABEL })}</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -973,9 +1039,11 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                           className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-4 py-2 text-rial-navy focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
                         >
                           <option value="">Selecciona duración</option>
-                          <option value="3">3 meses</option>
-                          <option value="6">6 meses</option>
-                          <option value="12">12 meses</option>
+                          {allowedDurations.map((months) => (
+                            <option key={months} value={String(months)}>
+                              {months} {months === 1 ? 'mes' : 'meses'}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="md:col-span-2 rounded-xl border border-rial-cream-dark/40 bg-rial-cream-dark/35 p-4 dark:border-slate-600 dark:bg-slate-800/70">
@@ -1125,7 +1193,7 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                       <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
                         <p className="font-semibold text-base">TÉRMINOS Y CONDICIONES DE ALQUILER – RIAL APP (INQUILINO/LOCATARIO)</p>
                         <p>Última actualización: 13 de febrero de 2026</p>
-                        <p>Estos Términos y Condiciones (los &quot;Términos&quot;) regulan el uso de RIAL App (&quot;RIAL&quot;) para alquilar inmuebles publicados en la plataforma. Al presionar &quot;Acepto&quot;, confirmar una reserva/alquiler o registrar una tarjeta, el usuario que alquila (&quot;Locatario&quot;) acepta estos Términos, las condiciones específicas de la Publicación (precio, fechas, inmueble, reglas del anuncio) y cualquier política mostrada en el proceso de contratación (en conjunto, el &quot;Contrato de Alquiler&quot;).</p>
+                        <p>{RIAL_CONTRACT_SCOPE_INTRO} Al presionar &quot;Acepto&quot;, confirmar una reserva/alquiler o registrar una tarjeta, el usuario que alquila (&quot;Locatario&quot;) acepta estos Términos, las condiciones específicas de la Publicación (precio, fechas, inmueble, reglas del anuncio) y cualquier política mostrada en el proceso de contratación (en conjunto, el &quot;Contrato de Alquiler&quot;).</p>
                         <p><strong>Relación contractual:</strong> El alquiler se celebra entre el Locatario y el Propietario/Anfitrión (&quot;Locador&quot;). RIAL actúa como plataforma tecnológica de gestión (publicación, reserva, mensajería y cobros), salvo que se indique expresamente lo contrario.</p>
 
                         <h4 className="font-semibold mb-1">1) Definiciones</h4>
@@ -1147,6 +1215,7 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                         <p><strong>3.1 Seña del 50% al alquilar desde la app.</strong> Al confirmar el alquiler, el Locatario podrá abonar una Seña del 50% del monto correspondiente (según el flujo disponible). La Seña se imputa al total.</p>
                         <p><strong>3.2 Saldo y condición para habilitar acceso.</strong> El saldo y cualquier importe exigible debe estar acreditado antes de habilitar el Acceso Digital. Si no se acredita, no habrá habilitación de acceso.</p>
                         <p><strong>3.3 Regla obligatoria: contrato/alquiler por 3 meses.</strong> Si el Locatario contrata un alquiler de 3 (tres) meses, acepta que se cobrará: los 3 meses completos por adelantado, más 1 (un) mes adicional en concepto de Garantía, todo en un solo cobro (o en el flujo equivalente que muestre la app) y antes de habilitarse el Acceso Digital.</p>
+                        <p><strong>3.4 Plazo de 48 horas para el saldo tras la seña.</strong> {RIAL_DEPOSIT_48H_CLAUSE}</p>
 
                         <h4 className="font-semibold mb-1">4) Mora, falta de pago y cancelación por incumplimiento (15 días)</h4>
                         <p><strong>4.1 Mora automática.</strong> La falta de pago total o parcial genera mora automática, sin necesidad de intimación.</p>
@@ -1178,7 +1247,7 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                         <p>El click de aceptación, el registro de tarjeta, comprobantes de pago y logs del sistema constituyen evidencia válida del consentimiento y de la operatoria.</p>
 
                         <h4 className="font-semibold mb-1">12) Ley aplicable y jurisdicción</h4>
-                        <p>Se rige por las leyes de la República del Paraguay, en lo aplicable.</p>
+                        <p>{RIAL_GOVERNING_LAW_CLAUSE}</p>
 
                         <p className="pt-2 border-t border-gray-200 dark:border-gray-600 mt-4">Al aceptar, el Locatario <strong>{formData.fullName}</strong> confirma el alquiler de la propiedad <strong>{property?.title}</strong> ({property?.location || 'ubicación indicada'}) bajo estos Términos.</p>
                       </div>
@@ -1358,6 +1427,17 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                     </div>
                   </div>
                 )}
+
+                {currentStep === 6 && reservationId && token && (
+                  <ReservationPaymentStep
+                    reservationId={reservationId}
+                    token={token}
+                    onCompleted={() => {
+                      onComplete?.()
+                      onClose()
+                    }}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
 
@@ -1372,7 +1452,7 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                 Anterior
               </Button>
               
-              {currentStep < steps.length ? (
+              {currentStep < 5 ? (
                 <Button
                   onClick={(e) => {
                     e.preventDefault()
@@ -1385,18 +1465,21 @@ ${steps.slice(currentStep).map((s, i) => `${i + 1}. ${s.title}`).join('\n')}
                 >
                   Siguiente
                 </Button>
-              ) : (
+              ) : currentStep === 5 ? (
                 <Button
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    handleSubmit()
+                    finalizeAndReserve()
                   }}
-                  disabled={!canProceed()}
-                  icon={<Check className="w-4 h-4" />}
-                  title={!canProceed() ? 'Completa todos los campos requeridos para finalizar' : ''}
+                  disabled={!canProceed() || isFinalizing}
+                  icon={isFinalizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
                 >
-                  Completar Proceso
+                  {t('reservation.continueToPayment')}
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={onClose}>
+                  {t('reservation.close')}
                 </Button>
               )}
             </div>

@@ -30,6 +30,7 @@ export function getContractSections(): ContractSection[] {
         '2.1 Seña del 50% al alquilar desde la app — Al confirmar el alquiler en RIAL, el Locatario podrá abonar una Seña del 50% del monto correspondiente, la cual se imputa al total.',
         '2.2 Pago del saldo y habilitación del acceso — El saldo restante (y cualquier monto exigible) deberá estar acreditado conforme el calendario mostrado en RIAL. RIAL y/o el Locador pueden no habilitar el Acceso Digital hasta que el pago figure acreditado.',
         '2.3 Regla especial: alquiler por 3 meses (pago total + garantía) — Si el Locatario contrata un alquiler de 3 (tres) meses, acepta que: deberá pagar los 3 meses completos por adelantado, más 1 (un) mes adicional en concepto de Garantía, todo en un solo pago (o en el flujo equivalente definido por RIAL) antes de habilitarse el Acceso Digital.',
+        '2.4 Plazo de 48 horas tras la seña — Una vez abonada la seña (50% del total), el Locatario tiene 48 (cuarenta y ocho) horas corridas para pagar el saldo. Si no lo hace, la seña no es reembolsable y la reserva se cancela.',
       ],
     },
     {
@@ -97,6 +98,14 @@ export function getContractSections(): ContractSection[] {
         'Los registros electrónicos (logs, mensajes, comprobantes, bitácoras de acceso digital) podrán usarse como evidencia del Contrato y de incumplimientos.',
       ],
     },
+    {
+      sectionTitle: '12) LEY APLICABLE Y JURISDICCIÓN (MIAMI-DADE, FLORIDA)',
+      paragraphs: [
+        'Las propiedades gestionadas en RIAL operan principalmente en Miami-Dade County, Florida, Estados Unidos.',
+        'El presente Contrato se rige por las leyes del Estado de Florida, Estados Unidos, y las normas federales aplicables en lo pertinente.',
+        'Para controversias derivadas del Contrato, las partes se someten a la jurisdicción de los tribunales competentes del condado de Miami-Dade, Florida, salvo disposición imperativa en contrario.',
+      ],
+    },
   ];
 }
 
@@ -143,7 +152,7 @@ export function buildContractPdfContent(doc: any, data: LeaseContractData): void
   doc.moveDown(1);
 
   doc.font('Helvetica').text(
-    'El presente contrato se rige por los términos y condiciones que se detallan a continuación, aceptados por el Locatario al confirmar la reserva/alquiler en RIAL.',
+    'El presente contrato se rige por los términos y condiciones que se detallan a continuación, aceptados por el Locatario al confirmar la reserva/alquiler en RIAL. Ámbito operativo: Miami-Dade County, Florida, Estados Unidos.',
     { align: 'justify', lineGap: 3 }
   );
   doc.moveDown(1);

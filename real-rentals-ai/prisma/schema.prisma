@@ -48,6 +48,7 @@ model User {
   sentMessages Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
   payments Payment[]
+  rentalReservations RentalReservation[]
   alerts    Alert[]
   verification Verification?
   searches  PropertySearch[]
@@ -136,6 +137,7 @@ model Property {
   reviews     Review[]
   images      Image[]
   leaseRequests LeaseRequest[]
+  rentalReservations RentalReservation[]
   payments    Payment[]
   views       PropertyView[]
   duplicateAlerts PropertyDuplicateAlert[]  @relation("DuplicateOf")
@@ -149,6 +151,11 @@ model Property {
   area        Float?   // m²
   propertyType String? // apartment, house, studio, etc.
   verified    Boolean  @default(false)
+  /// Meses de alquiler ofrecidos por el broker: "3,6,12" (subconjunto obligatorio al publicar)
+  rentalMonths String  @default("12")
+  videoTourUrl String?
+  ownerDniDocumentUrl String?
+  contractOrTitleUrl  String?
 
   @@index([location])
   @@index([price])
@@ -196,11 +203,45 @@ model LeaseRequest {
   user               User      @relation(fields: [userId], references: [id])
   property           Property  @relation(fields: [propertyId], references: [id])
   leaseContract      LeaseContract?
+  rentalReservation  RentalReservation?
 
   @@index([propertyId])
   @@index([userId])
   @@index([status])
   @@index([propertyId, status])
+}
+
+/// Reserva con seña (50%) y plazo de 48 h para el saldo
+model RentalReservation {
+  id               Int       @id @default(autoincrement())
+  userId           Int
+  propertyId       Int
+  leaseRequestId   Int?      @unique
+  status           String    @default("pending_deposit") // pending_deposit | deposit_paid | completed | expired | cancelled
+  durationMonths   Int
+  startDate        DateTime?
+  monthlyRent      Float
+  securityDeposit  Float     @default(0)
+  totalAmount      Float
+  depositAmount    Float
+  balanceAmount    Float
+  currency         String    @default("USD")
+  depositPaidAt    DateTime?
+  balanceDueAt     DateTime?
+  balancePaidAt    DateTime?
+  depositPaymentId Int?
+  balancePaymentId Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User          @relation(fields: [userId], references: [id])
+  property         Property      @relation(fields: [propertyId], references: [id])
+  leaseRequest     LeaseRequest? @relation(fields: [leaseRequestId], references: [id])
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([balanceDueAt])
 }
 
 model LeaseContract {
@@ -251,8 +292,9 @@ model Payment {
   propertyId    Int
   amount        Float
   currency      String   @default("USD")
-  status        String   @default("pending") // pending, completed, failed, refunded
+  status        String   @default("pending") // pending, completed, failed, refunded, forfeited
   paymentMethod String   // stripe, paypal, bank_transfer
+  paymentType   String?  // reservation_deposit | reservation_balance | general
   transactionId String?
   description   String?
   createdAt     DateTime @default(now())

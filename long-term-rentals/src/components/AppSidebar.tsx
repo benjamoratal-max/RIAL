@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { classNames } from './UI'
+import { RialBrand } from './RialBrand'
 
 type AppSidebarProps = {
   user: any
@@ -136,14 +137,15 @@ export function AppSidebar({
 
   return (
     <aside
-      className="sticky top-0 z-30 flex h-screen w-[72px] shrink-0 flex-col border-r border-white/10 bg-rial-navy py-4"
+      className="sticky top-0 z-30 flex h-screen w-[5.5rem] shrink-0 flex-col border-r border-white/10 bg-rial-navy py-4"
       aria-label={t('app.sidebar.mainNav')}
     >
-      <div className="flex flex-col items-center px-2">
-        <img
-          src="/rial-logo.png"
-          alt="RIAL"
-          className="h-10 w-10 rounded-full object-cover ring-2 ring-rial-gold/40"
+      <div className="flex flex-col items-center px-2 pb-2">
+        <RialBrand
+          name={t('app.name')}
+          size="sm"
+          showTagline={false}
+          className="pointer-events-none select-none"
         />
       </div>
 

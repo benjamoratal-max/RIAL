@@ -182,6 +182,8 @@ export function validatePropertyForm(data: {
   ownerDniDocument?: File | null;
   contractOrTitle?: File | null;
   videoTourFile?: File | null;
+  rentalMonths?: number[];
+  mapPin?: { lat: number; lng: number } | null;
   bedrooms?: string | number;
   rooms?: string | number;
   bathrooms?: string | number;
@@ -232,6 +234,22 @@ export function validatePropertyForm(data: {
 
   if (!data.videoTourFile) {
     errors.push({ field: 'videoTourFile', message: 'Debes subir un video tour de la propiedad' });
+  }
+
+  const months = data.rentalMonths ?? [];
+  const validMonths = months.filter((m) => [3, 6, 12].includes(m));
+  if (validMonths.length === 0) {
+    errors.push({
+      field: 'rentalMonths',
+      message: 'Debes indicar al menos una opción de alquiler: 3, 6 o 12 meses',
+    });
+  }
+
+  if (!data.mapPin || typeof data.mapPin.lat !== 'number' || typeof data.mapPin.lng !== 'number') {
+    errors.push({
+      field: 'mapPin',
+      message: 'Debes marcar la ubicación exacta de la propiedad en el mapa',
+    });
   }
 
   if (data.bedrooms !== undefined) {
