@@ -9,28 +9,28 @@ const sizeConfig: Record<
   { mark: string; name: string; tagline: string; gap: string; stack: boolean }
 > = {
   sm: {
-    mark: 'h-11 w-11',
+    mark: 'h-[3.25rem] w-auto max-w-[5rem]',
     name: 'text-[11px] font-bold leading-tight',
     tagline: 'text-[9px] tracking-[0.14em]',
     gap: 'gap-1.5',
     stack: true,
   },
   md: {
-    mark: 'h-14 w-14',
+    mark: 'h-16 w-auto max-w-[11rem]',
     name: 'text-xl font-bold',
     tagline: 'text-[10px] tracking-[0.18em]',
     gap: 'gap-3',
     stack: false,
   },
   lg: {
-    mark: 'h-[4.5rem] w-[4.5rem] md:h-20 md:w-20',
+    mark: 'h-20 w-auto max-w-[14rem] md:h-[5.5rem] md:max-w-[16rem]',
     name: 'text-2xl md:text-3xl font-bold',
     tagline: 'text-[10px] md:text-xs tracking-[0.22em]',
     gap: 'gap-4',
     stack: false,
   },
   xl: {
-    mark: 'h-20 w-20 md:h-24 md:w-24 lg:h-28 lg:w-28',
+    mark: 'h-24 w-auto max-w-[18rem] md:h-28 md:max-w-[20rem] lg:h-32 lg:max-w-[22rem]',
     name: 'text-2xl md:text-4xl font-bold',
     tagline: 'text-[10px] md:text-xs tracking-[0.22em]',
     gap: 'gap-4 md:gap-5',
@@ -57,24 +57,16 @@ function MarkFallback({ className, surface }: { className: string; surface: Rial
 
 function BrandMark({
   className,
-  surface,
   onError,
 }: {
   className: string
-  surface: RialBrandSurface
   onError: () => void
 }) {
   return (
     <img
       src="/rial-logo.png"
-      alt=""
-      className={classNames(
-        className,
-        'shrink-0 object-contain bg-transparent p-0',
-        surface === 'dark'
-          ? 'mix-blend-screen brightness-110 contrast-[1.02]'
-          : 'mix-blend-multiply'
-      )}
+      alt="RIAL Real Estate AI"
+      className={classNames(className, 'shrink-0 object-contain object-left')}
       onError={onError}
     />
   )
@@ -85,6 +77,8 @@ export function RialBrand({
   tagline,
   size = 'md',
   showTagline = true,
+  /** Si false, solo muestra el PNG (incluye nombre y tagline en la imagen) */
+  showLabel = false,
   surface = 'light',
   className,
 }: {
@@ -92,61 +86,61 @@ export function RialBrand({
   tagline?: string
   size?: RialBrandSize
   showTagline?: boolean
-  /** Fondo claro (header) u oscuro (sidebar) — ajusta texto y mezcla del logo */
+  showLabel?: boolean
+  /** Fondo claro (header) u oscuro (sidebar) — ajusta color del texto si showLabel */
   surface?: RialBrandSurface
   className?: string
 }) {
   const [imgFailed, setImgFailed] = useState(false)
   const cfg = sizeConfig[size]
   const onDark = surface === 'dark'
+  const showText = showLabel || imgFailed
 
   return (
     <div
       className={classNames(
         'flex min-w-0',
-        cfg.stack ? 'flex-col items-center text-center' : 'flex-row items-center',
-        cfg.gap,
+        showText && cfg.stack ? 'flex-col items-center text-center' : 'flex-row items-center',
+        showText ? cfg.gap : '',
         className
       )}
     >
       {!imgFailed ? (
-        <BrandMark
-          className={cfg.mark}
-          surface={surface}
-          onError={() => setImgFailed(true)}
-        />
+        <BrandMark className={cfg.mark} onError={() => setImgFailed(true)} />
       ) : (
         <MarkFallback className={cfg.mark} surface={surface} />
       )}
-      <div className={classNames('min-w-0', cfg.stack && 'w-full px-0.5')}>
-        <span
-          className={classNames(
-            cfg.name,
-            'block tracking-tight',
-            onDark
-              ? 'text-rial-cream'
-              : classNames(
-                  'leading-none',
-                  'bg-gradient-to-r from-rial-navy via-rial-navy-light to-rial-gold bg-clip-text text-transparent',
-                  'dark:from-rial-cream dark:via-rial-gold dark:to-rial-cream'
-                )
-          )}
-        >
-          {name}
-        </span>
-        {showTagline && tagline && (
-          <p
+      {showText && (
+        <div className={classNames('min-w-0', cfg.stack && 'w-full px-0.5')}>
+          <span
             className={classNames(
-              cfg.tagline,
-              'mt-1 font-semibold uppercase',
-              onDark ? 'text-rial-cream/65' : 'text-rial-muted dark:text-slate-400',
-              cfg.stack && 'leading-tight'
+              cfg.name,
+              'block tracking-tight',
+              onDark
+                ? 'text-rial-cream'
+                : classNames(
+                    'leading-none',
+                    'bg-gradient-to-r from-rial-navy via-rial-navy-light to-rial-gold bg-clip-text text-transparent',
+                    'dark:from-rial-cream dark:via-rial-gold dark:to-rial-cream'
+                  )
             )}
           >
-            {tagline}
-          </p>
-        )}
-      </div>
+            {name}
+          </span>
+          {showTagline && tagline && (
+            <p
+              className={classNames(
+                cfg.tagline,
+                'mt-1 font-semibold uppercase',
+                onDark ? 'text-rial-cream/65' : 'text-rial-muted dark:text-slate-400',
+                cfg.stack && 'leading-tight'
+              )}
+            >
+              {tagline}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

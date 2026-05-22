@@ -145,8 +145,9 @@ export function AppSidebar({
           name={t('app.name')}
           size="sm"
           surface="dark"
+          showLabel={false}
           showTagline={false}
-          className="pointer-events-none w-full select-none"
+          className="pointer-events-none w-full select-none justify-center"
         />
       </div>
 

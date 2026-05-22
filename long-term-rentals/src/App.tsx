@@ -1364,6 +1364,8 @@ export default function App() {
             name={t('app.name')}
             tagline={t('app.tagline')}
             size="xl"
+            showLabel={false}
+            showTagline={false}
             surface={darkMode ? 'dark' : 'light'}
             className="min-w-0 shrink-0"
           />
