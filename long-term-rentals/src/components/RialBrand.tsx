@@ -3,8 +3,8 @@ import { classNames } from './UI'
 
 type RialBrandSize = 'sm' | 'md' | 'lg' | 'xl'
 type RialBrandSurface = 'light' | 'dark'
-/** plain = PNG transparente; lightBadge = tarjeta blanca (sidebar sobre navy) */
-type LogoPresentation = 'plain' | 'lightBadge'
+/** plain = PNG transparente; sidebarDeck = franja integrada en el rail; lightBadge = tarjeta (legacy) */
+type LogoPresentation = 'plain' | 'sidebarDeck' | 'lightBadge'
 
 const LOGO_SRC = '/rial-logo.png?v=3'
 
@@ -13,7 +13,7 @@ const sizeConfig: Record<
   { mark: string; name: string; tagline: string; gap: string; stack: boolean }
 > = {
   sm: {
-    mark: 'h-[3.25rem] w-auto max-w-[5rem]',
+    mark: 'h-11 w-full max-w-[4.75rem]',
     name: 'text-[11px] font-bold leading-tight',
     tagline: 'text-[9px] tracking-[0.14em]',
     gap: 'gap-1.5',
@@ -77,6 +77,14 @@ function BrandMark({
     />
   )
 
+  if (presentation === 'sidebarDeck') {
+    return (
+      <div className="w-full border-b border-rial-gold/30 bg-gradient-to-b from-rial-cream via-rial-gold-soft/50 to-rial-navy-light px-2 py-3">
+        <div className="flex items-center justify-center">{img}</div>
+      </div>
+    )
+  }
+
   if (presentation === 'lightBadge') {
     return (
       <div
@@ -111,7 +119,7 @@ export function RialBrand({
   showLabel?: boolean
   /** Fondo claro (header) u oscuro (sidebar) — ajusta color del texto si showLabel */
   surface?: RialBrandSurface
-  /** Sidebar: lightBadge (fondo blanco detrás del logo) */
+  /** Sidebar: sidebarDeck (franja integrada en el rail) */
   logoPresentation?: LogoPresentation
   className?: string
 }) {
@@ -120,12 +128,14 @@ export function RialBrand({
   const onDark = surface === 'dark'
   const showText = showLabel || imgFailed
 
+  const isSidebarDeck = logoPresentation === 'sidebarDeck'
+
   return (
     <div
       className={classNames(
-        'flex min-w-0',
-        showText && cfg.stack ? 'flex-col items-center text-center' : 'flex-row items-center',
-        showText ? cfg.gap : '',
+        isSidebarDeck ? 'block w-full' : 'flex min-w-0',
+        !isSidebarDeck && showText && cfg.stack ? 'flex-col items-center text-center' : !isSidebarDeck ? 'flex-row items-center' : '',
+        !isSidebarDeck && showText ? cfg.gap : '',
         className
       )}
     >

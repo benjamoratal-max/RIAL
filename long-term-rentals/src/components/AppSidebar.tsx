@@ -137,22 +137,20 @@ export function AppSidebar({
 
   return (
     <aside
-      className="sticky top-0 z-30 flex h-screen w-[5.5rem] shrink-0 flex-col border-r border-rial-gold/25 bg-gradient-to-b from-rial-navy via-[#0f2138] to-rial-navy py-4 shadow-[inset_3px_0_0_0_rgba(185,226,255,0.35)]"
+      className="sticky top-0 z-30 flex h-screen w-[5.5rem] shrink-0 flex-col overflow-hidden border-r border-rial-gold/25 bg-gradient-to-b from-rial-navy via-[#0f2138] to-rial-navy shadow-[inset_3px_0_0_0_rgba(185,226,255,0.35)]"
       aria-label={t('app.sidebar.mainNav')}
     >
-      <div className="flex flex-col items-center px-1.5 pb-2">
-        <RialBrand
-          name={t('app.name')}
-          size="sm"
-          surface="dark"
-          logoPresentation="lightBadge"
-          showLabel={false}
-          showTagline={false}
-          className="pointer-events-none w-full select-none justify-center"
-        />
-      </div>
+      <RialBrand
+        name={t('app.name')}
+        size="sm"
+        surface="dark"
+        logoPresentation="sidebarDeck"
+        showLabel={false}
+        showTagline={false}
+        className="pointer-events-none w-full shrink-0 select-none"
+      />
 
-      <nav className="mt-6 flex flex-1 flex-col items-center gap-2 px-2" role="navigation">
+      <nav className="flex flex-1 flex-col items-center gap-2 px-2 py-5" role="navigation">
         <RailButton
           active={!showMap}
           onClick={onScrollHome}
