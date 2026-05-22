@@ -64,7 +64,7 @@ function BrandMark({
 }) {
   return (
     <img
-      src="/rial-logo.png"
+      src="/rial-logo.png?v=2"
       alt="RIAL Real Estate AI"
       className={classNames(className, 'shrink-0 object-contain object-left')}
       onError={onError}
