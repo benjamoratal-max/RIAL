@@ -68,7 +68,7 @@ function RailButton({
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-rial-gold focus-visible:ring-offset-2 focus-visible:ring-offset-rial-navy',
         active
           ? 'bg-rial-gold text-rial-navy shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]'
-          : 'text-rial-cream/70 hover:bg-rial-navy-light hover:text-rial-cream'
+          : 'text-rial-cream/75 hover:bg-rial-accent/20 hover:text-rial-gold'
       )}
       whileHover={{ scale: 1.04 }}
       whileTap={{ scale: 0.96 }}
@@ -137,14 +137,15 @@ export function AppSidebar({
 
   return (
     <aside
-      className="sticky top-0 z-30 flex h-screen w-[5.5rem] shrink-0 flex-col border-r border-white/10 bg-rial-navy py-4"
+      className="sticky top-0 z-30 flex h-screen w-[5.5rem] shrink-0 flex-col border-r border-rial-gold/25 bg-gradient-to-b from-rial-navy via-[#0f2138] to-rial-navy py-4 shadow-[inset_3px_0_0_0_rgba(185,226,255,0.35)]"
       aria-label={t('app.sidebar.mainNav')}
     >
-      <div className="flex flex-col items-center px-2 pb-2">
+      <div className="flex flex-col items-center px-1.5 pb-2">
         <RialBrand
           name={t('app.name')}
           size="sm"
           surface="dark"
+          logoPresentation="lightBadge"
           showLabel={false}
           showTagline={false}
           className="pointer-events-none w-full select-none justify-center"

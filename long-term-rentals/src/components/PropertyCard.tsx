@@ -119,7 +119,7 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
 
   return (
     <motion.div 
-      className="group overflow-hidden rounded-2xl border border-rial-cream-dark/40 bg-white shadow-md transition-all duration-300 hover:shadow-xl dark:border-slate-700 dark:bg-slate-900"
+      className="group overflow-hidden rounded-2xl border border-rial-gold/30 bg-white shadow-md transition-all duration-300 hover:border-rial-accent/45 hover:shadow-lg hover:shadow-rial-accent/15 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-rial-accent/35"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}

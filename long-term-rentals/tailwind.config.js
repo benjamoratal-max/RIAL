@@ -58,6 +58,9 @@ export default {
           /** Acento editorial (celeste — referencia ~#B9E2FF) */
           gold: '#B9E2FF',
           'gold-soft': '#D4EFFF',
+          accent: '#5EB3E8',
+          'accent-deep': '#2B7CB8',
+          sky: '#E8F4FC',
           ink: '#1A1F26',
           muted: '#5C6570',
           verified: '#2F6F5E',

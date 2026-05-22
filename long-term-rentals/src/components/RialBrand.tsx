@@ -3,6 +3,10 @@ import { classNames } from './UI'
 
 type RialBrandSize = 'sm' | 'md' | 'lg' | 'xl'
 type RialBrandSurface = 'light' | 'dark'
+/** plain = PNG transparente; lightBadge = tarjeta blanca (sidebar sobre navy) */
+type LogoPresentation = 'plain' | 'lightBadge'
+
+const LOGO_SRC = '/rial-logo.png?v=3'
 
 const sizeConfig: Record<
   RialBrandSize,
@@ -57,19 +61,36 @@ function MarkFallback({ className, surface }: { className: string; surface: Rial
 
 function BrandMark({
   className,
+  presentation,
   onError,
 }: {
   className: string
+  presentation: LogoPresentation
   onError: () => void
 }) {
-  return (
+  const img = (
     <img
-      src="/rial-logo.png?v=2"
+      src={LOGO_SRC}
       alt="RIAL Real Estate AI"
-      className={classNames(className, 'shrink-0 object-contain object-left')}
+      className={classNames(className, 'shrink-0 object-contain object-center')}
       onError={onError}
     />
   )
+
+  if (presentation === 'lightBadge') {
+    return (
+      <div
+        className={classNames(
+          'flex items-center justify-center rounded-xl bg-white p-2',
+          'shadow-md ring-1 ring-rial-gold/50 ring-offset-1 ring-offset-rial-navy'
+        )}
+      >
+        {img}
+      </div>
+    )
+  }
+
+  return img
 }
 
 export function RialBrand({
@@ -80,6 +101,7 @@ export function RialBrand({
   /** Si false, solo muestra el PNG (incluye nombre y tagline en la imagen) */
   showLabel = false,
   surface = 'light',
+  logoPresentation = 'plain',
   className,
 }: {
   name: string
@@ -89,6 +111,8 @@ export function RialBrand({
   showLabel?: boolean
   /** Fondo claro (header) u oscuro (sidebar) — ajusta color del texto si showLabel */
   surface?: RialBrandSurface
+  /** Sidebar: lightBadge (fondo blanco detrás del logo) */
+  logoPresentation?: LogoPresentation
   className?: string
 }) {
   const [imgFailed, setImgFailed] = useState(false)
@@ -106,7 +130,11 @@ export function RialBrand({
       )}
     >
       {!imgFailed ? (
-        <BrandMark className={cfg.mark} onError={() => setImgFailed(true)} />
+        <BrandMark
+          className={cfg.mark}
+          presentation={logoPresentation}
+          onError={() => setImgFailed(true)}
+        />
       ) : (
         <MarkFallback className={cfg.mark} surface={surface} />
       )}

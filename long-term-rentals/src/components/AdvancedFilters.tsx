@@ -199,7 +199,7 @@ export function AdvancedFilters({
 
   return (
     <motion.div
-      className="rounded-2xl border border-rial-cream-dark/50 bg-white p-4 shadow-md dark:border-slate-700 dark:bg-slate-900/95 md:p-5"
+      className="rounded-2xl border border-rial-gold/40 bg-gradient-to-br from-white via-rial-sky/20 to-white p-4 shadow-md shadow-rial-accent/5 dark:border-rial-accent/15 dark:from-slate-900/95 dark:via-slate-900/80 dark:to-slate-900/95 md:p-5"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}

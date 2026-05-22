@@ -1304,7 +1304,7 @@ export default function App() {
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-rial-cream font-sans text-rial-ink transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+    <div className="rial-app-shell flex min-h-screen font-sans text-rial-ink transition-colors duration-300 dark:text-slate-100">
       <AppSidebar
         user={user}
         darkMode={darkMode}
@@ -1358,7 +1358,8 @@ export default function App() {
         }}
       />
 
-      <header className="border-b border-rial-cream-dark/50 bg-rial-cream/95 px-4 py-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/90 md:px-6 md:py-5">
+      <header className="relative border-b border-rial-gold/40 bg-gradient-to-r from-white/90 via-rial-gold-soft/25 to-white/90 px-4 py-4 shadow-sm shadow-rial-accent/10 backdrop-blur-md dark:border-rial-accent/20 dark:from-slate-950/95 dark:via-rial-navy/40 dark:to-slate-950/95 md:px-6 md:py-5">
+        <div className="rial-accent-bar absolute inset-x-0 top-0 opacity-80" aria-hidden />
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <RialBrand
             name={t('app.name')}
@@ -1399,7 +1400,7 @@ export default function App() {
 
       {/* Navegación por rol: renta / broker / compliance */}
       {user && (
-        <nav className="mx-auto max-w-6xl border-b border-rial-cream-dark/40 bg-rial-cream/60 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/40">
+        <nav className="mx-auto max-w-6xl border-b border-rial-gold/30 bg-gradient-to-r from-rial-sky/40 via-white/70 to-rial-sky/40 px-4 py-2 dark:border-rial-accent/15 dark:from-slate-900/60 dark:via-slate-900/40 dark:to-slate-900/60">
           {user.role === 'tenant' && (
             <div className="flex flex-wrap gap-2 text-xs">
               {[
@@ -1417,7 +1418,7 @@ export default function App() {
                     'px-3 py-1 rounded-full border text-xs',
                     renterNav === item.key
                       ? 'border-rial-navy bg-rial-navy text-rial-cream'
-                      : 'border-rial-cream-dark/40 bg-white text-rial-ink dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
+                      : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
                   )}
                   onClick={() => {
                     const k = item.key as RenterNavKey
@@ -1463,7 +1464,7 @@ export default function App() {
                     'px-3 py-1 rounded-full border text-xs',
                     brokerNav === item.key
                       ? 'border-rial-navy bg-rial-navy text-rial-cream'
-                      : 'border-rial-cream-dark/40 bg-white text-rial-ink dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
+                      : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
                   )}
                   onClick={() => {
                     const k = item.key as BrokerNavKey
@@ -1502,7 +1503,7 @@ export default function App() {
                     'px-3 py-1 rounded-full border text-xs',
                     complianceNav === item.key
                       ? 'border-rial-navy bg-rial-navy text-rial-cream'
-                      : 'border-rial-cream-dark/40 bg-white text-rial-ink dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
+                      : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
                   )}
                   onClick={() => {
                     const k = item.key as ComplianceNavKey

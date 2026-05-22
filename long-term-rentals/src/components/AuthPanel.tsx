@@ -74,7 +74,7 @@ export function AuthPanel({
 
   return (
     <motion.div 
-      className="relative rounded-2xl border border-rial-cream-dark/50 bg-white p-4 shadow-md dark:border-slate-700 dark:bg-slate-900/95"
+      className="relative rounded-2xl border border-rial-gold/35 bg-white p-4 shadow-md shadow-rial-accent/5 dark:border-rial-accent/20 dark:bg-slate-900/95"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}

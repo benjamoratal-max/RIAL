@@ -15,6 +15,22 @@
     font-family: "DM Sans", system-ui, sans-serif;
   }
 
+  /* Fondo editorial con toques celeste (tema claro) */
+  .rial-app-shell {
+    background-color: #f5f1e9;
+    background-image:
+      radial-gradient(ellipse 120% 80% at 100% -20%, rgba(185, 226, 255, 0.45), transparent 55%),
+      radial-gradient(ellipse 90% 60% at 0% 100%, rgba(94, 179, 232, 0.12), transparent 50%),
+      linear-gradient(180deg, #f8fafc 0%, #f5f1e9 40%, #eef6fc 100%);
+  }
+
+  .dark .rial-app-shell {
+    background-color: #020617;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(43, 124, 184, 0.2), transparent 55%),
+      linear-gradient(180deg, #020617 0%, #0b1623 100%);
+  }
+
   /* Scrollbar personalizada */
   ::-webkit-scrollbar {
     width: 8px;
@@ -47,7 +63,11 @@
 
   /* Tarjetas con glassmorphism */
   .card-glass {
-    @apply bg-white/85 dark:bg-slate-900/80 backdrop-blur-sm border border-rial-cream-dark/40 dark:border-slate-700 shadow-lg;
+    @apply bg-white/85 dark:bg-slate-900/80 backdrop-blur-sm border border-rial-gold/25 dark:border-slate-700 shadow-lg shadow-rial-accent/5;
+  }
+
+  .rial-accent-bar {
+    @apply h-1 w-full rounded-full bg-gradient-to-r from-rial-navy via-rial-accent to-rial-gold;
   }
 
   /* Inputs mejorados */
