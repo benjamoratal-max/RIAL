@@ -47,6 +47,11 @@
       "themeDark": "Modo oscuro",
       "loginRequired": "Iniciá sesión para usar esta función"
     },
+    "roleNav": {
+      "renter": "Sección de inquilino",
+      "broker": "Sección de broker",
+      "compliance": "Sección de cumplimiento"
+    },
     "mobileNav": {
       "label": "Navegación móvil",
       "explore": "Explorar",

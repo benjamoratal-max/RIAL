@@ -47,6 +47,11 @@
       "themeDark": "Dark theme",
       "loginRequired": "Sign in to use this feature"
     },
+    "roleNav": {
+      "renter": "Renter section",
+      "broker": "Broker section",
+      "compliance": "Compliance section"
+    },
     "mobileNav": {
       "label": "Mobile navigation",
       "explore": "Explore",

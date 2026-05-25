@@ -61,6 +61,7 @@ const ScheduleVisit = lazy(() => import('./components/ScheduleVisit').then(m => 
 import { AuthPanel } from './components/AuthPanel'
 import { AppSidebar } from './components/AppSidebar'
 import { MobileBottomNav, type MobileNavTab } from './components/MobileBottomNav'
+import { RoleNavStrip } from './components/RoleNavStrip'
 import { PropertyCard } from './components/PropertyCard'
 import { useAuth } from './hooks/useAuth'
 import { useDebouncedValue } from './hooks/useDebounce'
@@ -1195,10 +1196,11 @@ export default function App() {
 
       {/* Navegación por rol: renta / broker / compliance */}
       {user && (
-        <nav className="mx-auto max-w-6xl border-b border-rial-gold/30 bg-gradient-to-r from-rial-sky/40 via-white/70 to-rial-sky/40 px-3 py-2 dark:border-rial-accent/15 dark:from-slate-900/60 dark:via-slate-900/40 dark:to-slate-900/60 md:px-4">
+        <nav className="w-full min-w-0 overflow-hidden border-b border-rial-gold/30 bg-gradient-to-r from-rial-sky/40 via-white/70 to-rial-sky/40 dark:border-rial-accent/15 dark:from-slate-900/60 dark:via-slate-900/40 dark:to-slate-900/60">
+          <div className="mx-auto w-full min-w-0 max-w-6xl space-y-2 px-3 py-2 md:px-4">
           {user.role === 'tenant' && (
-            <div className="rial-nav-scroll flex gap-2 overflow-x-auto pb-0.5 text-xs [-webkit-overflow-scrolling:touch]">
-              {[
+            <RoleNavStrip
+              items={[
                 { key: 'explore', label: t('nav.renter.explore') },
                 { key: 'saved', label: t('nav.renter.saved') },
                 { key: 'messages', label: t('nav.renter.messages') },
@@ -1206,44 +1208,31 @@ export default function App() {
                 { key: 'documents', label: t('nav.renter.documents') },
                 { key: 'applications', label: t('nav.renter.applications') },
                 { key: 'profile', label: t('nav.renter.profile') },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  className={classNames(
-                    'shrink-0 whitespace-nowrap px-3 py-1 rounded-full border text-xs',
-                    renterNav === item.key
-                      ? 'border-rial-navy bg-rial-navy text-rial-cream'
-                      : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
-                  )}
-                  onClick={() => {
-                    const k = item.key as RenterNavKey
-                    setRenterNav(k)
-                    // Conectar con vistas/modales existentes
-                    if (k === 'saved') {
-                      scrollToExplore()
-                      toast(t('app.sidebar.favorites'), { icon: '❤️' })
-                    } else if (k === 'messages') {
-                      setShowChat(true)
-                    } else if (k === 'showings') {
-                      toast.success(t('nav.renter.showingsPending'))
-                    } else if (k === 'documents') {
-                      toast.success(t('nav.renter.documentsPending'))
-                    } else if (k === 'applications') {
-                      setShowUserProfile(true)
-                    } else if (k === 'profile') {
-                      setShowUserProfile(true)
-                    }
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+              ]}
+              value={renterNav}
+              mobileAriaLabel={t('app.roleNav.renter')}
+              onChange={(key) => {
+                const k = key as RenterNavKey
+                setRenterNav(k)
+                if (k === 'saved') {
+                  scrollToExplore()
+                  toast(t('app.sidebar.favorites'), { icon: '❤️' })
+                } else if (k === 'messages') {
+                  setShowChat(true)
+                } else if (k === 'showings') {
+                  toast.success(t('nav.renter.showingsPending'))
+                } else if (k === 'documents') {
+                  toast.success(t('nav.renter.documentsPending'))
+                } else if (k === 'applications' || k === 'profile') {
+                  setShowUserProfile(true)
+                }
+              }}
+            />
           )}
 
           {(user.role === 'broker' || user.role === 'broker_admin' || user.role === 'admin') && (
-            <div className="rial-nav-scroll flex gap-2 overflow-x-auto pb-0.5 text-xs [-webkit-overflow-scrolling:touch]">
-              {[
+            <RoleNavStrip
+              items={[
                 { key: 'dashboard', label: t('nav.broker.dashboard') },
                 { key: 'leads', label: t('nav.broker.leads') },
                 { key: 'listings', label: t('nav.broker.listings') },
@@ -1253,95 +1242,76 @@ export default function App() {
                 { key: 'analytics', label: t('nav.broker.analytics') },
                 { key: 'team', label: t('nav.broker.team') },
                 { key: 'settings', label: t('nav.broker.settings') },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  className={classNames(
-                    'shrink-0 whitespace-nowrap px-3 py-1 rounded-full border text-xs',
-                    brokerNav === item.key
-                      ? 'border-rial-navy bg-rial-navy text-rial-cream'
-                      : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
-                  )}
-                  onClick={() => {
-                    const k = item.key as BrokerNavKey
-                    setBrokerNav(k)
-                    if (k === 'leads') {
-                      setShowBrokerLeads(true)
-                    } else if (k === 'listings') {
-                      // Scroll a sección principal de listings (explore)
-                      window.scrollTo({ top: 0, behavior: 'smooth' })
-                    } else if (k === 'brokerMessages') {
-                      setShowChat(true)
-                    } else if (k === 'analytics') {
-                      setShowAnalytics(true)
-                    }
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+              ]}
+              value={brokerNav}
+              mobileAriaLabel={t('app.roleNav.broker')}
+              onChange={(key) => {
+                const k = key as BrokerNavKey
+                setBrokerNav(k)
+                if (k === 'leads') {
+                  setShowBrokerLeads(true)
+                } else if (k === 'listings') {
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                } else if (k === 'brokerMessages') {
+                  setShowChat(true)
+                } else if (k === 'analytics') {
+                  setShowAnalytics(true)
+                }
+              }}
+            />
           )}
 
           {(user.role === 'compliance_admin' || user.role === 'admin') && (
-            <div className="rial-nav-scroll mt-2 flex gap-2 overflow-x-auto pb-0.5 text-xs [-webkit-overflow-scrolling:touch]">
-              {[
+            <RoleNavStrip
+              className={user.role === 'admin' ? 'border-t border-rial-gold/20 pt-2 dark:border-slate-700/80' : undefined}
+              items={[
                 { key: 'brokerVerifications', label: t('nav.compliance.brokerVerifications') },
                 { key: 'listingsReview', label: t('nav.compliance.listingsReview') },
                 { key: 'reports', label: t('nav.compliance.reports') },
                 { key: 'flags', label: t('nav.compliance.flags') },
                 { key: 'suspensions', label: t('nav.compliance.suspensions') },
                 { key: 'auditLogs', label: t('nav.compliance.auditLogs') },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  className={classNames(
-                    'shrink-0 whitespace-nowrap px-3 py-1 rounded-full border text-xs',
-                    complianceNav === item.key
-                      ? 'border-rial-navy bg-rial-navy text-rial-cream'
-                      : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
-                  )}
-                  onClick={() => {
-                    const k = item.key as ComplianceNavKey
-                    setComplianceNav(k)
-                    if (k === 'brokerVerifications') {
-                      setShowCompliancePanel(true)
-                      setShowComplianceListings(false)
-                      setShowComplianceIncidents(false)
-                      setShowComplianceSuspensions(false)
-                      setShowComplianceAuditLogs(false)
-                    } else if (k === 'listingsReview') {
-                      setShowComplianceListings(true)
-                      setShowCompliancePanel(false)
-                      setShowComplianceIncidents(false)
-                      setShowComplianceSuspensions(false)
-                      setShowComplianceAuditLogs(false)
-                    } else if (k === 'flags') {
-                      setShowComplianceIncidents(true)
-                      setShowCompliancePanel(false)
-                      setShowComplianceListings(false)
-                      setShowComplianceSuspensions(false)
-                      setShowComplianceAuditLogs(false)
-                    } else if (k === 'suspensions') {
-                      setShowComplianceSuspensions(true)
-                      setShowCompliancePanel(false)
-                      setShowComplianceListings(false)
-                      setShowComplianceIncidents(false)
-                      setShowComplianceAuditLogs(false)
-                    } else if (k === 'auditLogs') {
-                      setShowComplianceAuditLogs(true)
-                      setShowCompliancePanel(false)
-                      setShowComplianceListings(false)
-                      setShowComplianceIncidents(false)
-                      setShowComplianceSuspensions(false)
-                    }
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+              ]}
+              value={complianceNav}
+              mobileAriaLabel={t('app.roleNav.compliance')}
+              onChange={(key) => {
+                const k = key as ComplianceNavKey
+                setComplianceNav(k)
+                if (k === 'brokerVerifications') {
+                  setShowCompliancePanel(true)
+                  setShowComplianceListings(false)
+                  setShowComplianceIncidents(false)
+                  setShowComplianceSuspensions(false)
+                  setShowComplianceAuditLogs(false)
+                } else if (k === 'listingsReview') {
+                  setShowComplianceListings(true)
+                  setShowCompliancePanel(false)
+                  setShowComplianceIncidents(false)
+                  setShowComplianceSuspensions(false)
+                  setShowComplianceAuditLogs(false)
+                } else if (k === 'flags') {
+                  setShowComplianceIncidents(true)
+                  setShowCompliancePanel(false)
+                  setShowComplianceListings(false)
+                  setShowComplianceSuspensions(false)
+                  setShowComplianceAuditLogs(false)
+                } else if (k === 'suspensions') {
+                  setShowComplianceSuspensions(true)
+                  setShowCompliancePanel(false)
+                  setShowComplianceListings(false)
+                  setShowComplianceIncidents(false)
+                  setShowComplianceAuditLogs(false)
+                } else if (k === 'auditLogs') {
+                  setShowComplianceAuditLogs(true)
+                  setShowCompliancePanel(false)
+                  setShowComplianceListings(false)
+                  setShowComplianceIncidents(false)
+                  setShowComplianceSuspensions(false)
+                }
+              }}
+            />
           )}
+          </div>
         </nav>
       )}
 
