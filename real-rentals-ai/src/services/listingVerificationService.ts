@@ -217,6 +217,12 @@ export async function verifyListingPhotos(imageUrls: string[]): Promise<ListingP
       continue;
     }
 
+    const allowedExt = new Set(['jpeg', 'jpg', 'png', 'webp']);
+    if (!allowedExt.has(img.extension.toLowerCase())) {
+      failures.push(`Foto ${i + 1}: no es una imagen válida (JPG/PNG).`);
+      continue;
+    }
+
     const { buffer } = img;
     if (buffer.length < LISTING_PHOTO_MIN_BYTES) {
       failures.push(`Foto ${i + 1}: archivo demasiado pequeño o corrupto.`);
@@ -259,6 +265,35 @@ export async function verifyListingPhotos(imageUrls: string[]): Promise<ListingP
     }
   }
 
+  const minPassRatio = 0.875;
+  const minRequired = Math.ceil(total * minPassRatio);
+
+  if (failures.length > 0 && passed < total) {
+    return {
+      verified: false,
+      score: passed / total,
+      passed,
+      total,
+      distinctDimensions: dimensionKeys.size,
+      reason:
+        failures[0] ||
+        `Varias fotos no cumplen calidad mínima (${passed}/${total} válidas).`,
+    };
+  }
+
+  if (passed < minRequired) {
+    return {
+      verified: false,
+      score: passed / total,
+      passed,
+      total,
+      distinctDimensions: dimensionKeys.size,
+      reason:
+        failures[0] ||
+        `Varias fotos no cumplen calidad mínima (${passed}/${total} válidas, se requieren al menos ${minRequired}).`,
+    };
+  }
+
   const maxDup = Math.max(0, ...hashCounts.values());
   if (maxDup > LISTING_PHOTO_MAX_DUPLICATE_HASHES + 1) {
     return {
@@ -280,20 +315,6 @@ export async function verifyListingPhotos(imageUrls: string[]): Promise<ListingP
       distinctDimensions: dimensionKeys.size,
       reason:
         'Las fotos parecen muy similares entre sí. Incluí distintos ambientes (living, cocina, baño, exterior).',
-    };
-  }
-
-  const minPassRatio = 0.875;
-  if (passed / total < minPassRatio) {
-    return {
-      verified: false,
-      score: passed / total,
-      passed,
-      total,
-      distinctDimensions: dimensionKeys.size,
-      reason:
-        failures[0] ||
-        `Varias fotos no cumplen calidad mínima (${passed}/${total} válidas).`,
     };
   }
 

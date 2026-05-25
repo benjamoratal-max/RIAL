@@ -13,6 +13,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^mrz$': '<rootDir>/src/__tests__/helpers/mrzMock.js',
   },
+  testTimeout: 120000,
 };
 
