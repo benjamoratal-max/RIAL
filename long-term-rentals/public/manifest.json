@@ -1,29 +1,36 @@
 {
-  "name": "RIAL App",
+  "name": "RIAL App · Alquileres Inteligentes",
   "short_name": "RIAL",
-  "description": "RIAL App (Rentals Intelligence & Lifestyle) conecta inquilinos con propiedades premium y workflows inteligentes.",
+  "description": "RIAL conecta inquilinos con propiedades verificadas en Miami. IA, mapa y gestión de visitas.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "/vite.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ],
-  "categories": ["business", "lifestyle", "travel"],
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "background_color": "#F5F1E9",
+  "theme_color": "#0B1623",
+  "orientation": "any",
   "lang": "es",
   "dir": "ltr",
-  "scope": "/",
-  "prefer_related_applications": false,
-  "related_applications": [],
-  "features": [
-    "Cross Platform",
-    "fast",
-    "simple"
-  ]
+  "categories": ["business", "lifestyle", "real estate"],
+  "icons": [
+    {
+      "src": "/rial-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/rial-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/rial-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "prefer_related_applications": false
 }

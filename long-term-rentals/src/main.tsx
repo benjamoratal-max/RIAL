@@ -184,10 +184,22 @@ if (import.meta.env.DEV) {
   console.log('Starting React app...')
 }
 
+async function registerPwa() {
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
+  try {
+    const { registerSW } = await import('virtual:pwa-register')
+    registerSW({ immediate: true })
+  } catch {
+    // PWA opcional si el plugin no está disponible en el build
+  }
+}
+
 async function bootstrap() {
   const reloaded = await purgeLegacyCaches()
   if (reloaded) return
   if (!rootElement) throw new Error('Root element not found')
+
+  void registerPwa()
 
   createRoot(rootElement).render(
     <StrictMode>

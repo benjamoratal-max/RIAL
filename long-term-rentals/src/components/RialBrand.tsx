@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { classNames } from './UI'
 
-type RialBrandSize = 'sm' | 'md' | 'lg' | 'xl'
+type RialBrandSize = 'sm' | 'md' | 'lg' | 'xl' | 'header'
 type RialBrandSurface = 'light' | 'dark'
 /** plain = PNG transparente; sidebarDeck = franja integrada en el rail; lightBadge = tarjeta (legacy) */
 type LogoPresentation = 'plain' | 'sidebarDeck' | 'lightBadge'
@@ -38,6 +38,13 @@ const sizeConfig: Record<
     name: 'text-2xl md:text-4xl font-bold',
     tagline: 'text-[10px] md:text-xs tracking-[0.22em]',
     gap: 'gap-4 md:gap-5',
+    stack: false,
+  },
+  header: {
+    mark: 'h-12 w-auto max-w-[9.5rem] sm:h-14 sm:max-w-[11rem] md:h-24 md:max-w-[18rem] lg:h-28 lg:max-w-[22rem]',
+    name: 'text-xl md:text-4xl font-bold',
+    tagline: 'text-[9px] md:text-xs tracking-[0.18em]',
+    gap: 'gap-3 md:gap-5',
     stack: false,
   },
 }

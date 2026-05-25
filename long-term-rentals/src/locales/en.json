@@ -46,6 +46,14 @@
       "themeLight": "Editorial light theme",
       "themeDark": "Dark theme",
       "loginRequired": "Sign in to use this feature"
+    },
+    "mobileNav": {
+      "label": "Mobile navigation",
+      "explore": "Explore",
+      "map": "Map",
+      "favorites": "Saved",
+      "messages": "Messages",
+      "profile": "Profile"
     }
   },
   "nav": {

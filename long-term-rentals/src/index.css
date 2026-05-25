@@ -8,11 +8,23 @@
     border-color: hsl(var(--border));
   }
   
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
     font-family: "DM Sans", system-ui, sans-serif;
+    overflow-x: hidden;
+    padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0);
+  }
+
+  #root {
+    min-height: 100dvh;
+    min-height: 100vh;
   }
 
   /* Fondo editorial con toques celeste (tema claro) */
@@ -68,6 +80,18 @@
 
   .rial-accent-bar {
     @apply h-1 w-full rounded-full bg-gradient-to-r from-rial-navy via-rial-accent to-rial-gold;
+  }
+
+  .rial-mobile-nav {
+    padding-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .rial-nav-scroll {
+    scrollbar-width: none;
+  }
+
+  .rial-nav-scroll::-webkit-scrollbar {
+    display: none;
   }
 
   /* Inputs mejorados */

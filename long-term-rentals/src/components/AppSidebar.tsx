@@ -136,7 +136,7 @@ export function AppSidebar({
 
   return (
     <aside
-      className="sticky top-0 z-30 flex h-screen w-[5.5rem] shrink-0 flex-col overflow-hidden border-r border-rial-gold/25 bg-gradient-to-b from-rial-navy via-[#0f2138] to-rial-navy shadow-[inset_3px_0_0_0_rgba(185,226,255,0.35)]"
+      className="sticky top-0 z-30 hidden h-screen w-[5.5rem] shrink-0 flex-col overflow-hidden border-r border-rial-gold/25 bg-gradient-to-b from-rial-navy via-[#0f2138] to-rial-navy shadow-[inset_3px_0_0_0_rgba(185,226,255,0.35)] md:flex"
       aria-label={t('app.sidebar.mainNav')}
     >
       <nav className="flex flex-1 flex-col items-center gap-2 px-2 pb-5 pt-4" role="navigation">

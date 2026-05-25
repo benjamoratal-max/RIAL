@@ -46,6 +46,14 @@
       "themeLight": "Modo claro editorial",
       "themeDark": "Modo oscuro",
       "loginRequired": "Iniciá sesión para usar esta función"
+    },
+    "mobileNav": {
+      "label": "Navegación móvil",
+      "explore": "Explorar",
+      "map": "Mapa",
+      "favorites": "Favoritos",
+      "messages": "Mensajes",
+      "profile": "Perfil"
     }
   },
   "nav": {

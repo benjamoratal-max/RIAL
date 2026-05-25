@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   Shield,
   Globe,
-  Sparkles
+  Sparkles,
+  Bell
 } from 'lucide-react'
 import { 
   Button, 
@@ -59,6 +60,7 @@ const ScheduleVisit = lazy(() => import('./components/ScheduleVisit').then(m => 
 // Componentes críticos cargados normalmente (necesarios para el render inicial)
 import { AuthPanel } from './components/AuthPanel'
 import { AppSidebar } from './components/AppSidebar'
+import { MobileBottomNav, type MobileNavTab } from './components/MobileBottomNav'
 import { PropertyCard } from './components/PropertyCard'
 import { useAuth } from './hooks/useAuth'
 import { useDebouncedValue } from './hooks/useDebounce'
@@ -1110,6 +1112,7 @@ export default function App() {
   const [renterNav, setRenterNav] = useState<RenterNavKey>('explore')
   const [brokerNav, setBrokerNav] = useState<BrokerNavKey>('dashboard')
   const [complianceNav, setComplianceNav] = useState<ComplianceNavKey>('brokerVerifications')
+  const [mobileNavTab, setMobileNavTab] = useState<MobileNavTab>('explore')
 
   const loadAbortRef = useRef<AbortController | null>(null)
 
@@ -1298,8 +1301,17 @@ export default function App() {
 
   const scrollToExplore = useCallback(() => {
     setShowMap(false)
+    setMobileNavTab('explore')
     requestAnimationFrame(() => {
       document.getElementById('rial-explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [])
+
+  const handleToggleMapMobile = useCallback(() => {
+    setShowMap((prev) => {
+      const next = !prev
+      setMobileNavTab(next ? 'map' : 'explore')
+      return next
     })
   }, [])
 
@@ -1310,7 +1322,7 @@ export default function App() {
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         showMap={showMap}
-        onToggleMap={() => setShowMap(!showMap)}
+        onToggleMap={handleToggleMapMobile}
         onScrollHome={scrollToExplore}
         notificationCount={notificationCount}
         messageCount={messageCount}
@@ -1346,8 +1358,9 @@ export default function App() {
         .btn-secondary{ @apply px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200; }
       `}</style>
 
-      <Toaster 
-        position="top-right"
+      <Toaster
+        position="top-center"
+        containerClassName="!top-[max(0.75rem,env(safe-area-inset-top))] md:!top-4 md:!right-4 md:!left-auto"
         toastOptions={{
           duration: 4000,
           style: {
@@ -1358,31 +1371,63 @@ export default function App() {
         }}
       />
 
-      <header className="relative border-b border-rial-gold/40 bg-gradient-to-r from-white/90 via-rial-gold-soft/25 to-white/90 px-4 py-4 shadow-sm shadow-rial-accent/10 backdrop-blur-md dark:border-rial-accent/20 dark:from-slate-950/95 dark:via-rial-navy/40 dark:to-slate-950/95 md:px-6 md:py-5">
+      <header className="relative border-b border-rial-gold/40 bg-gradient-to-r from-white/90 via-rial-gold-soft/25 to-white/90 px-3 py-3 shadow-sm shadow-rial-accent/10 backdrop-blur-md dark:border-rial-accent/20 dark:from-slate-950/95 dark:via-rial-navy/40 dark:to-slate-950/95 sm:px-4 md:px-6 md:py-5">
         <div className="rial-accent-bar absolute inset-x-0 top-0 opacity-80" aria-hidden />
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
-          <RialBrand
-            name={t('app.name')}
-            tagline={t('app.tagline')}
-            size="xl"
-            showLabel={false}
-            showTagline={false}
-            surface={darkMode ? 'dark' : 'light'}
-            className="min-w-0 shrink-0"
-          />
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Globe className="h-4 w-4 shrink-0 text-rial-muted dark:text-slate-400" aria-hidden />
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-4">
+          <div className="flex min-w-0 items-center justify-between gap-2 md:justify-start">
+            <RialBrand
+              name={t('app.name')}
+              tagline={t('app.tagline')}
+              size="header"
+              showLabel={false}
+              showTagline={false}
+              surface={darkMode ? 'dark' : 'light'}
+              className="min-w-0 shrink"
+            />
+            <div className="flex shrink-0 items-center gap-1.5 md:hidden">
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileNavTab('profile')
+                    setShowNotifications(true)
+                  }}
+                  className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-rial-gold/35 bg-white/90 text-rial-navy dark:border-slate-600 dark:bg-slate-800 dark:text-rial-cream"
+                  aria-label={t('app.sidebar.notifications')}
+                >
+                  <Bell className="h-5 w-5" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                      {notificationCount > 9 ? '9+' : notificationCount}
+                    </span>
+                  )}
+                </button>
+              )}
+              <select
+                value={getAppLanguage()}
+                onChange={(e) => setAppLanguage(e.target.value)}
+                className="h-10 max-w-[5.5rem] rounded-xl border border-rial-cream-dark/60 bg-white px-2 py-1 text-xs text-rial-ink focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                title={t('profile.language')}
+                aria-label={t('profile.language')}
+              >
+                <option value="es">{t('profile.spanish')}</option>
+                <option value="en">{t('profile.english')}</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 md:w-auto">
+            <Globe className="hidden h-4 w-4 shrink-0 text-rial-muted dark:text-slate-400 md:block" aria-hidden />
             <select
               value={getAppLanguage()}
               onChange={(e) => setAppLanguage(e.target.value)}
-              className="rounded-xl border border-rial-cream-dark/60 bg-white px-3 py-2 text-sm text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+              className="hidden rounded-xl border border-rial-cream-dark/60 bg-white px-3 py-2 text-sm text-rial-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 md:block"
               title={t('profile.language')}
               aria-label={t('profile.language')}
             >
               <option value="es">{t('profile.spanish')}</option>
               <option value="en">{t('profile.english')}</option>
             </select>
-            <div className="min-w-0 max-w-full sm:max-w-xl">
+            <div className="min-w-0 w-full max-w-full md:max-w-xl">
               <AuthPanel
                 user={user}
                 token={token}
@@ -1400,9 +1445,9 @@ export default function App() {
 
       {/* Navegación por rol: renta / broker / compliance */}
       {user && (
-        <nav className="mx-auto max-w-6xl border-b border-rial-gold/30 bg-gradient-to-r from-rial-sky/40 via-white/70 to-rial-sky/40 px-4 py-2 dark:border-rial-accent/15 dark:from-slate-900/60 dark:via-slate-900/40 dark:to-slate-900/60">
+        <nav className="mx-auto max-w-6xl border-b border-rial-gold/30 bg-gradient-to-r from-rial-sky/40 via-white/70 to-rial-sky/40 px-3 py-2 dark:border-rial-accent/15 dark:from-slate-900/60 dark:via-slate-900/40 dark:to-slate-900/60 md:px-4">
           {user.role === 'tenant' && (
-            <div className="flex flex-wrap gap-2 text-xs">
+            <div className="rial-nav-scroll flex gap-2 overflow-x-auto pb-0.5 text-xs [-webkit-overflow-scrolling:touch]">
               {[
                 { key: 'explore', label: t('nav.renter.explore') },
                 { key: 'saved', label: t('nav.renter.saved') },
@@ -1415,7 +1460,7 @@ export default function App() {
                 <button
                   key={item.key}
                   className={classNames(
-                    'px-3 py-1 rounded-full border text-xs',
+                    'shrink-0 whitespace-nowrap px-3 py-1 rounded-full border text-xs',
                     renterNav === item.key
                       ? 'border-rial-navy bg-rial-navy text-rial-cream'
                       : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
@@ -1446,7 +1491,7 @@ export default function App() {
           )}
 
           {(user.role === 'broker' || user.role === 'broker_admin') && (
-            <div className="flex flex-wrap gap-2 text-xs">
+            <div className="rial-nav-scroll flex gap-2 overflow-x-auto pb-0.5 text-xs [-webkit-overflow-scrolling:touch]">
               {[
                 { key: 'dashboard', label: t('nav.broker.dashboard') },
                 { key: 'leads', label: t('nav.broker.leads') },
@@ -1461,7 +1506,7 @@ export default function App() {
                 <button
                   key={item.key}
                   className={classNames(
-                    'px-3 py-1 rounded-full border text-xs',
+                    'shrink-0 whitespace-nowrap px-3 py-1 rounded-full border text-xs',
                     brokerNav === item.key
                       ? 'border-rial-navy bg-rial-navy text-rial-cream'
                       : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
@@ -1488,7 +1533,7 @@ export default function App() {
           )}
 
           {(user.role === 'compliance_admin' || user.role === 'admin') && (
-            <div className="flex flex-wrap gap-2 text-xs mt-2">
+            <div className="rial-nav-scroll mt-2 flex gap-2 overflow-x-auto pb-0.5 text-xs [-webkit-overflow-scrolling:touch]">
               {[
                 { key: 'brokerVerifications', label: t('nav.compliance.brokerVerifications') },
                 { key: 'listingsReview', label: t('nav.compliance.listingsReview') },
@@ -1500,7 +1545,7 @@ export default function App() {
                 <button
                   key={item.key}
                   className={classNames(
-                    'px-3 py-1 rounded-full border text-xs',
+                    'shrink-0 whitespace-nowrap px-3 py-1 rounded-full border text-xs',
                     complianceNav === item.key
                       ? 'border-rial-navy bg-rial-navy text-rial-cream'
                       : 'border-rial-gold/35 bg-white/90 text-rial-ink hover:border-rial-accent/50 hover:bg-rial-gold-soft/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-rial-accent/40'
@@ -1549,7 +1594,7 @@ export default function App() {
         </nav>
       )}
 
-      <main className="mx-auto max-w-6xl flex-1 space-y-6 px-4 pb-16">
+      <main className="mx-auto max-w-6xl flex-1 space-y-5 px-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-1 sm:space-y-6 sm:px-4 md:pb-16 md:pt-0">
         <div id="rial-explore">
         <Suspense fallback={<LoadingSpinner text={t('app.loadingFilters')} />}>
           <AdvancedFilters
@@ -1566,7 +1611,7 @@ export default function App() {
               load(resetFilters)
             }, [load, setFilters])}
             showMap={showMap}
-            onToggleMap={useCallback(() => setShowMap(!showMap), [showMap])}
+            onToggleMap={handleToggleMapMobile}
           />
         </Suspense>
         </div>
@@ -1619,7 +1664,7 @@ export default function App() {
             {propertiesError}
           </div>
         ) : showMap ? (
-          <div className="h-[min(70vh,640px)] rounded-2xl overflow-hidden">
+          <div className="h-[min(52vh,420px)] overflow-hidden rounded-2xl md:h-[min(70vh,640px)]">
             {(() => {
               const validProperties = items
                 .filter((item) => Boolean(item?.property))
@@ -1663,7 +1708,7 @@ export default function App() {
           </div>
         ) : (
           <motion.div 
-            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
             layout
           >
             <AnimatePresence>
@@ -1693,7 +1738,7 @@ export default function App() {
         {/* Paginación inferior */}
         {!loading && items.length > 0 && (
           <motion.div 
-            className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700"
+            className="mt-8 flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -1738,12 +1783,8 @@ export default function App() {
           <motion.button
             type="button"
             onClick={() => setShowChat(true)}
-            className="pointer-events-auto flex max-w-[min(20rem,calc(100vw-1.25rem))] items-center gap-2.5 rounded-2xl border border-rial-gold/45 bg-rial-navy px-4 py-3 text-sm font-medium text-rial-cream shadow-xl transition-colors hover:bg-rial-navy-light focus:outline-none focus-visible:ring-2 focus-visible:ring-rial-gold focus-visible:ring-offset-2 focus-visible:ring-offset-rial-cream dark:focus-visible:ring-offset-slate-950 sm:gap-3 sm:px-5 sm:py-3.5"
+            className="pointer-events-auto fixed z-[60000] flex max-w-[min(20rem,calc(100vw-1.25rem))] items-center gap-2 rounded-2xl border border-rial-gold/45 bg-rial-navy px-3 py-2.5 text-sm font-medium text-rial-cream shadow-xl transition-colors hover:bg-rial-navy-light focus:outline-none focus-visible:ring-2 focus-visible:ring-rial-gold bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-[max(0.75rem,env(safe-area-inset-right,0px))] md:bottom-5 md:right-4 md:gap-3 md:px-5 md:py-3.5 dark:focus-visible:ring-offset-slate-950"
             style={{
-              position: 'fixed',
-              zIndex: 60000,
-              right: 'max(1rem, env(safe-area-inset-right, 0px))',
-              bottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
               boxShadow: '0 12px 36px -10px rgba(11, 22, 35, 0.55)',
             }}
             initial={{ opacity: 0, y: 16 }}
@@ -1760,6 +1801,36 @@ export default function App() {
         )}
 
       </div>
+
+      <MobileBottomNav
+        user={user}
+        showMap={showMap}
+        activeTab={mobileNavTab}
+        messageCount={messageCount}
+        notificationCount={notificationCount}
+        onExplore={scrollToExplore}
+        onToggleMap={handleToggleMapMobile}
+        onFavorites={() => {
+          if (!user) {
+            toast.error(t('app.sidebar.loginRequired'))
+            return
+          }
+          setMobileNavTab('favorites')
+          setShowFavorites(true)
+        }}
+        onMessages={() => {
+          if (!user) {
+            toast.error(t('app.sidebar.loginRequired'))
+            return
+          }
+          setMobileNavTab('messages')
+          setShowChat(true)
+        }}
+        onProfile={() => {
+          setMobileNavTab('profile')
+          if (user) setShowUserProfile(true)
+        }}
+      />
 
       <AnimatePresence>
         {openId && <PropertyDetail id={openId} onClose={handleClosePropertyDetail} token={token} user={user} />}
