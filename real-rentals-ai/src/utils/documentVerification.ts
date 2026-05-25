@@ -26,7 +26,7 @@ const MIN_IMAGE_HEIGHT = 250;
 const ASPECT_RATIO_MIN = 0.5;
 const ASPECT_RATIO_MAX = 3.5;
 
-function parseDataUrl(url: string): { mime: string; extension: string; buffer: Buffer } | null {
+export function parseDataUrl(url: string): { mime: string; extension: string; buffer: Buffer } | null {
   if (!url.startsWith('data:')) return null;
   const match = url.match(/^data:([^;]+);base64,([\s\S]+)$/);
   if (!match) return null;
@@ -61,7 +61,7 @@ function isValidUrl(url: string): boolean {
  * Obtiene el buffer de la imagen desde data URL o URL pública.
  * Para verificación de contenido solo aceptamos imágenes (no PDF).
  */
-async function getImageBuffer(documentUrl: string): Promise<{ buffer: Buffer; extension: string } | null> {
+export async function getImageBuffer(documentUrl: string): Promise<{ buffer: Buffer; extension: string } | null> {
   const isDataUrl = documentUrl.startsWith('data:');
   if (isDataUrl) {
     const parsed = parseDataUrl(documentUrl);
@@ -82,7 +82,7 @@ async function getImageBuffer(documentUrl: string): Promise<{ buffer: Buffer; ex
 /**
  * Obtiene dimensiones de la imagen. Devuelve null si no es una imagen soportada.
  */
-function getImageDimensions(buffer: Buffer): { width: number; height: number } | null {
+export function getImageDimensions(buffer: Buffer): { width: number; height: number } | null {
   try {
     const dims = imageSize(buffer);
     if (dims.width && dims.height) return { width: dims.width, height: dims.height };
@@ -95,7 +95,7 @@ function getImageDimensions(buffer: Buffer): { width: number; height: number } |
 /**
  * Ejecuta OCR sobre el buffer de imagen usando Tesseract.js.
  */
-async function runOcr(imageBuffer: Buffer): Promise<string> {
+export async function runOcr(imageBuffer: Buffer): Promise<string> {
   const { createWorker } = await import('tesseract.js');
   const worker = await createWorker('spa+eng', 1, { logger: () => {} });
   try {

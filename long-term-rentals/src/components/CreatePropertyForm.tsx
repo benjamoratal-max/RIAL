@@ -215,18 +215,23 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
       setMapPin(null)
       setIsExpanded(false)
       onCreated?.()
-      toast.success(t('createProperty.publishedSuccess'))
+      toast.success(t('createProperty.publishedVerified', { defaultValue: t('createProperty.publishedSuccess') }))
     } catch (error: any) {
       const details = error?.details as Array<{ path?: string; message?: string }> | undefined
-      if (Array.isArray(details) && details.length > 0) {
-        const errorMap: { [key: string]: string } = {}
-        details.forEach((d) => {
-          const field = d.path?.split('.')[0] || 'form'
-          errorMap[field] = d.message || error.message
+      const failureMessages = Array.isArray(details)
+        ? details.map((d) => d.message).filter(Boolean) as string[]
+        : []
+      if (failureMessages.length > 0) {
+        const errorMap: { [key: string]: string } = { listing: failureMessages[0] }
+        details!.forEach((d, i) => {
+          const field = d.path?.split('.')[0] || 'listing'
+          if (d.message) errorMap[field === 'listing' && i > 0 ? `listing_${i}` : field] = d.message
         })
         setErrors(errorMap)
+        failureMessages.slice(0, 4).forEach((msg) => toast.error(msg, { duration: 7000 }))
+      } else {
+        toast.error(error.message || t('createProperty.publishError'))
       }
-      toast.error(error.message || t('createProperty.publishError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -293,6 +298,16 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
       </div>
 
       {statusBanner()}
+
+      {canPublish && (
+        <p className="mb-3 text-xs text-rial-muted dark:text-slate-400">{t('createProperty.autoVerificationHint')}</p>
+      )}
+
+      {errors.listing && (
+        <p className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200">
+          {errors.listing}
+        </p>
+      )}
 
       <AnimatePresence>
         {isExpanded && canPublish && (
@@ -481,10 +496,16 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
                 </div>
                 <input
                   type="file"
-                  accept="image/*,.pdf,application/pdf"
+                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
                   onChange={(e) => {
-                    setOwnerDniDocument(e.target.files?.[0] || null)
+                    const f = e.target.files?.[0]
+                    if (f && !f.type.startsWith('image/')) {
+                      toast.error(t('createProperty.ownerDniImageOnly'))
+                      e.target.value = ''
+                      return
+                    }
+                    setOwnerDniDocument(f || null)
                     clearFileErrors('ownerDniDocument')
                     e.target.value = ''
                   }}

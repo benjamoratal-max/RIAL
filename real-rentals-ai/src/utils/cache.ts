@@ -51,6 +51,15 @@ class SimpleCache {
     this.cache.delete(key);
   }
 
+  /** Elimina todas las claves que empiezan con un prefijo (p. ej. `properties:`). */
+  deleteByPrefix(prefix: string): void {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
   /**
    * Limpiar todo el caché
    */

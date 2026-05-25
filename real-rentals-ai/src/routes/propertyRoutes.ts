@@ -12,6 +12,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { cache, CacheKeys } from '../utils/cache';
 import { getSuggestedPricing } from '../services/pricingService';
 import { checkDuplicateProperty, saveDuplicateAlerts, getDuplicateAlertsForProperty } from '../services/duplicateDetectionService';
+import { verifyListingForPublish } from '../services/listingVerificationService';
 import { enrichMiamiListingsFromRentcast, enrichMiamiListingsWithAIGeneratedPhotos, enrichMiamiListingsWithStreetView, resetMiamiListingsPhotosWithAIGenerated, syncMiamiRealListings } from '../services/realListingsService';
 import { parsePropertySearchQuery } from '../utils/searchQueryParser';
 import { schedulePropertyVisit } from '../services/visitSchedulingService';
@@ -419,6 +420,35 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
     return res.status(400).json({ error: 'title, price y location son obligatorios' });
   }
 
+  if (!ownerDniDocumentUrl || !contractOrTitleUrl || !videoTourUrl) {
+    return res.status(400).json({
+      error: 'DNI del propietario, contrato/título y video tour son obligatorios para publicar.',
+    });
+  }
+
+  if (!Array.isArray(images) || images.length < 8) {
+    return res.status(400).json({ error: 'Se requieren al menos 8 fotos de la propiedad.' });
+  }
+
+  const verification = await verifyListingForPublish({
+    images,
+    ownerDniDocumentUrl,
+    contractOrTitleUrl,
+    videoTourUrl,
+    latitude,
+    longitude,
+    location,
+  });
+
+  if (!verification.verified) {
+    return res.status(422).json({
+      error: 'La publicación no pasó la verificación automática. Revisá fotos y documentos.',
+      code: 'LISTING_VERIFICATION_FAILED',
+      verification,
+      details: verification.failures.map((message) => ({ path: 'listing', message })),
+    });
+  }
+
   try {
     const newProperty = await prisma.property.create({
       data: {
@@ -435,6 +465,7 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
         videoTourUrl: videoTourUrl ?? null,
         ownerDniDocumentUrl: ownerDniDocumentUrl ?? null,
         contractOrTitleUrl: contractOrTitleUrl ?? null,
+        verified: true,
         // ownerId actúa como brokerId (dueño operativo del listing)
         ...(ownerId ? { ownerId } : {} as any),
         images: Array.isArray(images) && images.length > 0
@@ -444,8 +475,8 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
       include: { images: true, reviews: true, bookings: true },
     });
     
-    // Invalidar caché de propiedades
     cache.delete(CacheKeys.property(newProperty.id));
+    cache.deleteByPrefix('properties:');
     
     // Notificar a los inquilinos en background (no bloquea la respuesta)
     setImmediate(() => {
@@ -470,8 +501,16 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
       images: newProperty.images ? newProperty.images.map((img: any) => img.url) : []
     };
 
-    logger.info(`Propiedad creada: ${newProperty.title}`, 'Property', { propertyId: newProperty.id, ownerId });
-    res.status(201).json({ ...propertyWithUrls, duplicateAlerts });
+    logger.info(`Propiedad creada y verificada: ${newProperty.title}`, 'Property', {
+      propertyId: newProperty.id,
+      ownerId,
+      verificationScore: verification.score,
+    });
+    res.status(201).json({
+      ...propertyWithUrls,
+      duplicateAlerts,
+      verification: { verified: true, score: verification.score },
+    });
   } catch (error) {
     logger.error('Error al crear propiedad', 'Property', error as Error, { title, ownerId });
     throw error; // Dejar que el error handler lo maneje
