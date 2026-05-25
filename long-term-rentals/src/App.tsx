@@ -1490,7 +1490,7 @@ export default function App() {
             </div>
           )}
 
-          {(user.role === 'broker' || user.role === 'broker_admin') && (
+          {(user.role === 'broker' || user.role === 'broker_admin' || user.role === 'admin') && (
             <div className="rial-nav-scroll flex gap-2 overflow-x-auto pb-0.5 text-xs [-webkit-overflow-scrolling:touch]">
               {[
                 { key: 'dashboard', label: t('nav.broker.dashboard') },

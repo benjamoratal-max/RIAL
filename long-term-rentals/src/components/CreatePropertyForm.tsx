@@ -56,10 +56,12 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
   const [brokerProfile, setBrokerProfile] = useState<BrokerProfileState>(null)
   const [brokerProfileLoading, setBrokerProfileLoading] = useState(false)
 
+  const isAdminPublisher = currentUser?.role === 'admin'
   const isBrokerRole =
     currentUser?.role === 'broker' ||
     currentUser?.role === 'broker_admin' ||
     currentUser?.role === 'broker_applicant'
+  const canUsePublishForm = isAdminPublisher || isBrokerRole
 
   const brokerStatus =
     brokerProfile?.verificationStatus ||
@@ -67,7 +69,9 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
     currentUser?.brokerVerificationStatus ||
     null
 
-  const canPublish = !!currentUser && isBrokerRole && brokerStatus === 'approved'
+  const canPublish =
+    !!currentUser &&
+    (isAdminPublisher || (isBrokerRole && brokerStatus === 'approved'))
 
   const selectedRentalMonths = useMemo(
     () => RENTAL_MONTH_OPTIONS.filter((m) => rentalMonths[m]),
@@ -75,7 +79,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
   )
 
   useEffect(() => {
-    if (!token || !isBrokerRole) return
+    if (!token || !isBrokerRole || isAdminPublisher) return
     let cancelled = false
     setBrokerProfileLoading(true)
     api('/api/brokers/me', { token })
@@ -92,7 +96,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
     return () => {
       cancelled = true
     }
-  }, [token, isBrokerRole, currentUser?.id])
+  }, [token, isBrokerRole, isAdminPublisher, currentUser?.id])
 
   useEffect(() => {
     const urls = imageFiles.map((f) => URL.createObjectURL(f))
@@ -127,7 +131,7 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
     clearFileErrors('rentalMonths')
   }
 
-  if (!currentUser || !isBrokerRole) {
+  if (!currentUser || !canUsePublishForm) {
     return null
   }
 
@@ -229,6 +233,13 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
   }
 
   const statusBanner = () => {
+    if (isAdminPublisher) {
+      return (
+        <p className="mb-3 rounded-xl border border-rial-gold/40 bg-rial-gold-soft/40 px-3 py-2 text-sm text-rial-navy dark:border-rial-accent/30 dark:bg-slate-800/60 dark:text-rial-cream">
+          {t('createProperty.adminCanPublish')}
+        </p>
+      )
+    }
     if (brokerProfileLoading) {
       return (
         <p className="mb-3 text-sm text-rial-muted dark:text-slate-400">{t('createProperty.checkingBrokerStatus')}</p>

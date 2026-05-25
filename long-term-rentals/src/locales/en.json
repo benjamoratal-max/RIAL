@@ -669,6 +669,7 @@
     "rentalMonthsHint": "Select at least one duration. Tenants can only choose from the options you mark.",
     "rentalMonthOption": "{{months}} months",
     "brokerApproved": "Your broker account is approved. You can publish listings.",
+    "adminCanPublish": "Administrator account: you can publish listings without broker verification.",
     "brokerPending": "Your broker application is under review. You can publish once compliance approves it.",
     "brokerRejected": "Your broker application was rejected. Contact support or compliance for details.",
     "brokerNotApplied": "Complete broker onboarding and wait for compliance approval before publishing.",

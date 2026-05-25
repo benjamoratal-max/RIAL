@@ -388,24 +388,29 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
   const role = req.user!.role;
   const userId = req.user!.id;
 
-  // Solo brokers verificados (o broker_admin) pueden crear listings en vivo
-  const isBroker = role === 'broker' || role === 'broker_admin';
-  if (!isBroker) {
-    return res.status(403).json({ error: 'Solo cuentas de broker verificadas pueden crear publicaciones. Tu cuenta requiere verificación como broker.' });
+  const canPublishListing = role === 'broker' || role === 'broker_admin' || role === 'admin';
+  if (!canPublishListing) {
+    return res.status(403).json({
+      error: 'Solo brokers aprobados o administradores pueden crear publicaciones.',
+    });
   }
 
-  // Comprobar estado de verificación de broker y vigencia de licencia
-  // Verificar perfil de broker usando tabla BrokerProfile
-  const brokerProfileForUser = await (prisma as any).brokerProfile.findUnique({
-    where: { userId },
-  });
+  if (role !== 'admin') {
+    const brokerProfileForUser = await (prisma as any).brokerProfile.findUnique({
+      where: { userId },
+    });
 
-  if (!brokerProfileForUser || brokerProfileForUser.verificationStatus !== 'approved') {
-    return res.status(403).json({ error: 'Solo brokers aprobados pueden publicar. Completa el onboarding y espera la aprobación de tu cuenta.' });
-  }
+    if (!brokerProfileForUser || brokerProfileForUser.verificationStatus !== 'approved') {
+      return res.status(403).json({
+        error: 'Solo brokers aprobados pueden publicar. Completa el onboarding y espera la aprobación de tu cuenta.',
+      });
+    }
 
-  if (brokerProfileForUser.licenseExpiration && brokerProfileForUser.licenseExpiration < new Date()) {
-    return res.status(403).json({ error: 'Tu licencia de broker está vencida. Renueva la licencia para volver a publicar.' });
+    if (brokerProfileForUser.licenseExpiration && brokerProfileForUser.licenseExpiration < new Date()) {
+      return res.status(403).json({
+        error: 'Tu licencia de broker está vencida. Renueva la licencia para volver a publicar.',
+      });
+    }
   }
 
   const ownerId = userId;

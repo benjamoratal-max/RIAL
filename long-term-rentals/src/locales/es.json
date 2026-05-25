@@ -669,6 +669,7 @@
     "rentalMonthsHint": "Indicá al menos una duración. Los inquilinos solo podrán elegir entre las que marques.",
     "rentalMonthOption": "{{months}} meses",
     "brokerApproved": "Tu cuenta de broker está aprobada. Podés publicar propiedades.",
+    "adminCanPublish": "Cuenta de administrador: podés publicar propiedades sin verificación de broker.",
     "brokerPending": "Tu solicitud de broker está en revisión. Cuando compliance la apruebe podrás publicar.",
     "brokerRejected": "Tu solicitud de broker fue rechazada. Contactá a soporte o compliance para más información.",
     "brokerNotApplied": "Completá el onboarding de broker y esperá la aprobación de compliance para publicar.",
