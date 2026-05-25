@@ -30,8 +30,8 @@ import {
   AnimatedCounter,
   classNames 
 } from './components/UI'
-import { RentalProcess } from './components/RentalProcess'
 import { RialBrand } from './components/RialBrand'
+const RentalProcess = lazy(() => import('./components/RentalProcess').then(m => ({ default: m.RentalProcess })))
 // Lazy loading de componentes pesados para mejorar el rendimiento inicial
 const FavoritesSystem = lazy(() => import('./components/FavoritesSystem').then(m => ({ default: m.FavoritesSystem })))
 const AdvancedFilters = lazy(() => import('./components/AdvancedFilters').then(m => ({ default: m.AdvancedFilters })))
@@ -113,57 +113,11 @@ function normalizeGeoProperty(property: any, index: number) {
 
 
 
-function FiltersBar({ filters, setFilters, onSearch }: any) {
-  const { t } = useTranslation()
-  return (
-    <motion.div 
-      className="rounded-2xl border border-rial-cream-dark/40 bg-white/90 p-4 shadow-lg backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/85"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="grid md:grid-cols-5 gap-3">
-        <Input 
-          placeholder={t('filters.location')} 
-          value={filters.location} 
-          onChange={(value) => setFilters({ ...filters, location: value })}
-          icon={<MapPin className="w-4 h-4" />}
-        />
-        <Input 
-          type="number"
-          placeholder={t('filters.minPrice')} 
-          value={filters.minPrice} 
-          onChange={(value) => setFilters({ ...filters, minPrice: value })}
-          icon={<DollarSign className="w-4 h-4" />}
-        />
-        <Input 
-          type="number"
-          placeholder={t('filters.maxPrice')} 
-          value={filters.maxPrice} 
-          onChange={(value) => setFilters({ ...filters, maxPrice: value })}
-          icon={<DollarSign className="w-4 h-4" />}
-        />
-        <select 
-          className="w-full rounded-xl border border-rial-cream-dark/50 bg-white px-3 py-2 text-rial-navy transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-rial-gold dark:border-slate-600 dark:bg-slate-900 dark:text-rial-cream"
-          value={filters.sort} 
-          onChange={e => setFilters({ ...filters, sort: e.target.value })}
-        >
-          <option value="">{t('filters.sort')}</option>
-          <option value="price_asc">{t('filters.sortPriceAsc')}</option>
-          <option value="price_desc">{t('filters.sortPriceDesc')}</option>
-        </select>
-        <Button onClick={onSearch} className="w-full" icon={<Search className="w-4 h-4" />}>
-          {t('filters.search')}
-        </Button>
-      </div>
-    </motion.div>
-  )
-}
-
-
-function PropertyDetail({ id, onClose, token, user }: any) {
+function PropertyDetail({ id, onClose, token, user, initialItem }: { id: number; onClose: () => void; token?: string | null; user: any; initialItem?: PropertySummary | null }) {
   const { t, i18n } = useTranslation()
-  const [summary, setSummary] = useState<PropertySummary | null>(null)
+  const [summary, setSummary] = useState<PropertySummary | null>(
+    initialItem?.property?.id === id ? initialItem : null
+  )
   const [loadError, setLoadError] = useState(false)
   const [review, setReview] = useState({ rating: 5 as any, comment: '' })
   const [showRentalProcess, setShowRentalProcess] = useState(false)
@@ -174,7 +128,9 @@ function PropertyDetail({ id, onClose, token, user }: any) {
 
   useEffect(() => {
     let mounted = true
-    setSummary(null)
+    if (initialItem?.property?.id !== id) {
+      setSummary(null)
+    }
     setLoadError(false)
     ;(async () => {
       try {
@@ -182,13 +138,13 @@ function PropertyDetail({ id, onClose, token, user }: any) {
         if (mounted) setSummary(data || null)
       } catch (error) {
         if (!mounted) return
-        setLoadError(true)
+        if (!initialItem || initialItem.property?.id !== id) setLoadError(true)
       }
     })()
     return () => {
       mounted = false
     }
-  }, [id])
+  }, [id, initialItem])
 
   // Alertas de duplicados (solo propietario o admin de esta propiedad)
   useEffect(() => {
@@ -722,7 +678,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
             <RentalProcess
               property={summary.property}
               user={user}
-              token={token}
+              token={token ?? ''}
               onClose={() => setShowRentalProcess(false)}
               onComplete={() => {
                 toast.success(t('propertyDetail.rentalProcessStarted'))
@@ -739,7 +695,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
             <PurchaseProcess
               property={summary.property}
               user={user}
-              token={token}
+              token={token ?? ''}
               onClose={() => setShowPurchaseProcess(false)}
               onComplete={() => {
                 toast.success(t('propertyDetail.purchaseProcessStarted'))
@@ -760,7 +716,7 @@ function PropertyDetail({ id, onClose, token, user }: any) {
                 title: summary.property.title,
                 location: summary.property.location
               }}
-              token={token}
+              token={token ?? ''}
               user={user}
               onClose={() => setShowScheduleVisit(false)}
               onSuccess={() => setShowScheduleVisit(false)}
@@ -771,220 +727,6 @@ function PropertyDetail({ id, onClose, token, user }: any) {
     </motion.div>
   )
 }
-
-function ChatPanel({ token, user, onClose }: any) {
-  const { t } = useTranslation()
-  const [conversations, setConversations] = useState<any[]>([])
-  const [selectedConversation, setSelectedConversation] = useState<any>(null)
-  const [messages, setMessages] = useState<any[]>([])
-  const [newMessage, setNewMessage] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (token) {
-      loadConversations()
-    }
-  }, [token])
-
-  useEffect(() => {
-    if (selectedConversation) {
-      loadMessages(selectedConversation.userId)
-    }
-  }, [selectedConversation])
-
-  async function loadConversations() {
-    try {
-      const data = await api('/api/chat/conversations', { token })
-      setConversations(data)
-    } catch (error) {
-      toast.error(getErrorMessage(error))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function loadMessages(userId: number) {
-    try {
-      const data = await api(`/api/chat/messages/${userId}`, { token })
-      setMessages(data)
-    } catch (error) {
-      toast.error(getErrorMessage(error))
-    }
-  }
-
-  async function sendMessage() {
-    if (!newMessage.trim() || !selectedConversation) return
-
-    try {
-      const message = await api('/api/chat/send', {
-        method: 'POST',
-        token,
-        body: {
-          receiverId: selectedConversation.userId,
-          content: newMessage
-        }
-      })
-      setMessages(prev => [...prev, message])
-      setNewMessage('')
-      loadConversations() // Refresh conversations to update last message
-    } catch (error) {
-      toast.error(getErrorMessage(error))
-    }
-  }
-
-  if (!user) return null
-
-  return (
-    <motion.div 
-      className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div 
-        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center p-4 border-b">
-          <div className="font-semibold text-lg text-gray-900 dark:text-white">{t('chat.title')}</div>
-          <Button variant="outline" onClick={onClose} icon={<X className="w-4 h-4" />}>
-            {t('chat.close')}
-          </Button>
-        </div>
-
-        <motion.div 
-          className="flex flex-1 overflow-hidden"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <motion.div 
-            className="w-1/3 border-r overflow-y-auto"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="p-4">
-              <div className="font-medium mb-2 text-gray-900 dark:text-white">{t('chat.conversations')}</div>
-              {loading ? (
-                <div className="text-center text-gray-500 dark:text-gray-400">{t('chat.loading')}</div>
-              ) : conversations.length === 0 ? (
-                <div className="text-center text-gray-500 dark:text-gray-400">{t('chat.none')}</div>
-              ) : (
-                conversations.map((conv, idx) => (
-                  <motion.div
-                    key={`conv-${idx}-${conv.userId || conv.userEmail || 'unknown'}`}
-                    onClick={() => setSelectedConversation(conv)}
-                    className={classNames(
-                      'p-3 rounded-xl cursor-pointer mb-2',
-                      selectedConversation?.userId === conv.userId ? 'bg-rial-cream-dark/60 dark:bg-slate-800' : 'hover:bg-rial-cream-dark/30 dark:hover:bg-slate-800/80'
-                    )}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: conversations.indexOf(conv) * 0.05 }}
-                  >
-                    <div className="font-medium text-gray-900 dark:text-white">{conv.userName}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 truncate">{conv.lastMessage}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(conv.lastMessageTime).toLocaleString()}
-                      {conv.unreadCount > 0 && (
-                        <span className="ml-2 rounded-full bg-rial-navy px-2 py-0.5 text-xs text-rial-cream ring-1 ring-rial-gold/40">
-                          {conv.unreadCount}
-                        </span>
-                      )}
-                    </div>
-                  </motion.div>
-                ))
-              )}
-            </div>
-          </motion.div>
-
-          {/* Mensajes */}
-          <motion.div 
-            className="flex-1 flex flex-col"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            {selectedConversation ? (
-              <>
-                <div className="p-4 border-b">
-                  <div className="font-medium text-gray-900 dark:text-white">{selectedConversation.userName}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">{selectedConversation.userEmail}</div>
-                </div>
-
-                <motion.div 
-                  className="flex-1 overflow-y-auto p-4 space-y-2"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  {messages.map((message, idx) => (
-                    <motion.div
-                      key={`msg-${idx}-${message.id || message.createdAt || 'unknown'}`}
-                      className={classNames(
-                        'max-w-[70%] p-3 rounded-xl',
-                        message.senderId === user.id
-                          ? 'ml-auto bg-rial-navy text-rial-cream'
-                          : 'bg-rial-cream-dark/50 text-rial-ink dark:bg-slate-800 dark:text-slate-200'
-                      )}
-                      initial={{ opacity: 0, x: message.senderId === user.id ? 20 : -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: messages.indexOf(message) * 0.05 }}
-                    >
-                      <div className="text-sm">{message.content}</div>
-                      <div className={classNames(
-                        'text-xs mt-1',
-                        message.senderId === user.id ? 'text-rial-cream/80 dark:text-slate-300' : 'text-rial-muted dark:text-slate-400'
-                      )}>
-                        {new Date(message.createdAt).toLocaleString()}
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-
-                <motion.div 
-                  className="p-4 border-t"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <div className="flex gap-2">
-                    <Input
-                      type="text"
-                      value={newMessage}
-                      onChange={(value) => setNewMessage(value)}
-                      placeholder={t('chat.writeMessage')}
-                      icon={<Search className="w-4 h-4" />}
-                    />
-                    <Button onClick={sendMessage} icon={<Send className="w-4 h-4" />}>
-                      {t('chat.send')}
-                    </Button>
-                  </div>
-                </motion.div>
-              </>
-            ) : (
-              <motion.div 
-                className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                {t('chat.selectConversation')}
-              </motion.div>
-            )}
-          </motion.div>
-        </motion.div>
-      </motion.div>
-    </motion.div>
-  )
-}
-
-
 
 export default function App() {
   const { t } = useTranslation()
@@ -1036,7 +778,6 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showChat, setShowChat] = useState(false)
   const [showPayments, setShowPayments] = useState(false)
-  const [showFavorites, setShowFavorites] = useState(false)
   const [showUserProfile, setShowUserProfile] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [showAlerts, setShowAlerts] = useState(false)
@@ -1121,7 +862,7 @@ export default function App() {
       const pageSize = 200
       const authOpts = token ? { token } : {}
       const first = await api(`/api/ai/property-catalog?verified=true&page=1&pageSize=${pageSize}`, authOpts)
-      const totalPages = Math.min(250, Math.max(1, Number(first?.totalPages) || 1))
+      const totalPages = Math.min(8, Math.max(1, Number(first?.totalPages) || 1))
       const allRows: any[] = [...(Array.isArray(first?.items) ? first.items : [])]
 
       const CONCURRENCY = 6
@@ -1143,27 +884,11 @@ export default function App() {
     }
   }, [token])
 
-  // Catálogo del asistente: no compite con la primera carga de listados (idle + timeout).
+  // Catálogo del asistente: solo al abrir el chat (evita cientos de requests al inicio).
   useEffect(() => {
-    let cancelled = false
-    const run = () => {
-      if (!cancelled) void loadAssistantCatalog()
-    }
-    let idleHandle: number | undefined
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-    if (typeof requestIdleCallback !== 'undefined') {
-      idleHandle = requestIdleCallback(run, { timeout: 5000 }) as unknown as number
-    } else {
-      timeoutHandle = setTimeout(run, 600)
-    }
-    return () => {
-      cancelled = true
-      if (idleHandle !== undefined && typeof cancelIdleCallback !== 'undefined') {
-        cancelIdleCallback(idleHandle)
-      }
-      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle)
-    }
-  }, [loadAssistantCatalog])
+    if (!showChat) return
+    void loadAssistantCatalog()
+  }, [showChat, loadAssistantCatalog])
 
   const load = useCallback(async (customFilters?: any) => {
     loadAbortRef.current?.abort()
@@ -1226,6 +951,31 @@ export default function App() {
       }
     }
   }, [filters])
+
+  const handleFilterSearch = useCallback(() => {
+    const nextFilters = { ...filters, page: 1 }
+    setFilters(nextFilters)
+    load(nextFilters)
+  }, [filters, load])
+
+  const handleFilterReset = useCallback(() => {
+    const resetFilters = { ...DEFAULT_FILTERS }
+    setFilters(resetFilters)
+    load(resetFilters)
+  }, [load])
+
+  const handlePropertyCreated = useCallback(() => {
+    load(filters)
+  }, [load, filters])
+
+  const openPropertyInitialItem = useMemo(
+    () => (openId ? items.find((it) => it.property?.id === openId) ?? null : null),
+    [openId, items]
+  )
+
+  const canPublishProperty =
+    !!user &&
+    (user.role === 'broker' || user.role === 'broker_admin' || user.role === 'admin')
 
   // Cargar propiedades cuando cambian los filtros (ubicación/query con debounce para no disparar en cada tecla)
   useEffect(() => {
@@ -1470,7 +1220,8 @@ export default function App() {
                     setRenterNav(k)
                     // Conectar con vistas/modales existentes
                     if (k === 'saved') {
-                      setShowFavorites(true)
+                      scrollToExplore()
+                      toast(t('app.sidebar.favorites'), { icon: '❤️' })
                     } else if (k === 'messages') {
                       setShowChat(true)
                     } else if (k === 'showings') {
@@ -1600,25 +1351,19 @@ export default function App() {
           <AdvancedFilters
             filters={filters}
             setFilters={setFilters}
-            onSearch={useCallback(() => {
-              const nextFilters = { ...filters, page: 1 }
-              setFilters(nextFilters)
-              load(nextFilters)
-            }, [filters, load, setFilters])}
-            onReset={useCallback(() => {
-              const resetFilters = { ...DEFAULT_FILTERS }
-              setFilters(resetFilters)
-              load(resetFilters)
-            }, [load, setFilters])}
+            onSearch={handleFilterSearch}
+            onReset={handleFilterReset}
             showMap={showMap}
             onToggleMap={handleToggleMapMobile}
           />
         </Suspense>
         </div>
 
-        <Suspense fallback={null}>
-          <CreatePropertyForm token={token} currentUser={user} onCreated={useCallback(() => load(filters), [load, filters])} />
-        </Suspense>
+        {canPublishProperty && (
+          <Suspense fallback={null}>
+            <CreatePropertyForm token={token} currentUser={user} onCreated={handlePropertyCreated} />
+          </Suspense>
+        )}
 
         <motion.div 
           className="flex items-center justify-between"
@@ -1712,24 +1457,17 @@ export default function App() {
             layout
           >
             <AnimatePresence>
-              {items.map((it, index) => (
-                <motion.div
+              {items.map((it) => (
+                <PropertyCard
                   key={it.property.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <PropertyCard 
-                    item={it} 
-                    onOpen={() => handleOpenPropertyDetail(it.property.id)} 
-                    token={token}
-                    user={user}
-                    comparisonIds={comparisonIds}
-                    onAddToComparison={handleAddToComparison}
-                    onRemoveFromComparison={handleRemoveFromComparison}
-                  />
-                </motion.div>
+                  item={it}
+                  onOpen={() => handleOpenPropertyDetail(it.property.id)}
+                  token={token}
+                  user={user}
+                  comparisonIds={comparisonIds}
+                  onAddToComparison={handleAddToComparison}
+                  onRemoveFromComparison={handleRemoveFromComparison}
+                />
               ))}
             </AnimatePresence>
           </motion.div>
@@ -1816,7 +1554,8 @@ export default function App() {
             return
           }
           setMobileNavTab('favorites')
-          setShowFavorites(true)
+          scrollToExplore()
+          toast.success(t('app.sidebar.favorites'))
         }}
         onMessages={() => {
           if (!user) {
@@ -1833,12 +1572,21 @@ export default function App() {
       />
 
       <AnimatePresence>
-        {openId && <PropertyDetail id={openId} onClose={handleClosePropertyDetail} token={token} user={user} />}
+        {openId && (
+          <PropertyDetail
+            id={openId}
+            initialItem={openPropertyInitialItem}
+            onClose={handleClosePropertyDetail}
+            token={token}
+            user={user}
+          />
+        )}
         {showNotifications && (
           <Suspense fallback={<LoadingSpinner text={t('app.loadingNotifications')} />}>
             <NotificationPanel token={token} user={user} onClose={() => setShowNotifications(false)} />
           </Suspense>
         )}
+        {showChat && (
         <Suspense fallback={<LoadingSpinner text={t('app.loadingAssistant')} />}>
           <AIAssistant 
             isOpen={showChat}
@@ -1878,6 +1626,7 @@ export default function App() {
             }}
           />
         </Suspense>
+        )}
         {showPayments && (
           <Suspense fallback={<LoadingSpinner text={t('app.loadingPayments')} />}>
             <PaymentPanel token={token} user={user} onClose={() => setShowPayments(false)} />

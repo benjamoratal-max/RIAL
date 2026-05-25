@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   LayoutGrid,
@@ -68,7 +68,7 @@ function NavItem({
   )
 }
 
-export function MobileBottomNav({
+function MobileBottomNavComponent({
   user,
   showMap,
   activeTab,
@@ -135,3 +135,5 @@ export function MobileBottomNav({
     </nav>
   )
 }
+
+export const MobileBottomNav = memo(MobileBottomNavComponent)

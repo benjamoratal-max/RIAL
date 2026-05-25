@@ -89,7 +89,7 @@ export default defineConfig(({ mode }) => {
     },
   },
   build: {
-    target: 'es2015',
+    target: 'es2020',
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -99,12 +99,15 @@ export default defineConfig(({ mode }) => {
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          animations: ['framer-motion'],
-          icons: ['lucide-react'],
-          toast: ['react-hot-toast'],
-          i18n: ['i18next', 'react-i18next'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('leaflet') || id.includes('react-leaflet')) return 'maps'
+            if (id.includes('framer-motion')) return 'animations'
+            if (id.includes('lucide-react')) return 'icons'
+            if (id.includes('react-hot-toast')) return 'toast'
+            if (id.includes('i18next')) return 'i18n'
+            if (id.includes('react-dom') || id.includes('react/')) return 'vendor'
+          }
         },
         // Optimizar nombres de chunks
         chunkFileNames: 'assets/[name]-[hash].js',

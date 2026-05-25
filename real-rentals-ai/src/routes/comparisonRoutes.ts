@@ -34,17 +34,17 @@ router.post('/compare', async (req, res) => {
       return res.status(404).json({ error: 'Algunas propiedades no fueron encontradas' });
     }
 
-    // Calcular promedios y estadísticas para cada propiedad
-    const comparisonPromises = properties.map(async (p) => {
+    const occupiedIds = await prisma.leaseRequest.findMany({
+      where: { propertyId: { in: propertyIds }, status: 'approved' },
+      select: { propertyId: true },
+    });
+    const occupiedSet = new Set(occupiedIds.map((o) => o.propertyId));
+
+    const comparisonData = properties.map((p) => {
       const imageUrls = p.images ? p.images.map((img: any) => img.url) : [];
       const averageRating = p.reviews.length > 0
         ? p.reviews.reduce((sum, r) => sum + r.rating, 0) / p.reviews.length
         : 0;
-
-      // Verificar disponibilidad
-      const approvedLease = await prisma.leaseRequest.findFirst({
-        where: { propertyId: p.id, status: 'approved' },
-      });
 
       return {
         id: p.id,
@@ -61,12 +61,10 @@ router.post('/compare', async (req, res) => {
         verified: p.verified,
         averageRating: Number(averageRating.toFixed(2)),
         reviewsCount: p.reviews.length,
-        isAvailable: !approvedLease,
+        isAvailable: !occupiedSet.has(p.id),
         createdAt: p.createdAt,
       };
     });
-
-    const comparisonData = await Promise.all(comparisonPromises);
 
     res.json({
       properties: comparisonData,

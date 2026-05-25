@@ -47,9 +47,18 @@ export async function checkDuplicateProperty(propertyId: number): Promise<Duplic
   const tokensDesc = tokenSet(property.description);
   const allTokens = tokenSet(property.title + ' ' + property.description);
 
+  const locationToken = (property.location || '').split(/[\s,]+/).find((w) => w.length > 3) ?? '';
   const others = await prisma.property.findMany({
-    where: { id: { not: propertyId } },
+    where: {
+      id: { not: propertyId },
+      ...(locationToken
+        ? { location: { contains: locationToken } }
+        : {}),
+      createdAt: { gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) },
+    },
     select: { id: true, title: true, description: true, location: true },
+    take: 250,
+    orderBy: { createdAt: 'desc' },
   });
 
   const candidates: DuplicateCandidate[] = [];
@@ -80,15 +89,14 @@ export async function checkDuplicateProperty(propertyId: number): Promise<Duplic
 
 export async function saveDuplicateAlerts(propertyId: number, candidates: DuplicateCandidate[]): Promise<void> {
   await (prisma as any).propertyDuplicateAlert.deleteMany({ where: { propertyId } });
-  for (const c of candidates) {
-    await (prisma as any).propertyDuplicateAlert.create({
-      data: {
-        propertyId,
-        suspectedDuplicateOfId: c.propertyId,
-        similarityScore: c.similarityScore,
-      },
-    });
-  }
+  if (!candidates.length) return;
+  await (prisma as any).propertyDuplicateAlert.createMany({
+    data: candidates.map((c) => ({
+      propertyId,
+      suspectedDuplicateOfId: c.propertyId,
+      similarityScore: c.similarityScore,
+    })),
+  });
 }
 
 export async function getDuplicateAlertsForProperty(propertyId: number): Promise<any[]> {

@@ -30,6 +30,7 @@ import {
   getImageDimensions,
   parseDataUrl,
   runOcr,
+  runOcrBatch,
   verifyDocumentAutomatically,
   type VerificationResult,
 } from '../utils/documentVerification';
@@ -203,65 +204,80 @@ export async function verifyListingPhotos(imageUrls: string[]): Promise<ListingP
     };
   }
 
+  const allowedExt = new Set(['jpeg', 'jpg', 'png', 'webp']);
+
+  type PhotoCheck = {
+    ok: boolean;
+    failure?: string;
+    dimensionKey?: string;
+    hash?: string;
+    ocrSample?: { index: number; buffer: Buffer };
+  };
+
+  const checks = await Promise.all(
+    imageUrls.map(async (url, i): Promise<PhotoCheck> => {
+      const img = await getImageBuffer(url);
+      if (!img) {
+        return { ok: false, failure: `Foto ${i + 1}: no es una imagen válida (JPG/PNG).` };
+      }
+      if (!allowedExt.has(img.extension.toLowerCase())) {
+        return { ok: false, failure: `Foto ${i + 1}: no es una imagen válida (JPG/PNG).` };
+      }
+
+      const { buffer } = img;
+      if (buffer.length < LISTING_PHOTO_MIN_BYTES) {
+        return { ok: false, failure: `Foto ${i + 1}: archivo demasiado pequeño o corrupto.` };
+      }
+      if (buffer.length > LISTING_PHOTO_MAX_BYTES) {
+        return { ok: false, failure: `Foto ${i + 1}: supera el tamaño máximo por imagen.` };
+      }
+
+      const dims = getImageDimensions(buffer);
+      if (!dims) {
+        return { ok: false, failure: `Foto ${i + 1}: no se pudieron leer las dimensiones.` };
+      }
+
+      const aspect = dims.width / dims.height;
+      if (
+        dims.width < LISTING_PHOTO_MIN_WIDTH ||
+        dims.height < LISTING_PHOTO_MIN_HEIGHT ||
+        aspect < LISTING_PHOTO_ASPECT_MIN ||
+        aspect > LISTING_PHOTO_ASPECT_MAX
+      ) {
+        return {
+          ok: false,
+          failure: `Foto ${i + 1}: resolución o proporción insuficiente (mín. ${LISTING_PHOTO_MIN_WIDTH}×${LISTING_PHOTO_MIN_HEIGHT}px).`,
+        };
+      }
+
+      const sampleOcr =
+        i < 2 || i === imageUrls.length - 1 || i === Math.floor(imageUrls.length / 2);
+
+      return {
+        ok: true,
+        dimensionKey: `${dims.width}x${dims.height}`,
+        hash: partialHash(buffer),
+        ocrSample: sampleOcr ? { index: i, buffer } : undefined,
+      };
+    })
+  );
+
   const dimensionKeys = new Set<string>();
   const hashCounts = new Map<string, number>();
-  let passed = 0;
   const failures: string[] = [];
   const buffersForOcr: { index: number; buffer: Buffer }[] = [];
+  let passed = 0;
 
-  for (let i = 0; i < imageUrls.length; i++) {
-    const url = imageUrls[i];
-    const img = await getImageBuffer(url);
-    if (!img) {
-      failures.push(`Foto ${i + 1}: no es una imagen válida (JPG/PNG).`);
+  for (const c of checks) {
+    if (!c.ok) {
+      if (c.failure) failures.push(c.failure);
       continue;
     }
-
-    const allowedExt = new Set(['jpeg', 'jpg', 'png', 'webp']);
-    if (!allowedExt.has(img.extension.toLowerCase())) {
-      failures.push(`Foto ${i + 1}: no es una imagen válida (JPG/PNG).`);
-      continue;
-    }
-
-    const { buffer } = img;
-    if (buffer.length < LISTING_PHOTO_MIN_BYTES) {
-      failures.push(`Foto ${i + 1}: archivo demasiado pequeño o corrupto.`);
-      continue;
-    }
-    if (buffer.length > LISTING_PHOTO_MAX_BYTES) {
-      failures.push(`Foto ${i + 1}: supera el tamaño máximo por imagen.`);
-      continue;
-    }
-
-    const dims = getImageDimensions(buffer);
-    if (!dims) {
-      failures.push(`Foto ${i + 1}: no se pudieron leer las dimensiones.`);
-      continue;
-    }
-
-    const aspect = dims.width / dims.height;
-    if (
-      dims.width < LISTING_PHOTO_MIN_WIDTH ||
-      dims.height < LISTING_PHOTO_MIN_HEIGHT ||
-      aspect < LISTING_PHOTO_ASPECT_MIN ||
-      aspect > LISTING_PHOTO_ASPECT_MAX
-    ) {
-      failures.push(
-        `Foto ${i + 1}: resolución o proporción insuficiente (mín. ${LISTING_PHOTO_MIN_WIDTH}×${LISTING_PHOTO_MIN_HEIGHT}px).`
-      );
-      continue;
-    }
-
-    dimensionKeys.add(`${dims.width}x${dims.height}`);
-    const h = partialHash(buffer);
-    hashCounts.set(h, (hashCounts.get(h) || 0) + 1);
     passed++;
-
-    if (
-      buffersForOcr.length < LISTING_PHOTO_OCR_SAMPLE_SIZE &&
-      (i < 2 || i === imageUrls.length - 1 || i === Math.floor(imageUrls.length / 2))
-    ) {
-      buffersForOcr.push({ index: i, buffer });
+    if (c.dimensionKey) dimensionKeys.add(c.dimensionKey);
+    if (c.hash) hashCounts.set(c.hash, (hashCounts.get(c.hash) || 0) + 1);
+    if (c.ocrSample && buffersForOcr.length < LISTING_PHOTO_OCR_SAMPLE_SIZE) {
+      buffersForOcr.push(c.ocrSample);
     }
   }
 
@@ -318,22 +334,25 @@ export async function verifyListingPhotos(imageUrls: string[]): Promise<ListingP
     };
   }
 
-  for (const { index, buffer } of buffersForOcr) {
+  if (buffersForOcr.length > 0) {
     try {
-      const text = await runOcr(buffer);
-      const idHits = countKeywords(text, ID_DOCUMENT_KEYWORDS_FOR_PHOTO_REJECT);
-      if (idHits >= LISTING_PHOTO_MAX_ID_KEYWORD_HITS) {
-        return {
-          verified: false,
-          score: 0.3,
-          passed,
-          total,
-          distinctDimensions: dimensionKeys.size,
-          reason: `La foto ${index + 1} parece un documento de identidad, no un ambiente de la propiedad.`,
-        };
+      const texts = await runOcrBatch(buffersForOcr.map((b) => b.buffer));
+      for (let j = 0; j < texts.length; j++) {
+        const idHits = countKeywords(texts[j], ID_DOCUMENT_KEYWORDS_FOR_PHOTO_REJECT);
+        if (idHits >= LISTING_PHOTO_MAX_ID_KEYWORD_HITS) {
+          const index = buffersForOcr[j].index;
+          return {
+            verified: false,
+            score: 0.3,
+            passed,
+            total,
+            distinctDimensions: dimensionKeys.size,
+            reason: `La foto ${index + 1} parece un documento de identidad, no un ambiente de la propiedad.`,
+          };
+        }
       }
     } catch {
-      // OCR opcional en muestra; no bloquea si falla puntual
+      // OCR opcional en muestra
     }
   }
 

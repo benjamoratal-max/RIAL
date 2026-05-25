@@ -12,6 +12,10 @@ jest.mock('../../utils/documentVerification', () => {
   return {
     ...actual,
     runOcr: (...args: unknown[]) => mockRunOcr(...args),
+    runOcrBatch: async (bufs: Buffer[]) => {
+      const text = await mockRunOcr();
+      return bufs.map(() => text);
+    },
   };
 });
 

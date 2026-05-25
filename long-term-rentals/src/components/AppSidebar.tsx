@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { memo, useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -82,7 +82,7 @@ function RailButton({
   )
 }
 
-export function AppSidebar({
+function AppSidebarComponent({
   user,
   darkMode,
   setDarkMode,
@@ -307,3 +307,5 @@ export function AppSidebar({
     </aside>
   )
 }
+
+export const AppSidebar = memo(AppSidebarComponent)

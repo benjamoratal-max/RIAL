@@ -1,7 +1,6 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import es from './locales/es.json'
-import en from './locales/en.json'
 
 const STORAGE_KEY = 'app-language'
 
@@ -15,19 +14,30 @@ function getStoredLanguage(): string {
   return 'es'
 }
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources: {
-      es: { translation: es },
-      en: { translation: en },
-    },
-    lng: getStoredLanguage(),
-    fallbackLng: 'es',
-    interpolation: {
-      escapeValue: false,
-    },
-  })
+const initialLng = getStoredLanguage()
+
+async function ensureLanguageBundle(lng: string): Promise<void> {
+  if (lng === 'es' || i18n.hasResourceBundle('es', 'translation')) return
+  if (lng === 'en' && !i18n.hasResourceBundle('en', 'translation')) {
+    const en = await import('./locales/en.json')
+    i18n.addResourceBundle('en', 'translation', en.default, true, true)
+  }
+}
+
+i18n.use(initReactI18next).init({
+  resources: {
+    es: { translation: es },
+  },
+  lng: initialLng === 'en' ? 'es' : initialLng,
+  fallbackLng: 'es',
+  interpolation: {
+    escapeValue: false,
+  },
+})
+
+if (initialLng === 'en') {
+  void ensureLanguageBundle('en').then(() => i18n.changeLanguage('en'))
+}
 
 i18n.on('languageChanged', (lng) => {
   try {
@@ -35,11 +45,13 @@ i18n.on('languageChanged', (lng) => {
   } catch {
     // localStorage no disponible o bloqueado
   }
+  void ensureLanguageBundle(lng)
 })
 
-export function setAppLanguage(lng: string): void {
+export async function setAppLanguage(lng: string): Promise<void> {
   if (lng === 'es' || lng === 'en') {
-    i18n.changeLanguage(lng)
+    await ensureLanguageBundle(lng)
+    await i18n.changeLanguage(lng)
   }
 }
 

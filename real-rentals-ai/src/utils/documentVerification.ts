@@ -92,18 +92,44 @@ export function getImageDimensions(buffer: Buffer): { width: number; height: num
   }
 }
 
-/**
- * Ejecuta OCR sobre el buffer de imagen usando Tesseract.js.
- */
+let ocrWorkerInstance: { recognize: (buf: Buffer) => Promise<{ data: { text: string } }> } | null = null;
+let ocrWorkerQueue: Promise<void> = Promise.resolve();
+
+async function getSharedOcrWorker(): Promise<{
+  recognize: (buf: Buffer) => Promise<{ data: { text: string } }>;
+}> {
+  if (!ocrWorkerInstance) {
+    const { createWorker } = await import('tesseract.js');
+    ocrWorkerInstance = await createWorker('spa+eng', 1, { logger: () => {} });
+  }
+  return ocrWorkerInstance;
+}
+
+/** Serializa OCR en un solo worker Tesseract (evita 6+ procesos en una publicación). */
 export async function runOcr(imageBuffer: Buffer): Promise<string> {
-  const { createWorker } = await import('tesseract.js');
-  const worker = await createWorker('spa+eng', 1, { logger: () => {} });
-  try {
+  const job = ocrWorkerQueue.then(async () => {
+    const worker = await getSharedOcrWorker();
     const { data: { text } } = await worker.recognize(imageBuffer);
     return (text || '').trim();
-  } finally {
-    await worker.terminate();
-  }
+  });
+  ocrWorkerQueue = job.then(() => undefined, () => undefined);
+  return job;
+}
+
+/** Varios OCR en la misma sesión de worker (más rápido que crear workers por imagen). */
+export async function runOcrBatch(imageBuffers: Buffer[]): Promise<string[]> {
+  if (!imageBuffers.length) return [];
+  const job = ocrWorkerQueue.then(async () => {
+    const worker = await getSharedOcrWorker();
+    const results: string[] = [];
+    for (const buf of imageBuffers) {
+      const { data: { text } } = await worker.recognize(buf);
+      results.push((text || '').trim());
+    }
+    return results;
+  });
+  ocrWorkerQueue = job.then(() => undefined, () => undefined);
+  return job;
 }
 
 /**

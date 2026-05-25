@@ -1,7 +1,6 @@
 import express from 'express';
 import prisma from '../lib/prisma';
 import { auth, AuthRequest } from '../middleware/auth';
-import { requireVerification } from '../middleware/requireVerification';
 import NotificationService from '../utils/notificationService';
 import { validateBody, validateQuery } from '../middleware/validate';
 import { createPropertySchema, propertyFiltersSchema, PropertyFiltersInput } from '../validators/property.validator';
@@ -472,29 +471,24 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
           ? { create: images.map((url: string) => ({ url })) }
           : undefined,
       },
-      include: { images: true, reviews: true, bookings: true },
+      include: { images: true },
     });
     
     cache.delete(CacheKeys.property(newProperty.id));
     cache.deleteByPrefix('properties:');
     
-    // Notificar a los inquilinos en background (no bloquea la respuesta)
     setImmediate(() => {
       NotificationService.notifyNewProperty(newProperty.id).catch((err) => {
         logger.error('Error notifying new property (non-critical)', 'Property', err as Error);
       });
+      checkDuplicateProperty(newProperty.id)
+        .then((candidates) => {
+          if (candidates.length > 0) return saveDuplicateAlerts(newProperty.id, candidates);
+        })
+        .catch((e) => {
+          logger.debug('Duplicate check failed (non-critical)', 'Property', e as Error);
+        });
     });
-
-    let duplicateAlerts: any[] = [];
-    try {
-      const candidates = await checkDuplicateProperty(newProperty.id);
-      if (candidates.length > 0) {
-        await saveDuplicateAlerts(newProperty.id, candidates);
-        duplicateAlerts = await getDuplicateAlertsForProperty(newProperty.id);
-      }
-    } catch (e) {
-      logger.debug('Duplicate check failed (non-critical)', 'Property', e as Error);
-    }
 
     const propertyWithUrls = {
       ...newProperty,
@@ -508,7 +502,7 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
     });
     res.status(201).json({
       ...propertyWithUrls,
-      duplicateAlerts,
+      duplicateAlerts: [],
       verification: { verified: true, score: verification.score },
     });
   } catch (error) {
@@ -611,6 +605,7 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
       skip,
       select: {
         id: true,
+        ownerId: true,
         title: true,
         location: true,
         price: true,
@@ -620,7 +615,7 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
         longitude: true,
         rentalMonths: true,
         videoTourUrl: true,
-        images: true,
+        images: { select: { url: true } },
       },
     }),
   ]);
@@ -633,7 +628,7 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
 
   const ids = properties.map((p: any) => p.id);
 
-  const [reviewAgg, occupied, ownership] = await Promise.all([
+  const [reviewAgg, occupied] = await Promise.all([
     prisma.review.groupBy({
       by: ['propertyId'],
       where: { propertyId: { in: ids } },
@@ -644,10 +639,6 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
       where: { propertyId: { in: ids }, status: 'approved' },
       select: { propertyId: true },
     }),
-    (prisma.property as any).findMany({
-      where: { id: { in: ids } },
-      select: { id: true, ownerId: true },
-    }) as Promise<Array<{ id: number; ownerId: number | null }>>,
   ]);
 
   const avgMap = new Map(reviewAgg.map((r) => [r.propertyId, r._avg.rating ?? 0]));
@@ -655,10 +646,8 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
   const occupiedSet = new Set(occupied.map((o) => o.propertyId));
 
   const ownerIdSet = new Set<number>();
-  const propertyIdToOwnerId = new Map<number, number | null>();
-  for (const row of ownership) {
-    propertyIdToOwnerId.set(row.id, row.ownerId ?? null);
-    if (row.ownerId) ownerIdSet.add(row.ownerId);
+  for (const p of properties) {
+    if (p.ownerId) ownerIdSet.add(p.ownerId);
   }
 
   const owners = ownerIdSet.size
@@ -697,7 +686,7 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
   );
 
   const items = properties.map((p: any) => {
-    const ownerId = propertyIdToOwnerId.get(p.id) ?? null;
+    const ownerId = p.ownerId ?? null;
     const owner = ownerId ? ownerMap.get(ownerId) ?? null : null;
     const brokerProfile = ownerId ? (brokerProfileMap.get(ownerId) as any | null) ?? null : null;
     const imageUrls = Array.isArray(p.images)
@@ -780,11 +769,10 @@ router.patch('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
       include: { images: true, reviews: true, bookings: true },
     });
     
-    // Invalidar caché
     cache.delete(CacheKeys.property(propertyId));
     cache.delete(CacheKeys.propertySummary(propertyId));
+    cache.deleteByPrefix('properties:');
     
-    // Transformar imágenes de objetos a URLs (strings)
     const updatedWithUrls = {
       ...updated,
       images: updated.images ? updated.images.map((img: any) => img.url) : []
@@ -813,9 +801,9 @@ router.delete('/:id', auth, asyncHandler(async (req: AuthRequest, res) => {
 
     await prisma.property.delete({ where: { id: propertyId } });
     
-    // Invalidar caché
     cache.delete(CacheKeys.property(propertyId));
     cache.delete(CacheKeys.propertySummary(propertyId));
+    cache.deleteByPrefix('properties:');
     
     logger.info(`Propiedad eliminada`, 'Property', { propertyId });
     res.json({ success: true });
