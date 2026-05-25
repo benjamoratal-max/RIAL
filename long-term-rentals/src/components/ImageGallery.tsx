@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, 
@@ -33,6 +33,87 @@ interface LightboxProps {
   title: string
 }
 
+const SWIPE_THRESHOLD_PX = 48
+
+/** Deslizar izquierda = siguiente; derecha = anterior. Prioriza scroll vertical si el gesto es más vertical. */
+function useHorizontalSwipe(
+  onPrevious: () => void,
+  onNext: () => void,
+  enabled = true
+) {
+  const startRef = useRef<{ x: number; y: number } | null>(null)
+  const isHorizontalRef = useRef(false)
+  const [dragOffset, setDragOffset] = useState(0)
+
+  const reset = useCallback(() => {
+    startRef.current = null
+    isHorizontalRef.current = false
+    setDragOffset(0)
+  }, [])
+
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!enabled) return
+      const t = e.touches[0]
+      startRef.current = { x: t.clientX, y: t.clientY }
+      isHorizontalRef.current = false
+      setDragOffset(0)
+    },
+    [enabled]
+  )
+
+  const onTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!enabled || !startRef.current) return
+      const t = e.touches[0]
+      const dx = t.clientX - startRef.current.x
+      const dy = t.clientY - startRef.current.y
+
+      if (!isHorizontalRef.current) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+        if (Math.abs(dy) > Math.abs(dx)) {
+          reset()
+          return
+        }
+        isHorizontalRef.current = true
+      }
+
+      setDragOffset(dx)
+    },
+    [enabled, reset]
+  )
+
+  const onTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (!enabled || !startRef.current) {
+        reset()
+        return
+      }
+      const t = e.changedTouches[0]
+      const dx = t.clientX - startRef.current.x
+      const wasHorizontal = isHorizontalRef.current
+      reset()
+
+      if (!wasHorizontal || Math.abs(dx) < SWIPE_THRESHOLD_PX) return
+      if (dx < 0) onNext()
+      else onPrevious()
+    },
+    [enabled, onNext, onPrevious, reset]
+  )
+
+  const onTouchCancel = useCallback(() => {
+    reset()
+  }, [reset])
+
+  return {
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+    onTouchCancel,
+    dragOffset,
+  }
+}
+
 export function ImageGallery({ images, videos = [], title, onClose, initialIndex = 0 }: ImageGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const [showLightbox, setShowLightbox] = useState(false)
@@ -43,6 +124,16 @@ export function ImageGallery({ images, videos = [], title, onClose, initialIndex
     ...images.map(url => ({ type: 'image' as const, url })),
     ...videos.map(url => ({ type: 'video' as const, url, thumbnail: url.replace('.mp4', '.jpg') }))
   ]
+
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : media.length - 1))
+  }, [media.length])
+
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev < media.length - 1 ? prev + 1 : 0))
+  }, [media.length])
+
+  const swipe = useHorizontalSwipe(goToPrevious, goToNext, media.length > 1)
 
   const handleImageClick = (index: number) => {
     setCurrentIndex(index)
@@ -96,32 +187,49 @@ export function ImageGallery({ images, videos = [], title, onClose, initialIndex
       {/* Galería principal */}
       <div className="space-y-4">
         {/* Imagen principal */}
-        <div className="relative aspect-[16/10] bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden group">
+        <div
+          className="relative aspect-[16/10] bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden group touch-pan-y"
+          onTouchStart={swipe.onTouchStart}
+          onTouchMove={swipe.onTouchMove}
+          onTouchEnd={swipe.onTouchEnd}
+          onTouchCancel={swipe.onTouchCancel}
+        >
+          <motion.div
+            key={currentIndex}
+            className="h-full w-full"
+            initial={{ opacity: 0.85, x: 0 }}
+            animate={{ opacity: 1, x: swipe.dragOffset }}
+            transition={{
+              x: { duration: swipe.dragOffset !== 0 ? 0 : 0.2 },
+              opacity: { duration: 0.25 },
+            }}
+          >
           {media[currentIndex].type === 'image' ? (
             <motion.img
-              key={currentIndex}
               src={media[currentIndex].url}
               alt={`${title} - Imagen ${currentIndex + 1}`}
               loading="lazy"
-              className="w-full h-full object-cover cursor-pointer"
-              initial={{ opacity: 0, scale: 1.1 }}
+              className="h-full w-full cursor-pointer object-cover select-none"
+              draggable={false}
+              initial={{ opacity: 0, scale: 1.05 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
               onClick={() => handleImageClick(currentIndex)}
             />
           ) : (
-            <div className="relative w-full h-full">
+            <div className="relative h-full w-full">
               <video
                 src={media[currentIndex].url}
                 poster={media[currentIndex].thumbnail}
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover"
                 controls
               />
-              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                <Play className="w-16 h-16 text-white" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                <Play className="h-16 w-16 text-white" />
               </div>
             </div>
           )}
+          </motion.div>
 
           {/* Overlay con controles */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
@@ -150,14 +258,18 @@ export function ImageGallery({ images, videos = [], title, onClose, initialIndex
           {media.length > 1 && (
             <>
               <button
-                onClick={() => setCurrentIndex(prev => prev > 0 ? prev - 1 : media.length - 1)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                type="button"
+                onClick={goToPrevious}
+                aria-label="Imagen anterior"
+                className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white opacity-90 backdrop-blur-sm transition-all duration-200 hover:bg-black/70 sm:left-4 md:opacity-0 md:group-hover:opacity-100"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
-                onClick={() => setCurrentIndex(prev => prev < media.length - 1 ? prev + 1 : 0)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                type="button"
+                onClick={goToNext}
+                aria-label="Imagen siguiente"
+                className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white opacity-90 backdrop-blur-sm transition-all duration-200 hover:bg-black/70 sm:right-4 md:opacity-0 md:group-hover:opacity-100"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -230,6 +342,22 @@ function Lightbox({ media, currentIndex, onClose, onNavigate, title }: LightboxP
 
   const currentMedia = media[currentIndex]
 
+  const goToPrevious = useCallback(() => {
+    onNavigate(currentIndex > 0 ? currentIndex - 1 : media.length - 1)
+  }, [currentIndex, media.length, onNavigate])
+
+  const goToNext = useCallback(() => {
+    onNavigate(currentIndex < media.length - 1 ? currentIndex + 1 : 0)
+  }, [currentIndex, media.length, onNavigate])
+
+  const swipeEnabled = media.length > 1 && zoom <= 1 && currentMedia.type === 'image'
+  const swipe = useHorizontalSwipe(goToPrevious, goToNext, swipeEnabled)
+
+  useEffect(() => {
+    setZoom(1)
+    setRotation(0)
+  }, [currentIndex])
+
   const handleZoom = (direction: 'in' | 'out') => {
     if (direction === 'in' && zoom < 3) {
       setZoom(zoom + 0.5)
@@ -300,18 +428,25 @@ function Lightbox({ media, currentIndex, onClose, onNavigate, title }: LightboxP
         exit={{ scale: 0.9 }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Contenido principal */}
-        <div className="relative max-w-full max-h-full">
+        {/* Contenido principal — deslizar para cambiar foto (solo sin zoom) */}
+        <div
+          className="relative flex max-h-full max-w-full touch-pan-y items-center justify-center"
+          onTouchStart={swipe.onTouchStart}
+          onTouchMove={swipe.onTouchMove}
+          onTouchEnd={swipe.onTouchEnd}
+          onTouchCancel={swipe.onTouchCancel}
+        >
           {currentMedia.type === 'image' ? (
             <motion.img
               key={currentIndex}
               src={currentMedia.url}
               alt={`${title} - Imagen ${currentIndex + 1}`}
               loading="eager"
-              className="max-w-full max-h-full object-contain"
+              draggable={false}
+              className="max-h-full max-w-full select-none object-contain"
               style={{
-                transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                transition: 'transform 0.3s ease'
+                transform: `scale(${zoom}) rotate(${rotation}deg) translateX(${swipe.dragOffset}px)`,
+                transition: swipe.dragOffset !== 0 ? 'none' : 'transform 0.3s ease',
               }}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -416,14 +551,18 @@ function Lightbox({ media, currentIndex, onClose, onNavigate, title }: LightboxP
         {media.length > 1 && (
           <>
             <button
-              onClick={() => onNavigate(currentIndex > 0 ? currentIndex - 1 : media.length - 1)}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-all duration-200"
+              type="button"
+              onClick={goToPrevious}
+              aria-label="Imagen anterior"
+              className="absolute left-2 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/70 sm:left-4 sm:h-12 sm:w-12"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
             <button
-              onClick={() => onNavigate(currentIndex < media.length - 1 ? currentIndex + 1 : 0)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-all duration-200"
+              type="button"
+              onClick={goToNext}
+              aria-label="Imagen siguiente"
+              className="absolute right-2 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/70 sm:right-4 sm:h-12 sm:w-12"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
