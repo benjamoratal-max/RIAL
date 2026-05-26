@@ -1,7 +1,6 @@
 import React, { memo, useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { createPortal } from 'react-dom'
 import {
   LayoutGrid,
   Map as MapIcon,
@@ -110,40 +109,18 @@ function AppSidebarComponent({
   const { t } = useTranslation()
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
-  const moreMenuRef = useRef<HTMLDivElement>(null)
-  const settingsBtnRef = useRef<HTMLButtonElement | null>(null)
-  const [moreMenuPos, setMoreMenuPos] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!moreOpen) return
     const close = (e: MouseEvent) => {
       const target = e.target as Node
-      const clickInsideTrigger = moreRef.current?.contains(target) ?? false
-      const clickInsideMenu = moreMenuRef.current?.contains(target) ?? false
-      if (!clickInsideTrigger && !clickInsideMenu) {
+      const clickInsideMoreArea = moreRef.current?.contains(target) ?? false
+      if (!clickInsideMoreArea) {
         setMoreOpen(false)
       }
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
-  }, [moreOpen])
-
-  useEffect(() => {
-    if (!moreOpen) return
-    const update = () => {
-      const btn = settingsBtnRef.current
-      if (!btn) return
-      const r = btn.getBoundingClientRect()
-      // Coordenadas para anclar el menú arriba del botón.
-      setMoreMenuPos({ x: r.left + r.width / 2, y: r.top })
-    }
-    update()
-    window.addEventListener('resize', update)
-    window.addEventListener('scroll', update, true)
-    return () => {
-      window.removeEventListener('resize', update)
-      window.removeEventListener('scroll', update, true)
-    }
   }, [moreOpen])
 
   const loginFirst = () => toast.error(t('app.sidebar.loginRequired'))
@@ -164,7 +141,7 @@ function AppSidebarComponent({
 
   return (
     <aside
-      className="sticky top-0 z-30 hidden h-screen w-[5.5rem] shrink-0 flex-col overflow-hidden border-r border-rial-gold/25 bg-gradient-to-b from-rial-navy via-[#0f2138] to-rial-navy shadow-[inset_3px_0_0_0_rgba(185,226,255,0.35)] md:flex"
+      className="sticky top-0 z-30 hidden h-screen w-[5.5rem] shrink-0 flex-col overflow-visible border-r border-rial-gold/25 bg-gradient-to-b from-rial-navy via-[#0f2138] to-rial-navy shadow-[inset_3px_0_0_0_rgba(185,226,255,0.35)] md:flex"
       aria-label={t('app.sidebar.mainNav')}
     >
       <nav className="flex flex-1 flex-col items-center gap-2 px-2 pb-5 pt-4" role="navigation">
@@ -214,31 +191,19 @@ function AppSidebarComponent({
           onClick={() => setMoreOpen((o) => !o)}
           active={moreOpen}
           title={t('app.sidebar.more')}
-          buttonRef={settingsBtnRef}
         >
           <Settings className="h-5 w-5" strokeWidth={1.75} />
         </RailButton>
 
         <AnimatePresence>
-          {moreOpen && typeof document !== 'undefined' && (
-            createPortal(
-              <motion.div
-                ref={moreMenuRef}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                className="fixed z-[80000] w-56 rounded-xl border border-rial-cream-dark/40 bg-rial-cream py-1.5 text-rial-ink shadow-xl dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-                role="menu"
-                style={
-                  moreMenuPos
-                    ? {
-                        left: moreMenuPos.x,
-                        top: moreMenuPos.y,
-                        transform: 'translate(-50%, calc(-100% - 8px))',
-                      }
-                    : undefined
-                }
-              >
+          {moreOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="absolute bottom-full left-1/2 z-[80000] mb-2 w-56 -translate-x-1/2 rounded-xl border border-rial-cream-dark/40 bg-rial-cream py-1.5 text-rial-ink shadow-xl dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+              role="menu"
+            >
                 <button
                   type="button"
                   role="menuitem"
@@ -344,9 +309,7 @@ function AppSidebarComponent({
                   )}
                   {darkMode ? t('app.sidebar.themeLight') : t('app.sidebar.themeDark')}
                 </button>
-              </motion.div>,
-              document.body
-            )
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
