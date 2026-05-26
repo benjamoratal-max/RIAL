@@ -1,6 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { createPortal } from 'react-dom'
 import {
   LayoutGrid,
   Map as MapIcon,
@@ -49,15 +50,18 @@ function RailButton({
   title,
   children,
   badge,
+  buttonRef,
 }: {
   active?: boolean
   onClick: () => void
   title: string
   children: React.ReactNode
   badge?: number
+  buttonRef?: React.RefObject<HTMLButtonElement | null>
 }) {
   return (
     <motion.button
+      ref={buttonRef}
       type="button"
       title={title}
       aria-label={title}
@@ -106,16 +110,40 @@ function AppSidebarComponent({
   const { t } = useTranslation()
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+  const settingsBtnRef = useRef<HTMLButtonElement | null>(null)
+  const [moreMenuPos, setMoreMenuPos] = useState<{ x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!moreOpen) return
     const close = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const clickInsideTrigger = moreRef.current?.contains(target) ?? false
+      const clickInsideMenu = moreMenuRef.current?.contains(target) ?? false
+      if (!clickInsideTrigger && !clickInsideMenu) {
         setMoreOpen(false)
       }
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
+  }, [moreOpen])
+
+  useEffect(() => {
+    if (!moreOpen) return
+    const update = () => {
+      const btn = settingsBtnRef.current
+      if (!btn) return
+      const r = btn.getBoundingClientRect()
+      // Coordenadas para anclar el menú arriba del botón.
+      setMoreMenuPos({ x: r.left + r.width / 2, y: r.top })
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
   }, [moreOpen])
 
   const loginFirst = () => toast.error(t('app.sidebar.loginRequired'))
@@ -182,125 +210,143 @@ function AppSidebarComponent({
       </nav>
 
       <div className="relative mt-auto flex flex-col items-center gap-2 px-2 pb-2" ref={moreRef}>
-        <RailButton onClick={() => setMoreOpen((o) => !o)} active={moreOpen} title={t('app.sidebar.more')}>
+        <RailButton
+          onClick={() => setMoreOpen((o) => !o)}
+          active={moreOpen}
+          title={t('app.sidebar.more')}
+          buttonRef={settingsBtnRef}
+        >
           <Settings className="h-5 w-5" strokeWidth={1.75} />
         </RailButton>
 
         <AnimatePresence>
-          {moreOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="absolute bottom-full left-1/2 z-50 mb-2 w-56 -translate-x-1/2 rounded-xl border border-rial-cream-dark/40 bg-rial-cream py-1.5 text-rial-ink shadow-xl dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-              role="menu"
-            >
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
-                onClick={() => {
-                  onOpenComparison()
-                  setMoreOpen(false)
-                }}
+          {moreOpen && typeof document !== 'undefined' && (
+            createPortal(
+              <motion.div
+                ref={moreMenuRef}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="fixed z-[80000] w-56 rounded-xl border border-rial-cream-dark/40 bg-rial-cream py-1.5 text-rial-ink shadow-xl dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                role="menu"
+                style={
+                  moreMenuPos
+                    ? {
+                        left: moreMenuPos.x,
+                        top: moreMenuPos.y,
+                        transform: 'translate(-50%, calc(-100% - 8px))',
+                      }
+                    : undefined
+                }
               >
-                <GitCompare className="h-4 w-4 shrink-0 opacity-70" />
-                {t('app.sidebar.compare')}
-              </button>
-              {user && (
                 <button
                   type="button"
                   role="menuitem"
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
                   onClick={() => {
-                    onOpenPayments()
+                    onOpenComparison()
                     setMoreOpen(false)
                   }}
                 >
-                  <CreditCard className="h-4 w-4 shrink-0 opacity-70" />
-                  {t('app.sidebar.payments')}
+                  <GitCompare className="h-4 w-4 shrink-0 opacity-70" />
+                  {t('app.sidebar.compare')}
                 </button>
-              )}
-              {user && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
-                  onClick={() => {
-                    onOpenAlerts()
-                    setMoreOpen(false)
-                  }}
-                >
-                  <AlertTriangle className="h-4 w-4 shrink-0 opacity-70" />
-                  {t('app.sidebar.alerts')}
-                </button>
-              )}
-              {showAnalyticsMore && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
-                  onClick={() => {
-                    onOpenAnalytics()
-                    setMoreOpen(false)
-                  }}
-                >
-                  <BarChart3 className="h-4 w-4 shrink-0 opacity-70" />
-                  {t('app.sidebar.analytics')}
-                </button>
-              )}
-              {showLeadsMore && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
-                  onClick={() => {
-                    if (user.role === 'broker' || user.role === 'broker_admin') {
-                      onOpenBrokerLeads()
-                    } else {
-                      onOpenOwnerLeads()
-                    }
-                    setMoreOpen(false)
-                  }}
-                >
-                  <Users className="h-4 w-4 shrink-0 opacity-70" />
-                  {user.role === 'broker' || user.role === 'broker_admin'
-                    ? t('app.sidebar.brokerLeads')
-                    : t('app.sidebar.ownerLeads')}
-                </button>
-              )}
-              {user?.role === 'admin' && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
-                  onClick={() => {
-                    onOpenAdminRequests()
-                    setMoreOpen(false)
-                  }}
-                >
-                  <Shield className="h-4 w-4 shrink-0 opacity-70" />
-                  {t('app.sidebar.admin')}
-                </button>
-              )}
-              <div className="my-1 border-t border-rial-cream-dark/30 dark:border-slate-700" />
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
-                onClick={() => {
-                  setDarkMode(!darkMode)
-                  setMoreOpen(false)
-                }}
-              >
-                {darkMode ? (
-                  <Sun className="h-4 w-4 shrink-0 opacity-70" />
-                ) : (
-                  <Moon className="h-4 w-4 shrink-0 opacity-70" />
+                {user && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
+                    onClick={() => {
+                      onOpenPayments()
+                      setMoreOpen(false)
+                    }}
+                  >
+                    <CreditCard className="h-4 w-4 shrink-0 opacity-70" />
+                    {t('app.sidebar.payments')}
+                  </button>
                 )}
-                {darkMode ? t('app.sidebar.themeLight') : t('app.sidebar.themeDark')}
-              </button>
-            </motion.div>
+                {user && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
+                    onClick={() => {
+                      onOpenAlerts()
+                      setMoreOpen(false)
+                    }}
+                  >
+                    <AlertTriangle className="h-4 w-4 shrink-0 opacity-70" />
+                    {t('app.sidebar.alerts')}
+                  </button>
+                )}
+                {showAnalyticsMore && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
+                    onClick={() => {
+                      onOpenAnalytics()
+                      setMoreOpen(false)
+                    }}
+                  >
+                    <BarChart3 className="h-4 w-4 shrink-0 opacity-70" />
+                    {t('app.sidebar.analytics')}
+                  </button>
+                )}
+                {showLeadsMore && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
+                    onClick={() => {
+                      if (user.role === 'broker' || user.role === 'broker_admin') {
+                        onOpenBrokerLeads()
+                      } else {
+                        onOpenOwnerLeads()
+                      }
+                      setMoreOpen(false)
+                    }}
+                  >
+                    <Users className="h-4 w-4 shrink-0 opacity-70" />
+                    {user.role === 'broker' || user.role === 'broker_admin'
+                      ? t('app.sidebar.brokerLeads')
+                      : t('app.sidebar.ownerLeads')}
+                  </button>
+                )}
+                {user?.role === 'admin' && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
+                    onClick={() => {
+                      onOpenAdminRequests()
+                      setMoreOpen(false)
+                    }}
+                  >
+                    <Shield className="h-4 w-4 shrink-0 opacity-70" />
+                    {t('app.sidebar.admin')}
+                  </button>
+                )}
+                <div className="my-1 border-t border-rial-cream-dark/30 dark:border-slate-700" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
+                  onClick={() => {
+                    setDarkMode(!darkMode)
+                    setMoreOpen(false)
+                  }}
+                >
+                  {darkMode ? (
+                    <Sun className="h-4 w-4 shrink-0 opacity-70" />
+                  ) : (
+                    <Moon className="h-4 w-4 shrink-0 opacity-70" />
+                  )}
+                  {darkMode ? t('app.sidebar.themeLight') : t('app.sidebar.themeDark')}
+                </button>
+              </motion.div>,
+              document.body
+            )
           )}
         </AnimatePresence>
       </div>
