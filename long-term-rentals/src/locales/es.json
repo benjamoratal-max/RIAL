@@ -2,6 +2,7 @@
   "app": {
     "name": "RIAL App",
     "tagline": "Rentals Intelligence & Lifestyle",
+    "logoHome": "Volver al inicio / explorar",
     "results": "resultados",
     "page": "Página",
     "previous": "Anterior",

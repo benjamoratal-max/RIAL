@@ -1058,6 +1058,28 @@ export default function App() {
     })
   }, [])
 
+  const goHome = useCallback(() => {
+    setShowNotifications(false)
+    setShowChat(false)
+    setShowPayments(false)
+    setShowUserProfile(false)
+    setShowAlerts(false)
+    setShowAnalytics(false)
+    setShowOwnerLeads(false)
+    setShowBrokerLeads(false)
+    setShowAdminRequests(false)
+    setShowCompliancePanel(false)
+    setShowComplianceListings(false)
+    setShowComplianceIncidents(false)
+    setShowComplianceSuspensions(false)
+    setShowComplianceAuditLogs(false)
+    setShowComparison(false)
+    handleClosePropertyDetail()
+    setRenterNav('explore')
+    setBrokerNav('dashboard')
+    scrollToExplore()
+  }, [handleClosePropertyDetail, scrollToExplore])
+
   const handleToggleMapMobile = useCallback(() => {
     setShowMap((prev) => {
       const next = !prev
@@ -1134,6 +1156,8 @@ export default function App() {
               showTagline={false}
               surface={darkMode ? 'dark' : 'light'}
               className="min-w-0 shrink"
+              onClick={goHome}
+              clickLabel={t('app.logoHome')}
             />
             <div className="flex shrink-0 items-center gap-1.5 md:hidden">
               {user && (

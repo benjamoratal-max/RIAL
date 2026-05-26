@@ -118,6 +118,8 @@ export function RialBrand({
   surface = 'light',
   logoPresentation = 'plain',
   className,
+  onClick,
+  clickLabel,
 }: {
   name: string
   tagline?: string
@@ -129,6 +131,9 @@ export function RialBrand({
   /** Sidebar: sidebarDeck (franja integrada en el rail) */
   logoPresentation?: LogoPresentation
   className?: string
+  /** Si se define, el logo actúa como botón (p. ej. volver al inicio). */
+  onClick?: () => void
+  clickLabel?: string
 }) {
   const [imgFailed, setImgFailed] = useState(false)
   const cfg = sizeConfig[size]
@@ -137,13 +142,13 @@ export function RialBrand({
 
   const isSidebarDeck = logoPresentation === 'sidebarDeck'
 
-  return (
+  const inner = (
     <div
       className={classNames(
         isSidebarDeck ? 'block w-full' : 'flex min-w-0',
         !isSidebarDeck && showText && cfg.stack ? 'flex-col items-center text-center' : !isSidebarDeck ? 'flex-row items-center' : '',
         !isSidebarDeck && showText ? cfg.gap : '',
-        className
+        !onClick ? className : undefined
       )}
     >
       {!imgFailed ? (
@@ -187,5 +192,21 @@ export function RialBrand({
         </div>
       )}
     </div>
+  )
+
+  if (!onClick) return inner
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={clickLabel ?? name}
+      className={classNames(
+        'min-w-0 rounded-lg text-left transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-rial-gold focus-visible:ring-offset-2',
+        className
+      )}
+    >
+      {inner}
+    </button>
   )
 }
