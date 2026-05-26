@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, MapPin, DollarSign, Plus, X, Upload, FileText, Image as ImageIcon, Trash2, Video, TrendingUp, Clock, Calendar } from 'lucide-react'
+import { Home, MapPin, DollarSign, Plus, X, Upload, FileText, Image as ImageIcon, Video, TrendingUp, Clock, Calendar } from 'lucide-react'
 import { Button, Input, classNames } from './UI'
 import { toast } from 'react-hot-toast'
 import { validatePropertyForm } from '../utils/validation'
@@ -461,10 +461,11 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
                     <button
                       type="button"
                       onClick={() => removeImage(i)}
-                      className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
                       aria-label={t('createProperty.removePhoto')}
+                      title={t('createProperty.removePhoto')}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <X className="h-3 w-3" />
                     </button>
                   </div>
                 ))}

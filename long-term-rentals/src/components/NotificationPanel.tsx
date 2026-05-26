@@ -66,7 +66,7 @@ export function NotificationPanel({ token, user, onClose }: NotificationPanelPro
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[70000] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -74,11 +74,10 @@ export function NotificationPanel({ token, user, onClose }: NotificationPanelPro
     >
       <motion.div
         className={classNames(
-          'flex max-h-[min(92dvh,100%)] w-full min-w-0 flex-col overflow-hidden bg-white dark:bg-gray-800',
-          'rounded-t-2xl shadow-xl sm:max-w-2xl sm:rounded-2xl',
+          'mx-auto flex w-full min-w-0 flex-col overflow-hidden bg-white dark:bg-gray-800',
+          'max-h-[min(92dvh,100%)] rounded-t-2xl shadow-xl sm:max-h-[90vh] sm:max-w-[min(48rem,calc(100vw-2rem))] sm:rounded-2xl',
           'pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))]',
-          'px-[max(1rem,env(safe-area-inset-left))] sm:px-6',
-          'pr-[max(1rem,env(safe-area-inset-right))]'
+          'pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] sm:px-6'
         )}
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

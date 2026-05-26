@@ -1575,11 +1575,14 @@ export default function App() {
             user={user}
           />
         )}
-        {showNotifications && (
-          <Suspense fallback={<LoadingSpinner text={t('app.loadingNotifications')} />}>
-            <NotificationPanel token={token} user={user} onClose={() => setShowNotifications(false)} />
-          </Suspense>
-        )}
+        {showNotifications &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <Suspense fallback={<LoadingSpinner text={t('app.loadingNotifications')} />}>
+              <NotificationPanel token={token} user={user} onClose={() => setShowNotifications(false)} />
+            </Suspense>,
+            document.body
+          )}
         {showChat && (
         <Suspense fallback={<LoadingSpinner text={t('app.loadingAssistant')} />}>
           <AIAssistant 
