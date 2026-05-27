@@ -797,9 +797,8 @@ export default function App() {
   const [notificationCount, setNotificationCount] = useState(0)
   const [messageCount, setMessageCount] = useState(0)
 
-  /** Cierra el mapa al abrir ficha (evita capas Leaflet encima del modal) y abre el detalle. */
+  /** Abre la ficha sin cambiar la vista actual (lista o mapa). */
   const handleOpenPropertyDetail = useCallback((id: number) => {
-    setShowMap(false)
     setOpenId(id)
   }, [])
 
