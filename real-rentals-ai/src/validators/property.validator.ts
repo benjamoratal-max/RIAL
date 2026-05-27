@@ -46,6 +46,15 @@ export const createPropertySchema = z.object({
     .min(3, 'La ubicación debe tener al menos 3 caracteres')
     .max(200, 'La ubicación no puede exceder 200 caracteres')
     .trim(),
+  city: z.string()
+    .min(2, 'La ciudad es obligatoria')
+    .max(120, 'La ciudad no puede exceder 120 caracteres')
+    .trim(),
+  neighborhood: z.string()
+    .min(2, 'El barrio es obligatorio')
+    .max(120, 'El barrio no puede exceder 120 caracteres')
+    .trim(),
+  expensesIncluded: z.boolean(),
   latitude: z.number().gte(-90).lte(90).optional(),
   longitude: z.number().gte(-180).lte(180).optional(),
   images: z
@@ -57,10 +66,10 @@ export const createPropertySchema = z.object({
   ownerDniDocumentUrl: dataUrlDocument,
   contractOrTitleUrl: dataUrlDocument,
   ownerId: z.number().int().positive().optional(),
-  bedrooms: z.number().int().min(0).max(50).optional(),
+  bedrooms: z.number().int().min(0).max(50),
   rooms: z.number().int().min(0).max(50).optional(),
   bathrooms: z.number().int().min(0).max(50).optional(),
-  area: z.number().positive().max(100000).optional(),
+  area: z.number().positive().max(100000),
   propertyType: z.enum(['apartment', 'house', 'studio', 'condo', 'townhouse', 'other']).optional(),
   verified: z.boolean().optional().default(false),
 }).refine(

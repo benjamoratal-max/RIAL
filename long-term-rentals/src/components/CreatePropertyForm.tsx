@@ -38,8 +38,13 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
     description: '',
     price: '',
     location: '',
+    city: '',
+    neighborhood: '',
     rooms: '',
+    bedrooms: '',
     bathrooms: '',
+    area: '',
+    expensesIncluded: null as boolean | null,
     images: ''
   })
   const [rentalMonths, setRentalMonths] = useState<Record<3 | 6 | 12, boolean>>({ 3: false, 6: false, 12: false })
@@ -158,8 +163,13 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
 
     const validation = validatePropertyForm({
       ...form,
+      city: form.city,
+      neighborhood: form.neighborhood,
+      expensesIncluded: form.expensesIncluded,
       rooms: form.rooms,
+      bedrooms: form.bedrooms,
       bathrooms: form.bathrooms,
+      area: form.area,
       imageFiles: imageFiles.length > 0 ? imageFiles : undefined,
       images: imageFiles.length > 0 ? '' : form.images,
       ownerDniDocument: ownerDniDocument ?? undefined,
@@ -190,8 +200,13 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
         description: form.description.trim(),
         price: Number(form.price),
         location: form.location.trim(),
+        city: form.city.trim(),
+        neighborhood: form.neighborhood.trim(),
+        expensesIncluded: form.expensesIncluded,
         rooms: form.rooms ? Number(form.rooms) : undefined,
+        bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+        area: form.area ? Number(form.area) : undefined,
         images: imagesPayload,
         rentalMonths: selectedRentalMonths,
         latitude: mapPin!.lat,
@@ -205,7 +220,20 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
       if (res?.duplicateAlerts?.length > 0) {
         toast(t('createProperty.possibleDuplicateWarning'), { icon: '⚠️', duration: 6000 })
       }
-      setForm({ title: '', description: '', price: '', location: '', rooms: '', bathrooms: '', images: '' })
+      setForm({
+        title: '',
+        description: '',
+        price: '',
+        location: '',
+        city: '',
+        neighborhood: '',
+        rooms: '',
+        bedrooms: '',
+        bathrooms: '',
+        area: '',
+        expensesIncluded: null,
+        images: '',
+      })
       setRentalMonths({ 3: false, 6: false, 12: false })
       setImageFiles([])
       setOwnerDniDocument(null)
@@ -343,6 +371,30 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
               />
               {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
             </div>
+            <div>
+              <Input
+                placeholder={t('createProperty.neighborhoodPlaceholder')}
+                value={form.neighborhood}
+                onChange={(value) => {
+                  setForm({ ...form, neighborhood: value })
+                  if (errors.neighborhood) setErrors((prev) => ({ ...prev, neighborhood: '' }))
+                }}
+                icon={<MapPin className="w-4 h-4" />}
+              />
+              {errors.neighborhood && <p className="text-red-500 text-xs mt-1">{errors.neighborhood}</p>}
+            </div>
+            <div>
+              <Input
+                placeholder={t('createProperty.cityPlaceholder')}
+                value={form.city}
+                onChange={(value) => {
+                  setForm({ ...form, city: value })
+                  if (errors.city) setErrors((prev) => ({ ...prev, city: '' }))
+                }}
+                icon={<MapPin className="w-4 h-4" />}
+              />
+              {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+            </div>
 
             <div className="md:col-span-2">
               <PropertyLocationPicker
@@ -422,6 +474,19 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
             <div>
               <Input
                 type="number"
+                placeholder={t('createProperty.bedroomsPlaceholder')}
+                value={form.bedrooms}
+                onChange={(value) => {
+                  setForm({ ...form, bedrooms: value })
+                  if (errors.bedrooms) setErrors((prev) => ({ ...prev, bedrooms: '' }))
+                }}
+                icon={<Home className="w-4 h-4" />}
+              />
+              {errors.bedrooms && <p className="text-red-500 text-xs mt-1">{errors.bedrooms}</p>}
+            </div>
+            <div>
+              <Input
+                type="number"
                 placeholder={t('createProperty.roomsPlaceholder')}
                 value={form.rooms}
                 onChange={(value) => {
@@ -444,6 +509,57 @@ export function CreatePropertyForm({ token, currentUser, onCreated }: CreateProp
                 icon={<FileText className="w-4 h-4" />}
               />
               {errors.bathrooms && <p className="text-red-500 text-xs mt-1">{errors.bathrooms}</p>}
+            </div>
+            <div>
+              <Input
+                type="number"
+                placeholder={t('createProperty.areaPlaceholder')}
+                value={form.area}
+                onChange={(value) => {
+                  setForm({ ...form, area: value })
+                  if (errors.area) setErrors((prev) => ({ ...prev, area: '' }))
+                }}
+                icon={<Home className="w-4 h-4" />}
+              />
+              {errors.area && <p className="text-red-500 text-xs mt-1">{errors.area}</p>}
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('createProperty.expensesIncludedLabel')} <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={classNames(
+                    'rounded-xl border px-4 py-2 text-sm font-medium transition-colors',
+                    form.expensesIncluded === true
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream'
+                      : 'border-gray-300 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
+                  )}
+                  onClick={() => {
+                    setForm({ ...form, expensesIncluded: true })
+                    if (errors.expensesIncluded) setErrors((prev) => ({ ...prev, expensesIncluded: '' }))
+                  }}
+                >
+                  {t('createProperty.expensesIncludedYes')}
+                </button>
+                <button
+                  type="button"
+                  className={classNames(
+                    'rounded-xl border px-4 py-2 text-sm font-medium transition-colors',
+                    form.expensesIncluded === false
+                      ? 'border-rial-navy bg-rial-navy text-rial-cream'
+                      : 'border-gray-300 bg-white text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
+                  )}
+                  onClick={() => {
+                    setForm({ ...form, expensesIncluded: false })
+                    if (errors.expensesIncluded) setErrors((prev) => ({ ...prev, expensesIncluded: '' }))
+                  }}
+                >
+                  {t('createProperty.expensesIncludedNo')}
+                </button>
+              </div>
+              {errors.expensesIncluded && <p className="text-red-500 text-xs mt-1">{errors.expensesIncluded}</p>}
             </div>
 
             <div className="md:col-span-2">

@@ -197,6 +197,9 @@ export function validatePropertyForm(data: {
   description?: string;
   price: string | number;
   location: string;
+  city?: string;
+  neighborhood?: string;
+  expensesIncluded?: boolean | null;
   images?: string;
   imageFiles?: File[];
   ownerDniDocument?: File | null;
@@ -230,6 +233,18 @@ export function validatePropertyForm(data: {
   }
   if (data.location && data.location.length > 200) {
     errors.push({ field: 'location', message: 'La ubicación no puede exceder 200 caracteres' });
+  }
+
+  if (!data.city || data.city.trim().length < 2) {
+    errors.push({ field: 'city', message: 'La ciudad es obligatoria' });
+  }
+
+  if (!data.neighborhood || data.neighborhood.trim().length < 2) {
+    errors.push({ field: 'neighborhood', message: 'El barrio es obligatorio' });
+  }
+
+  if (typeof data.expensesIncluded !== 'boolean') {
+    errors.push({ field: 'expensesIncluded', message: 'Debes indicar si las expensas están incluidas o no' });
   }
 
   // Mínimo 8 fotos: desde URLs o desde archivos subidos
@@ -272,7 +287,9 @@ export function validatePropertyForm(data: {
     });
   }
 
-  if (data.bedrooms !== undefined) {
+  if (data.bedrooms === undefined || data.bedrooms === '') {
+    errors.push({ field: 'bedrooms', message: 'Debes indicar la cantidad de habitaciones' });
+  } else {
     const bedrooms = typeof data.bedrooms === 'string' ? parseInt(data.bedrooms, 10) : data.bedrooms;
     if (isNaN(bedrooms) || bedrooms < 0 || bedrooms > 50) {
       errors.push({ field: 'bedrooms', message: 'Las habitaciones deben ser un número entre 0 y 50' });
@@ -293,7 +310,9 @@ export function validatePropertyForm(data: {
     }
   }
 
-  if (data.area !== undefined) {
+  if (data.area === undefined || data.area === '') {
+    errors.push({ field: 'area', message: 'Debes indicar los metros cuadrados' });
+  } else {
     const area = typeof data.area === 'string' ? parseFloat(data.area) : data.area;
     if (isNaN(area) || area <= 0 || area > 100000) {
       errors.push({ field: 'area', message: 'El área debe ser un número entre 0 y 100,000 m²' });

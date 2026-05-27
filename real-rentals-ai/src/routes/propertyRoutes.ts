@@ -373,10 +373,14 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
     description,
     price,
     location,
+    city,
+    neighborhood,
+    expensesIncluded,
     images,
     bedrooms,
     rooms,
     bathrooms,
+    area,
     latitude,
     longitude,
     rentalMonths,
@@ -415,8 +419,8 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
 
   const ownerId = userId;
 
-  if (!title || !price || !location) {
-    return res.status(400).json({ error: 'title, price y location son obligatorios' });
+  if (!title || !price || !location || !city || !neighborhood) {
+    return res.status(400).json({ error: 'title, price, location, city y neighborhood son obligatorios' });
   }
 
   if (!ownerDniDocumentUrl || !contractOrTitleUrl || !videoTourUrl) {
@@ -452,12 +456,13 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
     const newProperty = await prisma.property.create({
       data: {
         title,
-        description: description ?? '',
+        description: `${description ?? ''}${description ? '\n\n' : ''}Expensas incluidas: ${expensesIncluded ? 'Sí' : 'No'}`,
         price: Number(price),
-        location,
+        location: `${neighborhood}, ${city}, ${location}`,
         bedrooms: bedrooms != null && bedrooms !== '' ? Number(bedrooms) : null,
         rooms: rooms != null && rooms !== '' ? Number(rooms) : null,
         bathrooms: bathrooms != null && bathrooms !== '' ? Number(bathrooms) : null,
+        area: area != null && area !== '' ? Number(area) : null,
         latitude: typeof latitude === 'number' && Number.isFinite(latitude) ? latitude : null,
         longitude: typeof longitude === 'number' && Number.isFinite(longitude) ? longitude : null,
         rentalMonths: rentalMonthsToString(rentalMonths),
