@@ -101,6 +101,30 @@ const DEFAULT_FILTERS = {
 } as const
 
 const MOCK_CENTER = { lat: 25.7617, lng: -80.1918 }
+const MAP_VIEWPORT_STORAGE_KEY = 'rial_map_viewport'
+
+type MapViewport = { lat: number; lng: number; zoom: number }
+
+function readStoredMapViewport(): MapViewport | null {
+  try {
+    const raw = sessionStorage.getItem(MAP_VIEWPORT_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as MapViewport
+    if (
+      typeof parsed.lat === 'number' &&
+      typeof parsed.lng === 'number' &&
+      typeof parsed.zoom === 'number' &&
+      Number.isFinite(parsed.lat) &&
+      Number.isFinite(parsed.lng) &&
+      Number.isFinite(parsed.zoom)
+    ) {
+      return parsed
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
 
 // Función eliminada - ahora usamos directamente getMockProperties
 
@@ -766,21 +790,15 @@ export default function App() {
     }
   }, [])
 
-  const handleClosePropertyDetail = useCallback(() => {
-    setOpenId(null)
-    const url = new URL(window.location.href)
-    if (url.searchParams.has('property')) {
-      url.searchParams.delete('property')
-      window.history.replaceState({}, '', url.pathname + (url.search || ''))
-    }
-  }, [])
-
   // Nuevos estados para las funcionalidades
   const [showNotifications, setShowNotifications] = useState(false)
   const [showChat, setShowChat] = useState(false)
   const [showPayments, setShowPayments] = useState(false)
   const [showUserProfile, setShowUserProfile] = useState(false)
   const [showMap, setShowMap] = useState(false)
+  const [mapViewport, setMapViewport] = useState<MapViewport | null>(readStoredMapViewport)
+  /** Mantiene el mapa montado mientras el detalle está abierto si se entró desde el mapa */
+  const [mapPinnedForDetail, setMapPinnedForDetail] = useState(false)
   const [showAlerts, setShowAlerts] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showOwnerLeads, setShowOwnerLeads] = useState(false)
@@ -796,11 +814,39 @@ export default function App() {
   const [comparisonItems, setComparisonItems] = useState<PropertySummary[]>([])
   const [notificationCount, setNotificationCount] = useState(0)
   const [messageCount, setMessageCount] = useState(0)
+  const [mobileNavTab, setMobileNavTab] = useState<MobileNavTab>('explore')
 
-  /** Abre la ficha sin cambiar la vista actual (lista o mapa). */
+  /** Abre la ficha sin salir del mapa; al cerrar se restaura la misma vista. */
   const handleOpenPropertyDetail = useCallback((id: number) => {
+    if (showMap) {
+      setMapPinnedForDetail(true)
+    }
     setOpenId(id)
+  }, [showMap])
+
+  const handleMapViewportChange = useCallback((viewport: MapViewport) => {
+    setMapViewport(viewport)
+    try {
+      sessionStorage.setItem(MAP_VIEWPORT_STORAGE_KEY, JSON.stringify(viewport))
+    } catch {
+      // ignore storage errors
+    }
   }, [])
+
+  const handleClosePropertyDetail = useCallback(() => {
+    const returnToMap = mapPinnedForDetail
+    setOpenId(null)
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('property')) {
+      url.searchParams.delete('property')
+      window.history.replaceState({}, '', url.pathname + (url.search || ''))
+    }
+    if (returnToMap) {
+      setShowMap(true)
+      setMobileNavTab('map')
+      setMapPinnedForDetail(false)
+    }
+  }, [mapPinnedForDetail])
 
   const handleAddToComparison = useCallback((item: PropertySummary) => {
     setComparisonItems((prev) => (prev.some((i) => i.property.id === item.property.id) ? prev : [...prev, item]))
@@ -853,7 +899,6 @@ export default function App() {
   const [renterNav, setRenterNav] = useState<RenterNavKey>('explore')
   const [brokerNav, setBrokerNav] = useState<BrokerNavKey>('dashboard')
   const [complianceNav, setComplianceNav] = useState<ComplianceNavKey>('brokerVerifications')
-  const [mobileNavTab, setMobileNavTab] = useState<MobileNavTab>('explore')
 
   const loadAbortRef = useRef<AbortController | null>(null)
   // Cache en memoria del catálogo de IA: evita re-fetchear todas las propiedades cada vez
@@ -1063,6 +1108,7 @@ export default function App() {
 
   const scrollToExplore = useCallback(() => {
     setShowMap(false)
+    setMapPinnedForDetail(false)
     setMobileNavTab('explore')
     requestAnimationFrame(() => {
       document.getElementById('rial-explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -1095,9 +1141,12 @@ export default function App() {
     setShowMap((prev) => {
       const next = !prev
       setMobileNavTab(next ? 'map' : 'explore')
+      if (!next) setMapPinnedForDetail(false)
       return next
     })
   }, [])
+
+  const showMapView = showMap || (mapPinnedForDetail && openId != null)
 
   return (
     <div className="rial-app-shell flex min-h-screen font-sans text-rial-ink transition-colors duration-300 dark:text-slate-100">
@@ -1413,7 +1462,7 @@ export default function App() {
           <div className="rounded-2xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4 text-sm text-red-700 dark:text-red-300">
             {propertiesError}
           </div>
-        ) : showMap ? (
+        ) : showMapView ? (
           <div className="h-[min(52vh,420px)] overflow-hidden rounded-2xl md:h-[min(70vh,640px)]">
             {(() => {
               const validProperties = items
@@ -1434,23 +1483,27 @@ export default function App() {
                 !isNaN(p.latitude) && !isNaN(p.longitude)
               )
               
-              let mapCenter = MOCK_CENTER
-              if (validCoords.length > 0) {
+              let mapCenter = mapViewport
+                ? { lat: mapViewport.lat, lng: mapViewport.lng }
+                : MOCK_CENTER
+              if (!mapViewport && validCoords.length > 0) {
                 const avgLat = validCoords.reduce((sum, p) => sum + p.latitude, 0) / validCoords.length
                 const avgLng = validCoords.reduce((sum, p) => sum + p.longitude, 0) / validCoords.length
                 mapCenter = { lat: avgLat, lng: avgLng }
               }
+
+              const mapZoom = mapViewport?.zoom ?? (validCoords.length > 1 ? 10 : 12)
               
               return (
                 <Suspense fallback={<LoadingSpinner text={t('app.loadingProperties')} />}>
                   <InteractiveMap
                     properties={validProperties}
                     center={mapCenter}
-                    zoom={validCoords.length > 1 ? 10 : 12}
+                    zoom={mapZoom}
+                    savedViewport={mapViewport}
+                    onViewportChange={handleMapViewportChange}
                     onPropertyClick={(property) => handleOpenPropertyDetail(property.id)}
-                    onLocationSelect={(lat, lng) => {
-                      console.log('Location selected:', lat, lng)
-                    }}
+                    onLocationSelect={() => {}}
                   />
                 </Suspense>
               )

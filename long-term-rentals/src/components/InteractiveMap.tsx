@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import L from 'leaflet'
 import { MapPin, Search, Star, DollarSign, X, Crosshair, Info, Bed, Bath, Home } from 'lucide-react'
@@ -24,12 +24,17 @@ interface Property {
   type?: string
 }
 
+export type MapViewport = { lat: number; lng: number; zoom: number }
+
 interface InteractiveMapProps {
   properties: Property[]
   onPropertyClick: (property: Property) => void
   onLocationSelect: (lat: number, lng: number) => void
   center?: { lat: number; lng: number }
   zoom?: number
+  /** Vista guardada (centro + zoom) para restaurar al volver del detalle */
+  savedViewport?: MapViewport | null
+  onViewportChange?: (viewport: MapViewport) => void
 }
 
 type ResolvedProperty = Property & { latitude: number; longitude: number }
@@ -189,13 +194,53 @@ function PropertyMarker({
   )
 }
 
-function FitBounds({ points }: { points: Array<{ latitude: number; longitude: number }> }) {
+function FitBoundsOnce({
+  points,
+  skip,
+}: {
+  points: Array<{ latitude: number; longitude: number }>
+  skip?: boolean
+}) {
   const map = useMap()
+  const didFit = useRef(false)
   useEffect(() => {
-    if (!points.length) return
+    if (skip || didFit.current || !points.length) return
+    didFit.current = true
     const bounds = L.latLngBounds(points.map((p) => [p.latitude, p.longitude] as [number, number]))
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
-  }, [map, points])
+  }, [map, points, skip])
+  return null
+}
+
+function ApplySavedViewport({ viewport }: { viewport: MapViewport | null | undefined }) {
+  const map = useMap()
+  const appliedKey = useRef<string | null>(null)
+  useEffect(() => {
+    if (!viewport) return
+    const key = `${viewport.lat.toFixed(5)}:${viewport.lng.toFixed(5)}:${viewport.zoom}`
+    if (appliedKey.current === key) return
+    appliedKey.current = key
+    map.setView([viewport.lat, viewport.lng], viewport.zoom, { animate: false })
+  }, [map, viewport])
+  return null
+}
+
+function MapViewportTracker({ onViewportChange }: { onViewportChange?: (viewport: MapViewport) => void }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!onViewportChange) return
+    const report = () => {
+      const center = map.getCenter()
+      onViewportChange({ lat: center.lat, lng: center.lng, zoom: map.getZoom() })
+    }
+    report()
+    map.on('moveend', report)
+    map.on('zoomend', report)
+    return () => {
+      map.off('moveend', report)
+      map.off('zoomend', report)
+    }
+  }, [map, onViewportChange])
   return null
 }
 
@@ -548,6 +593,8 @@ export function InteractiveMap({
   onLocationSelect,
   center = { lat: 25.7617, lng: -80.1918 },
   zoom = 11,
+  savedViewport = null,
+  onViewportChange,
 }: InteractiveMapProps) {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
@@ -675,7 +722,9 @@ export function InteractiveMap({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <FitBounds points={resolvedProperties} />
+          <ApplySavedViewport viewport={savedViewport} />
+          <FitBoundsOnce points={resolvedProperties} skip={!!savedViewport} />
+          <MapViewportTracker onViewportChange={onViewportChange} />
           <FlyToLocation target={searchTarget || userLocationTarget} />
           <FlyToProperty property={selectedProperty} />
 
