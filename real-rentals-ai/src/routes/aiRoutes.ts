@@ -345,7 +345,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res) => {
           model: aiModel,
           messages: messages,
           temperature: 0.4,
-          max_tokens: 600
+          max_tokens: 1200
         })
       })
 
@@ -387,7 +387,7 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res) => {
         },
         body: JSON.stringify({
           model: aiModel,
-          max_tokens: 600,
+          max_tokens: 1200,
           system: systemPrompt || '',
           messages: messages
         })
