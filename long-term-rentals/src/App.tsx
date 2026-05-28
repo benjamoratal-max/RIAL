@@ -856,9 +856,19 @@ export default function App() {
   const [mobileNavTab, setMobileNavTab] = useState<MobileNavTab>('explore')
 
   const loadAbortRef = useRef<AbortController | null>(null)
+  // Cache en memoria del catálogo de IA: evita re-fetchear todas las propiedades cada vez
+  // que el usuario abre el chat. TTL 10 min porque las propiedades cambian poco.
+  const assistantCatalogCacheRef = useRef<{ data: any[]; expiresAt: number } | null>(null)
 
   const loadAssistantCatalog = useCallback(async () => {
     try {
+      // Cache hit: usar los datos cacheados sin pegarle al backend
+      const cached = assistantCatalogCacheRef.current
+      if (cached && cached.expiresAt > Date.now()) {
+        setAssistantCatalog(cached.data)
+        return
+      }
+
       const pageSize = 200
       const authOpts = token ? { token } : {}
       const first = await api(`/api/ai/property-catalog?verified=true&page=1&pageSize=${pageSize}`, authOpts)
@@ -878,6 +888,8 @@ export default function App() {
       }
 
       const uniqueById = Array.from(new Map(allRows.map((p: any) => [p.id, p])).values())
+      // Guardar en cache por 10 min
+      assistantCatalogCacheRef.current = { data: uniqueById, expiresAt: Date.now() + 10 * 60 * 1000 }
       setAssistantCatalog(uniqueById)
     } catch {
       setAssistantCatalog([])

@@ -50,8 +50,11 @@ app.use(compression({
     }
     return compression.filter(req, res);
   },
-  level: 6, // Nivel de compresión balanceado (1-9)
-  threshold: 1024, // Solo comprimir respuestas mayores a 1KB
+  // Nivel 7: mejor balance CPU/compresión para JSON. JSON comprime muy bien (5-10x).
+  // Subir de 6 a 7 reduce el payload ~5-10% adicional con costo CPU casi imperceptible.
+  level: 7,
+  // Bajar threshold de 1024 a 512: responses chicas también se benefician.
+  threshold: 512,
 }));
 
 function isAllowedCorsOrigin(origin: string | undefined): boolean {

@@ -289,7 +289,10 @@ router.post('/generate', authenticateToken, async (req: AuthRequest, res) => {
           stream: false,
           options: {
             temperature: 0.4,
-            num_predict: 600
+            num_predict: 1200,
+            // Aumentar context window a 8192 (default 4096 con poca VRAM).
+            // Necesario para acomodar el catálogo + system prompt sin truncar.
+            num_ctx: 8192
           }
         })
       })
