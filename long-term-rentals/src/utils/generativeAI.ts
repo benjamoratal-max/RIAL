@@ -85,7 +85,7 @@ export class GenerativeAIService {
       this.client = {
         type: 'anthropic',
         apiKey: this.config.apiKey,
-        model: this.config.model || 'claude-3-sonnet-3-20240229'
+        model: this.config.model || 'claude-sonnet-4-6'
       }
     } else {
       this.client = { type: 'local' }
@@ -260,12 +260,17 @@ export class GenerativeAIService {
         title: p.title,
         location: p.location,
         price: p.price,
+        currency: p.currency,
         rooms: p.rooms ?? p.bedrooms,
         bedrooms: p.bedrooms,
         bathrooms: p.bathrooms,
         area: p.area,
-        type: p.propertyType,
+        type: p.propertyType ?? p.type,
         verified: p.verified,
+        availableFor: p.availableFor,
+        amenities: Array.isArray(p.amenities) ? p.amenities.slice(0, 8) : undefined,
+        buildingAmenities: Array.isArray(p.buildingAmenities) ? p.buildingAmenities.slice(0, 8) : undefined,
+        highlights: Array.isArray(p.highlights) ? p.highlights.slice(0, 4) : undefined,
         lat: p.latitude,
         lng: p.longitude,
         d:
@@ -319,7 +324,13 @@ export class GenerativeAIService {
     }
 
     const scored = properties.map((p) => {
-      const haystack = [p?.title, p?.description, p?.location, p?.propertyType]
+      const amenitiesText = [
+        ...(Array.isArray(p?.amenities) ? p.amenities : []),
+        ...(Array.isArray(p?.buildingAmenities) ? p.buildingAmenities : []),
+        ...(Array.isArray(p?.highlights) ? p.highlights : []),
+        ...(Array.isArray(p?.safety) ? p.safety : []),
+      ].join(' ')
+      const haystack = [p?.title, p?.description, p?.location, p?.propertyType ?? p?.type, p?.neighborhood, amenitiesText]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -366,16 +377,26 @@ export class GenerativeAIService {
       description:
         typeof p.description === 'string' ? p.description.slice(0, 1200) : p.description,
       location: p.location,
+      neighborhood: p.neighborhood,
       price: p.price,
+      currency: p.currency,
+      deposit: p.deposit,
+      hoa: p.hoa,
       bedrooms: p.bedrooms,
       rooms: p.rooms,
       bathrooms: p.bathrooms,
       area: p.area,
-      propertyType: p.propertyType,
+      propertyType: p.propertyType ?? p.type,
       verified: p.verified,
+      availableFor: p.availableFor,
+      availableNow: p.availableNow !== false,
+      available: p.isAvailable !== false,
+      amenities: p.amenities,
+      buildingAmenities: p.buildingAmenities,
+      safety: p.safety,
+      highlights: p.highlights,
       latitude: p.latitude,
       longitude: p.longitude,
-      available: p.isAvailable !== false,
     }))
 
     const prices = allProperties
@@ -556,7 +577,7 @@ export class GenerativeAIService {
           stream: false,
           options: {
             temperature: 0.4,
-            num_predict: 600
+            num_predict: 1200
           }
         })
       })
