@@ -804,8 +804,6 @@ export function InteractiveMap({
           center={[mapCenter.lat, mapCenter.lng]}
           zoom={zoom}
           className="w-full h-full"
-          tap={true}
-          dragging={true}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
