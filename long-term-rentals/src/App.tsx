@@ -1463,7 +1463,7 @@ export default function App() {
             {propertiesError}
           </div>
         ) : showMapView ? (
-          <div className="h-[min(52vh,420px)] overflow-hidden rounded-2xl md:h-[min(70vh,640px)]">
+          <div className="overflow-hidden rounded-2xl h-[min(65dvh,420px)] md:h-[min(70vh,640px)]">
             {(() => {
               const validProperties = items
                 .filter((item) => Boolean(item?.property))

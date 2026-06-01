@@ -6,6 +6,7 @@ import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import { useTranslation } from 'react-i18next'
 import 'leaflet/dist/leaflet.css'
 import { Button, Input } from './UI'
+import { useIsMobile } from '../hooks/useMediaQuery'
 
 interface Property {
   id: number
@@ -134,12 +135,14 @@ function PropertyMarker({
   property,
   isHovered,
   isSelected,
+  isMobile,
   onHover,
   onClick,
 }: {
   property: ResolvedProperty
   isHovered: boolean
   isSelected: boolean
+  isMobile: boolean
   onHover: (id: number | null) => void
   onClick: (property: ResolvedProperty) => void
 }) {
@@ -153,43 +156,46 @@ function PropertyMarker({
       icon={icon}
       zIndexOffset={isSelected ? 2000 : isHovered ? 1000 : 0}
       eventHandlers={{
-        mouseover: () => onHover(property.id),
-        mouseout: () => onHover(null),
+        mouseover: () => { if (!isMobile) onHover(property.id) },
+        mouseout: () => { if (!isMobile) onHover(null) },
         click: () => onClick(property),
       }}
     >
-      <Tooltip
-        direction="top"
-        offset={[0, -36]}
-        opacity={1}
-        className="rial-map-tooltip"
-      >
-        <div className="min-w-[180px] max-w-[240px] p-0.5">
-          {image && (
-            <img
-              src={image}
-              alt=""
-              className="w-full h-20 object-cover rounded-md mb-2"
-            />
-          )}
-          <div className="font-semibold text-sm leading-tight mb-1">{property.title}</div>
-          <div className="text-xs text-gray-600 dark:text-gray-300 mb-1.5 flex items-start gap-1">
-            <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
-            <span>{property.location}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-emerald-700 dark:text-emerald-400">
-              ${property.price.toLocaleString()}{t('propertyCard.perMonth')}
-            </span>
-            {property.averageRating > 0 && (
-              <span className="flex items-center gap-0.5 text-amber-600">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                {property.averageRating.toFixed(1)}
-              </span>
+      {/* Tooltip solo en desktop — en móvil el tap abre el panel */}
+      {!isMobile && (
+        <Tooltip
+          direction="top"
+          offset={[0, -36]}
+          opacity={1}
+          className="rial-map-tooltip"
+        >
+          <div className="min-w-[180px] max-w-[240px] p-0.5">
+            {image && (
+              <img
+                src={image}
+                alt=""
+                className="w-full h-20 object-cover rounded-md mb-2"
+              />
             )}
+            <div className="font-semibold text-sm leading-tight mb-1">{property.title}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300 mb-1.5 flex items-start gap-1">
+              <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
+              <span>{property.location}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                ${property.price.toLocaleString()}{t('propertyCard.perMonth')}
+              </span>
+              {property.averageRating > 0 && (
+                <span className="flex items-center gap-0.5 text-amber-600">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  {property.averageRating.toFixed(1)}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      </Tooltip>
+        </Tooltip>
+      )}
     </Marker>
   )
 }
@@ -587,6 +593,82 @@ function MapPropertyPanel({
   )
 }
 
+function MobilePropertySheet({
+  property,
+  onClose,
+  onViewDetail,
+}: {
+  property: ResolvedProperty
+  onClose: () => void
+  onViewDetail: () => void
+}) {
+  const { t } = useTranslation()
+  const image = property.images?.[0]
+
+  return (
+    <div className="flex flex-col overflow-y-auto" style={{ maxHeight: 'calc(55vh - 2rem)' }}>
+      <div className="flex items-start gap-3 p-3">
+        {image && (
+          <img
+            src={image}
+            alt={property.title}
+            className="w-20 h-20 object-cover rounded-xl shrink-0"
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-1">
+            <h3 className="font-semibold text-sm leading-snug text-gray-900 dark:text-white line-clamp-2">
+              {property.title}
+            </h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-full shrink-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label={t('map.closePanel')}
+            >
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <MapPin className="w-3 h-3 shrink-0 text-rial-gold" />
+            <span className="truncate">{property.location}</span>
+          </div>
+          <div className="flex items-center gap-3 mt-1.5 text-xs">
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+              ${property.price.toLocaleString()}{t('propertyCard.perMonth')}
+            </span>
+            {property.averageRating > 0 && (
+              <span className="flex items-center gap-0.5 text-amber-600">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                {property.averageRating.toFixed(1)}
+              </span>
+            )}
+          </div>
+          {(property.bedrooms != null || property.bathrooms != null) && (
+            <div className="flex gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {property.bedrooms != null && property.bedrooms > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Bed className="w-3 h-3" />{property.bedrooms}
+                </span>
+              )}
+              {property.bathrooms != null && property.bathrooms > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Bath className="w-3 h-3" />{property.bathrooms}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="px-3 pb-4">
+        <Button onClick={onViewDetail} icon={<Info className="w-4 h-4" />} className="w-full" size="sm">
+          {t('propertyCard.viewDetail')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function InteractiveMap({
   properties,
   onPropertyClick,
@@ -597,6 +679,7 @@ export function InteractiveMap({
   onViewportChange,
 }: InteractiveMapProps) {
   const { t } = useTranslation()
+  const isMobile = useIsMobile()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProperty, setSelectedProperty] = useState<ResolvedProperty | null>(null)
   const [hoveredId, setHoveredId] = useState<number | null>(null)
@@ -696,9 +779,9 @@ export function InteractiveMap({
   }
 
   return (
-    <div className="flex w-full h-full min-h-[480px] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+    <div className="flex w-full h-full rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
       <div className="relative flex-1 min-w-0">
-        <div className="absolute top-4 left-4 right-4 z-[1000] flex items-center gap-2">
+        <div className="absolute top-3 left-3 right-3 z-[1000] flex items-center gap-2 sm:top-4 sm:left-4 sm:right-4">
           <div className="flex-1">
             <Input
               placeholder={t('map.searchPlaceholder')}
@@ -713,11 +796,17 @@ export function InteractiveMap({
             size="sm"
             onClick={getUserLocation}
             icon={<Crosshair className="w-4 h-4" />}
-            className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm"
+            className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shrink-0"
           />
         </div>
 
-        <MapContainer center={[mapCenter.lat, mapCenter.lng]} zoom={zoom} className="w-full h-full min-h-[480px]">
+        <MapContainer
+          center={[mapCenter.lat, mapCenter.lng]}
+          zoom={zoom}
+          className="w-full h-full"
+          tap={true}
+          dragging={true}
+        >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -734,6 +823,7 @@ export function InteractiveMap({
               property={property}
               isHovered={hoveredId === property.id}
               isSelected={selectedProperty?.id === property.id}
+              isMobile={isMobile}
               onHover={setHoveredId}
               onClick={handleMarkerClick}
             />
@@ -745,10 +835,39 @@ export function InteractiveMap({
             {t('map.resolvingLocations')}
           </div>
         )}
+
+        {/* Móvil: panel de propiedad como bottom sheet sobre el mapa */}
+        <AnimatePresence>
+          {selectedProperty && isMobile && (
+            <motion.div
+              className="absolute bottom-0 left-0 right-0 z-[1001] bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 overflow-hidden"
+              style={{ maxHeight: '55%' }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            >
+              {/* Asa de arrastre visual */}
+              <div className="flex justify-center pt-2 pb-1">
+                <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+              </div>
+              <MobilePropertySheet
+                property={selectedProperty}
+                onClose={() => setSelectedProperty(null)}
+                onViewDetail={() => {
+                  const p = selectedProperty
+                  setSelectedProperty(null)
+                  onPropertyClick(p)
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
+      {/* Desktop: panel lateral */}
       <AnimatePresence>
-        {selectedProperty && (
+        {selectedProperty && !isMobile && (
           <MapPropertyPanel
             property={selectedProperty}
             onClose={() => setSelectedProperty(null)}

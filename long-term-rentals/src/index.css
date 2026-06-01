@@ -363,6 +363,19 @@
   --ring: 224.3 76.3% 94.1%;
 }
 
+/* Leaflet — mapa ocupa 100% del contenedor siempre */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  /* Evita que el scroll de la página interfiera con el mapa en móvil */
+  touch-action: none;
+}
+
+/* Tiles cargados correctamente en modo oscuro */
+.dark .leaflet-tile {
+  filter: brightness(0.85) saturate(0.9);
+}
+
 /* Leaflet — marcadores y tooltips RIAL */
 .rial-map-marker-icon {
   background: transparent !important;
