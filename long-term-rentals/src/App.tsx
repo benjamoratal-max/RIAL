@@ -103,6 +103,56 @@ const DEFAULT_FILTERS = {
 const MOCK_CENTER = { lat: 25.7617, lng: -80.1918 }
 const MAP_VIEWPORT_STORAGE_KEY = 'rial_map_viewport'
 
+// Caché local del listado (stale-while-revalidate): muestra al instante el último
+// resultado conocido mientras el backend responde. Clave: el querystring de filtros.
+const PROPERTIES_CACHE_PREFIX = 'rial_props_cache:'
+const PROPERTIES_CACHE_TTL = 30 * 60 * 1000 // 30 min
+const PROPERTIES_CACHE_MAX_ENTRIES = 12
+
+type PropertiesCacheEntry = { items: PropertySummary[]; total: number; savedAt: number }
+
+function readPropertiesCache(key: string): PropertiesCacheEntry | null {
+  try {
+    const raw = localStorage.getItem(PROPERTIES_CACHE_PREFIX + key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as PropertiesCacheEntry
+    if (!parsed || !Array.isArray(parsed.items)) return null
+    if (Date.now() - parsed.savedAt > PROPERTIES_CACHE_TTL) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writePropertiesCache(key: string, items: PropertySummary[], total: number) {
+  try {
+    // Limitar la cantidad de entradas para no llenar localStorage.
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith(PROPERTIES_CACHE_PREFIX))
+    if (keys.length >= PROPERTIES_CACHE_MAX_ENTRIES) {
+      // Eliminar la más vieja
+      let oldestKey: string | null = null
+      let oldestAt = Infinity
+      for (const k of keys) {
+        try {
+          const e = JSON.parse(localStorage.getItem(k) || '{}')
+          if (typeof e.savedAt === 'number' && e.savedAt < oldestAt) {
+            oldestAt = e.savedAt
+            oldestKey = k
+          }
+        } catch {
+          oldestKey = k
+          break
+        }
+      }
+      if (oldestKey) localStorage.removeItem(oldestKey)
+    }
+    const entry: PropertiesCacheEntry = { items, total, savedAt: Date.now() }
+    localStorage.setItem(PROPERTIES_CACHE_PREFIX + key, JSON.stringify(entry))
+  } catch {
+    // Cuota llena u otro problema: ignorar, la caché es best-effort.
+  }
+}
+
 type MapViewport = { lat: number; lng: number; zoom: number }
 
 function readStoredMapViewport(): MapViewport | null {
@@ -956,49 +1006,68 @@ export default function App() {
     // Asegurar que page y pageSize tengan valores por defecto
     activeFilters.page = activeFilters.page || 1
     activeFilters.pageSize = activeFilters.pageSize || 12
-    
-    setLoading(true)
+
+    const qs = new URLSearchParams()
+    if (activeFilters.query) qs.set('query', activeFilters.query)
+    if (activeFilters.location) qs.set('location', activeFilters.location)
+    if (activeFilters.minPrice) qs.set('minPrice', String(activeFilters.minPrice))
+    if (activeFilters.maxPrice) qs.set('maxPrice', String(activeFilters.maxPrice))
+    if (activeFilters.bedrooms) qs.set('bedrooms', String(activeFilters.bedrooms))
+    if (activeFilters.rooms) qs.set('rooms', String(activeFilters.rooms))
+    if (activeFilters.bathrooms) qs.set('bathrooms', String(activeFilters.bathrooms))
+    if (activeFilters.propertyType) qs.set('propertyType', activeFilters.propertyType)
+    if (activeFilters.verified) qs.set('verified', 'true')
+    const amenitySet = new Set<string>(Array.isArray(activeFilters.amenities) ? activeFilters.amenities : [])
+    if (activeFilters.pool) amenitySet.add('pool')
+    if (activeFilters.gym) amenitySet.add('gym')
+    if (activeFilters.wifi) amenitySet.add('wifi')
+    if (activeFilters.parking) amenitySet.add('parking')
+    if (activeFilters.airConditioning) amenitySet.add('airConditioning')
+    if (activeFilters.heating) amenitySet.add('heating')
+    if (activeFilters.balcony) amenitySet.add('balcony')
+    if (activeFilters.elevator) amenitySet.add('elevator')
+    if (activeFilters.furnished) amenitySet.add('furnished')
+    if (activeFilters.petsAllowed) amenitySet.add('petFriendly')
+    if (amenitySet.size) {
+      Array.from(amenitySet).forEach((amenity: string) => qs.append('amenities', amenity))
+    }
+    if (activeFilters.sort) qs.set('sort', activeFilters.sort)
+    qs.set('page', String(activeFilters.page))
+    qs.set('pageSize', String(activeFilters.pageSize))
+
+    const cacheKey = qs.toString()
+
+    // Stale-while-revalidate: si hay un resultado cacheado para estos filtros,
+    // mostralo al instante y refrescá en segundo plano (sin spinner de pantalla completa).
+    // Esto hace que las propiedades aparezcan al toque aunque Render esté "despertando".
+    const cached = readPropertiesCache(cacheKey)
+    let showedCache = false
+    if (cached) {
+      setItems(cached.items)
+      setTotal(cached.total)
+      setLoading(false)
+      showedCache = true
+    } else {
+      setLoading(true)
+    }
+
     setPropertiesError(null)
     try {
-      const qs = new URLSearchParams()
-      if (activeFilters.query) qs.set('query', activeFilters.query)
-      if (activeFilters.location) qs.set('location', activeFilters.location)
-      if (activeFilters.minPrice) qs.set('minPrice', String(activeFilters.minPrice))
-      if (activeFilters.maxPrice) qs.set('maxPrice', String(activeFilters.maxPrice))
-      if (activeFilters.bedrooms) qs.set('bedrooms', String(activeFilters.bedrooms))
-      if (activeFilters.rooms) qs.set('rooms', String(activeFilters.rooms))
-      if (activeFilters.bathrooms) qs.set('bathrooms', String(activeFilters.bathrooms))
-      if (activeFilters.propertyType) qs.set('propertyType', activeFilters.propertyType)
-      if (activeFilters.verified) qs.set('verified', 'true')
-      const amenitySet = new Set<string>(Array.isArray(activeFilters.amenities) ? activeFilters.amenities : [])
-      if (activeFilters.pool) amenitySet.add('pool')
-      if (activeFilters.gym) amenitySet.add('gym')
-      if (activeFilters.wifi) amenitySet.add('wifi')
-      if (activeFilters.parking) amenitySet.add('parking')
-      if (activeFilters.airConditioning) amenitySet.add('airConditioning')
-      if (activeFilters.heating) amenitySet.add('heating')
-      if (activeFilters.balcony) amenitySet.add('balcony')
-      if (activeFilters.elevator) amenitySet.add('elevator')
-      if (activeFilters.furnished) amenitySet.add('furnished')
-      if (activeFilters.petsAllowed) amenitySet.add('petFriendly')
-      if (amenitySet.size) {
-        Array.from(amenitySet).forEach((amenity: string) => qs.append('amenities', amenity))
-      }
-      if (activeFilters.sort) qs.set('sort', activeFilters.sort)
-      qs.set('page', String(activeFilters.page))
-      qs.set('pageSize', String(activeFilters.pageSize))
-      
-      const data = await api(`/api/properties/with-metrics?${qs.toString()}`, { signal: ac.signal })
+      const data = await api(`/api/properties/with-metrics?${cacheKey}`, { signal: ac.signal })
       const apiItems = Array.isArray(data?.items) ? data.items : []
       const apiTotal = Number(data?.total) || 0
 
       setItems(apiItems)
       setTotal(apiTotal)
+      writePropertiesCache(cacheKey, apiItems, apiTotal)
     } catch (e: any) {
       if (e?.name === 'AbortError') return
-      setPropertiesError(getErrorMessage(e))
-      setItems([])
-      setTotal(0)
+      // Si ya mostramos datos cacheados, no los borramos: mejor data vieja que pantalla vacía.
+      if (!showedCache) {
+        setPropertiesError(getErrorMessage(e))
+        setItems([])
+        setTotal(0)
+      }
       if (import.meta.env.DEV) {
         console.warn('Properties API failed:', e.message)
       }
