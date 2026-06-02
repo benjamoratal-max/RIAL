@@ -1,0 +1,47 @@
+name: Keep backend awake
+
+# Mantiene despierto el backend de Render (plan gratuito se duerme tras ~15 min
+# de inactividad) haciéndole un "ping" periódico al endpoint /health.
+#
+# Estrategia (repo privado → 2000 min/mes gratis de Actions):
+#   - Ping cada 12 minutos (< 15 min, así Render nunca se duerme).
+#   - Solo en horario activo para no agotar la cuota: 11:00–23:00 hora Argentina.
+#   - GitHub cron usa UTC. Argentina es UTC-3, así que el rango en UTC es
+#     14:00–23:59 + 00:00–01:59 (= 11:00–23:00 ART).
+#   - ~60 ejecuciones/día * 30 = ~1800 min/mes (entra en los 2000 gratis).
+#
+# ¿Querés cambiar el horario? Ajustá las horas en las líneas "cron" de abajo.
+# Recordá sumar 3 horas para pasar de hora Argentina a UTC.
+# Ej: si querés empezar a las 9:00 ART, usá la hora 12 en UTC.
+
+on:
+  schedule:
+    # minuto 0,12,24,36,48 → cada 12 min. Horas 14–23 UTC (11:00–20:59 ART)
+    - cron: '0,12,24,36,48 14-23 * * *'
+    # Horas 0–1 UTC (21:00–22:59 ART)
+    - cron: '0,12,24,36,48 0-1 * * *'
+  # Permite ejecutarlo manualmente desde la pestaña "Actions" de GitHub.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping backend /health
+        run: |
+          echo "Pingeando el backend para mantenerlo despierto..."
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 \
+              https://rial-zwv8.onrender.com/health || echo "000")
+            echo "Intento $i → HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "Backend despierto y respondiendo OK."
+              exit 0
+            fi
+            echo "Reintentando en 15s (puede estar despertando)..."
+            sleep 15
+          done
+          echo "El backend no respondió 200 tras 3 intentos."
+          # No fallamos el workflow: un ping fallido no debe marcar error rojo.
+          exit 0
