@@ -1262,13 +1262,18 @@ export default function App() {
 
       <Toaster
         position="top-center"
-        containerClassName="!top-[max(0.75rem,env(safe-area-inset-top))] md:!top-4 md:!right-4 md:!left-auto"
+        containerClassName="!top-[max(0.75rem,env(safe-area-inset-top))] md:!top-4"
+        containerStyle={{
+          left: 'max(0.75rem, env(safe-area-inset-left))',
+          right: 'max(0.75rem, env(safe-area-inset-right))',
+        }}
         toastOptions={{
           duration: 4000,
           style: {
             background: darkMode ? '#0f172a' : '#F5F1E9',
             color: darkMode ? '#f1f5f9' : '#1A1F26',
             border: `1px solid ${darkMode ? '#334155' : '#E8E2D6'}`,
+            maxWidth: 'min(92vw, 420px)',
           },
         }}
       />
