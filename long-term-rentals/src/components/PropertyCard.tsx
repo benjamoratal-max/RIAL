@@ -123,7 +123,6 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
-      layout
     >
       <div className="relative aspect-[16/10] bg-gray-100 dark:bg-gray-700 overflow-hidden">
         {currentImage ? (
