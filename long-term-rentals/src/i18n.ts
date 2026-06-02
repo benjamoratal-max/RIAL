@@ -17,7 +17,9 @@ function getStoredLanguage(): string {
 const initialLng = getStoredLanguage()
 
 async function ensureLanguageBundle(lng: string): Promise<void> {
-  if (lng === 'es' || i18n.hasResourceBundle('es', 'translation')) return
+  // El bundle 'es' ya viene incluido en el init; no hay que cargar nada.
+  if (lng === 'es') return
+  // El bundle 'en' se carga bajo demanda (lazy) la primera vez que se necesita.
   if (lng === 'en' && !i18n.hasResourceBundle('en', 'translation')) {
     const en = await import('./locales/en.json')
     i18n.addResourceBundle('en', 'translation', en.default, true, true)

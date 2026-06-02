@@ -161,10 +161,17 @@ describe('Validation Utils', () => {
         description: 'Nice place',
         price: 1000,
         location: 'Miami, FL',
+        city: 'Miami',
+        neighborhood: 'Brickell',
+        expensesIncluded: true,
         images: 'https://a.com/1.jpg,https://a.com/2.jpg,https://a.com/3.jpg,https://a.com/4.jpg,https://a.com/5.jpg,https://a.com/6.jpg,https://a.com/7.jpg,https://a.com/8.jpg',
         ownerDniDocument: new File(['dni'], 'dni.png', { type: 'image/png' }),
         contractOrTitle: new File(['contract'], 'contract.pdf', { type: 'application/pdf' }),
         videoTourFile: new File(['video'], 'tour.mp4', { type: 'video/mp4' }),
+        rentalMonths: [3, 6, 12],
+        mapPin: { lat: 25.7617, lng: -80.1918 },
+        bedrooms: 2,
+        area: 80,
       })
       expect(result.isValid).toBe(true)
     })
