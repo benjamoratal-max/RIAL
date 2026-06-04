@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/rial-logo.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/rial-icon-192.png" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5"
@@ -17,8 +17,31 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="RIAL" />
     <meta name="format-detection" content="telephone=no" />
-    <link rel="apple-touch-icon" href="/rial-logo.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" id="rial-apple-icon" href="/rial-icon-192.png" />
+    <link rel="manifest" id="rial-manifest" href="/manifest.json" />
+    <script>
+      // Logo distinto según dispositivo:
+      //  - Celulares y tablets → ícono del cerebro (manifest-mobile.json)
+      //  - PC/desktop → logo RIAL wordmark (manifest.json, por defecto)
+      // Se ejecuta en <head> antes de que el navegador ofrezca instalar la PWA.
+      (function () {
+        try {
+          var ua = navigator.userAgent || '';
+          var isMobileOrTablet =
+            /Android|iPhone|iPod|iPad|Mobile|Tablet|Silk|Kindle|PlayBook|BlackBerry|Opera Mini|IEMobile/i.test(ua) ||
+            // iPadOS 13+ se hace pasar por "Macintosh" pero tiene pantalla táctil
+            (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+          if (isMobileOrTablet) {
+            var manifest = document.getElementById('rial-manifest');
+            if (manifest) manifest.setAttribute('href', '/manifest-mobile.json');
+            var apple = document.getElementById('rial-apple-icon');
+            if (apple) apple.setAttribute('href', '/rial-mobile-192.png');
+          }
+        } catch (e) {
+          /* si algo falla, queda el logo por defecto */
+        }
+      })();
+    </script>
 
     <!-- Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

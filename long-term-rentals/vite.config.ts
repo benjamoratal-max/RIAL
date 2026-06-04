@@ -35,7 +35,12 @@ export default defineConfig(({ mode }) => {
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['rial-logo.png'],
+      includeAssets: [
+        'rial-logo.png',
+        'rial-icon-192.png', 'rial-icon-512.png', 'rial-icon-maskable-512.png',
+        'rial-mobile-192.png', 'rial-mobile-512.png', 'rial-mobile-maskable-512.png',
+        'manifest-mobile.json',
+      ],
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
