@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import 'leaflet/dist/leaflet.css'
 import { Button, Input } from './UI'
 import { useIsMobile } from '../hooks/useMediaQuery'
+import { optimizedImageUrl } from '../utils/imageUrl'
 
 interface Property {
   id: number
@@ -172,8 +173,9 @@ function PropertyMarker({
           <div className="min-w-[180px] max-w-[240px] p-0.5">
             {image && (
               <img
-                src={image}
+                src={optimizedImageUrl(image, 280)}
                 alt=""
+                loading="lazy"
                 className="w-full h-20 object-cover rounded-md mb-2"
               />
             )}
@@ -501,7 +503,7 @@ function MapPropertyPanel({
     >
       {image ? (
         <div className="relative h-44 shrink-0">
-          <img src={image} alt={property.title} className="w-full h-full object-cover" />
+          <img src={optimizedImageUrl(image, 480)} alt={property.title} loading="lazy" className="w-full h-full object-cover" />
           <button
             type="button"
             onClick={onClose}
@@ -610,8 +612,9 @@ function MobilePropertySheet({
       <div className="flex items-start gap-3 p-3">
         {image && (
           <img
-            src={image}
+            src={optimizedImageUrl(image, 160)}
             alt={property.title}
+            loading="lazy"
             className="w-20 h-20 object-cover rounded-xl shrink-0"
           />
         )}

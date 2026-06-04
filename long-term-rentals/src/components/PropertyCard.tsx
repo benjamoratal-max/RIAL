@@ -7,6 +7,7 @@ import { useFavorites } from './FavoritesSystem'
 import { VerificationBadge } from './VerificationSystem'
 import { toast } from 'react-hot-toast'
 import type { PropertySummary } from '../data/properties'
+import { optimizedImageUrl, optimizedSrcSet } from '../utils/imageUrl'
 
 interface PropertyCardProps {
   item: PropertySummary
@@ -126,8 +127,10 @@ function PropertyCardComponent({ item, onOpen, token, user, comparisonIds, onAdd
     >
       <div className="relative aspect-[16/10] bg-gray-100 dark:bg-gray-700 overflow-hidden">
         {currentImage ? (
-          <motion.img 
-            src={currentImage}
+          <motion.img
+            src={optimizedImageUrl(currentImage, 720)}
+            srcSet={optimizedSrcSet(currentImage, 720)}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             alt={property.title}
             loading="lazy"
             decoding="async"
