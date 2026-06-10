@@ -59,6 +59,8 @@ const ScheduleVisit = lazy(() => import('./components/ScheduleVisit').then(m => 
 
 // Componentes críticos cargados normalmente (necesarios para el render inicial)
 import { AuthPanel } from './components/AuthPanel'
+import { WelcomeScreen } from './components/WelcomeScreen'
+import { CookieConsent } from './components/CookieConsent'
 import { AppSidebar } from './components/AppSidebar'
 import { MobileBottomNav, type MobileNavTab } from './components/MobileBottomNav'
 import { RoleNavStrip } from './components/RoleNavStrip'
@@ -816,6 +818,39 @@ export default function App() {
   const { t } = useTranslation()
   const { token, user, requires2FA, twoFactorMethod, onLogin, verify2FA, onRegister, onLogout, updateUser } = useAuth()
 
+  // Modo invitado: el usuario entró sin iniciar sesión desde la pantalla de bienvenida.
+  // Solo ve propiedades, detalles y mapa; las funciones exclusivas quedan ocultas.
+  const [guestMode, setGuestMode] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('rial_guest_mode') === '1'
+    } catch {
+      return false
+    }
+  })
+
+  const continueAsGuest = useCallback(() => {
+    try {
+      sessionStorage.setItem('rial_guest_mode', '1')
+    } catch {
+      // ignore storage errors
+    }
+    setGuestMode(true)
+  }, [])
+
+  // Al cerrar sesión, volvemos a la pantalla de bienvenida (no a modo invitado).
+  const handleLogout = useCallback(
+    (opts?: { quiet?: boolean }) => {
+      try {
+        sessionStorage.removeItem('rial_guest_mode')
+      } catch {
+        // ignore storage errors
+      }
+      setGuestMode(false)
+      onLogout(opts)
+    },
+    [onLogout]
+  )
+
   useEffect(() => {
     const lang = user?.preferences?.language
     if (lang === 'es' || lang === 'en') setAppLanguage(lang)
@@ -1229,6 +1264,37 @@ export default function App() {
 
   const showMapView = showMap || (mapPinnedForDetail && openId != null)
 
+  // Pantalla de bienvenida: primera pantalla cuando no hay sesión ni modo invitado.
+  // Desde acá el usuario inicia sesión, se registra o entra como invitado.
+  if (!user && !guestMode) {
+    return (
+      <>
+        <Toaster
+          position="top-center"
+          containerClassName="!top-[max(0.75rem,env(safe-area-inset-top))] md:!top-4"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: darkMode ? '#0f172a' : '#F5F1E9',
+              color: darkMode ? '#f1f5f9' : '#1A1F26',
+              border: `1px solid ${darkMode ? '#334155' : '#E8E2D6'}`,
+              maxWidth: 'min(92vw, 420px)',
+            },
+          }}
+        />
+        <WelcomeScreen
+          requires2FA={requires2FA}
+          twoFactorMethod={twoFactorMethod}
+          onLogin={onLogin}
+          onVerify2FA={verify2FA}
+          onRegister={onRegister}
+          onContinueAsGuest={continueAsGuest}
+        />
+        <CookieConsent />
+      </>
+    )
+  }
+
   return (
     <div className="rial-app-shell flex min-h-screen font-sans text-rial-ink transition-colors duration-300 dark:text-slate-100">
       <AppSidebar
@@ -1356,7 +1422,7 @@ export default function App() {
                 twoFactorMethod={twoFactorMethod}
                 onLogin={onLogin}
                 onVerify2FA={verify2FA}
-                onLogout={onLogout}
+                onLogout={handleLogout}
                 onRegister={onRegister}
               />
             </div>
@@ -1657,8 +1723,9 @@ export default function App() {
         )}
       </main>
 
-      {/* Asistente IA flotante (marca RIAL: navy + celeste) */}
+      {/* Asistente IA flotante (marca RIAL: navy + celeste) — solo con sesión iniciada */}
       {typeof document !== 'undefined' &&
+        user &&
         !showChat &&
         createPortal(
           <motion.button
@@ -1713,6 +1780,8 @@ export default function App() {
           if (user) setShowUserProfile(true)
         }}
       />
+
+      <CookieConsent />
 
       <AnimatePresence>
         {openId && (
@@ -1879,7 +1948,7 @@ export default function App() {
               onUpdate={(data) => {
                 updateUser(data)
               }}
-              onLogout={onLogout}
+              onLogout={handleLogout}
               onClose={() => setShowUserProfile(false)}
               properties={items}
             />

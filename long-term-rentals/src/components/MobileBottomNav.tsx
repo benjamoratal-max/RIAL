@@ -102,34 +102,33 @@ function MobileBottomNavComponent({
         >
           <MapIcon className="h-5 w-5" strokeWidth={1.75} />
         </NavItem>
-        <NavItem
-          label={t('app.mobileNav.favorites')}
-          active={activeTab === 'favorites'}
-          onClick={onFavorites}
-        >
-          <Heart className={classNames('h-5 w-5', user && 'fill-current')} strokeWidth={1.75} />
-        </NavItem>
-        <NavItem
-          label={t('app.mobileNav.messages')}
-          active={activeTab === 'messages'}
-          onClick={onMessages}
-          badge={user ? messageCount : undefined}
-        >
-          <MessageCircle className="h-5 w-5" strokeWidth={1.75} />
-        </NavItem>
-        {user ? (
-          <NavItem
-            label={t('app.mobileNav.profile')}
-            active={activeTab === 'profile'}
-            onClick={onProfile}
-            badge={notificationCount}
-          >
-            <User className="h-5 w-5" strokeWidth={1.75} />
-          </NavItem>
-        ) : (
-          <NavItem label={t('app.mobileNav.profile')} active={false} onClick={onProfile}>
-            <User className="h-5 w-5" strokeWidth={1.75} />
-          </NavItem>
+        {/* Funciones exclusivas: solo visibles con sesión iniciada (no para invitados) */}
+        {user && (
+          <>
+            <NavItem
+              label={t('app.mobileNav.favorites')}
+              active={activeTab === 'favorites'}
+              onClick={onFavorites}
+            >
+              <Heart className="h-5 w-5 fill-current" strokeWidth={1.75} />
+            </NavItem>
+            <NavItem
+              label={t('app.mobileNav.messages')}
+              active={activeTab === 'messages'}
+              onClick={onMessages}
+              badge={messageCount}
+            >
+              <MessageCircle className="h-5 w-5" strokeWidth={1.75} />
+            </NavItem>
+            <NavItem
+              label={t('app.mobileNav.profile')}
+              active={activeTab === 'profile'}
+              onClick={onProfile}
+              badge={notificationCount}
+            >
+              <User className="h-5 w-5" strokeWidth={1.75} />
+            </NavItem>
+          </>
         )}
       </div>
     </nav>

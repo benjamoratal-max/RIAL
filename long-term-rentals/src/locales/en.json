@@ -1,4 +1,17 @@
 {
+  "welcome": {
+    "title": "Your next home starts here",
+    "subtitle": "Sign in or create an account to unlock every feature, or browse the listings as a guest.",
+    "or": "or",
+    "continueAsGuest": "Continue without signing in",
+    "guestNote": "As a guest you can only view properties, their details and the map."
+  },
+  "cookies": {
+    "title": "We use cookies",
+    "message": "We use cookies to improve your experience, remember your preferences and analyze site usage. You can accept them or reject non-essential ones.",
+    "accept": "Accept cookies",
+    "reject": "Reject"
+  },
   "app": {
     "name": "RIAL App",
     "tagline": "Rentals Intelligence & Lifestyle",

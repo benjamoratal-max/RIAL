@@ -16,9 +16,7 @@ import {
   BarChart3,
   Shield,
   Users,
-  Heart,
 } from 'lucide-react'
-import { toast } from 'react-hot-toast'
 import { classNames } from './UI'
 
 type AppSidebarProps = {
@@ -123,8 +121,6 @@ function AppSidebarComponent({
     return () => document.removeEventListener('mousedown', close)
   }, [moreOpen])
 
-  const loginFirst = () => toast.error(t('app.sidebar.loginRequired'))
-
   const showLeadsMore =
     user &&
     (user.role === 'owner' ||
@@ -157,33 +153,32 @@ function AppSidebarComponent({
           <MapIcon className="h-5 w-5" strokeWidth={1.75} />
         </RailButton>
 
-        {user ? (
-          <div className="flex flex-col items-center">{favoritesSlot}</div>
-        ) : (
-          <RailButton onClick={loginFirst} title={t('app.sidebar.favorites')}>
-            <Heart className="h-5 w-5 text-rial-cream/80" strokeWidth={1.75} />
-          </RailButton>
+        {/* Funciones exclusivas: solo visibles con sesión iniciada (no para invitados) */}
+        {user && (
+          <>
+            <div className="flex flex-col items-center">{favoritesSlot}</div>
+
+            <RailButton
+              onClick={onOpenChat}
+              title={t('app.sidebar.messages')}
+              badge={messageCount}
+            >
+              <MessageCircle className="h-5 w-5" strokeWidth={1.75} />
+            </RailButton>
+
+            <RailButton
+              onClick={onOpenNotifications}
+              title={t('app.sidebar.notifications')}
+              badge={notificationCount}
+            >
+              <Bell className="h-5 w-5" strokeWidth={1.75} />
+            </RailButton>
+
+            <RailButton onClick={onOpenProfile} title={t('app.sidebar.profile')}>
+              <User className="h-5 w-5" strokeWidth={1.75} />
+            </RailButton>
+          </>
         )}
-
-        <RailButton
-          onClick={user ? onOpenChat : loginFirst}
-          title={t('app.sidebar.messages')}
-          badge={user ? messageCount : undefined}
-        >
-          <MessageCircle className="h-5 w-5" strokeWidth={1.75} />
-        </RailButton>
-
-        <RailButton
-          onClick={user ? onOpenNotifications : loginFirst}
-          title={t('app.sidebar.notifications')}
-          badge={user ? notificationCount : undefined}
-        >
-          <Bell className="h-5 w-5" strokeWidth={1.75} />
-        </RailButton>
-
-        <RailButton onClick={user ? onOpenProfile : loginFirst} title={t('app.sidebar.profile')}>
-          <User className="h-5 w-5" strokeWidth={1.75} />
-        </RailButton>
       </nav>
 
       <div className="relative mt-auto flex flex-col items-center gap-2 px-2 pb-2" ref={moreRef}>
@@ -204,18 +199,20 @@ function AppSidebarComponent({
               className="absolute bottom-full left-1/2 z-[80000] mb-2 w-56 -translate-x-1/2 rounded-xl border border-rial-cream-dark/40 bg-rial-cream py-1.5 text-rial-ink shadow-xl dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
               role="menu"
             >
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
-                  onClick={() => {
-                    onOpenComparison()
-                    setMoreOpen(false)
-                  }}
-                >
-                  <GitCompare className="h-4 w-4 shrink-0 opacity-70" />
-                  {t('app.sidebar.compare')}
-                </button>
+                {user && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-rial-cream-dark/50 dark:hover:bg-slate-800"
+                    onClick={() => {
+                      onOpenComparison()
+                      setMoreOpen(false)
+                    }}
+                  >
+                    <GitCompare className="h-4 w-4 shrink-0 opacity-70" />
+                    {t('app.sidebar.compare')}
+                  </button>
+                )}
                 {user && (
                   <button
                     type="button"
