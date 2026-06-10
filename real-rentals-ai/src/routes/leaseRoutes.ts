@@ -9,6 +9,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { buildContractPdfContent } from '../utils/leaseContractTemplate';
 import NotificationService from '../utils/notificationService';
 import { updateLeaseRequestScreening } from '../services/screeningService';
+import { cache, CacheKeys } from '../utils/cache';
 
 const router = express.Router();
 
@@ -92,10 +93,38 @@ router.patch('/:id/responded', authenticateToken, asyncHandler(async (req: AuthR
   res.json({ ok: true });
 }));
 
-// Cambiar el estado de una solicitud (aprobación/rechazo)
-router.put('/:id/status', async (req, res) => {
+// Cambiar el estado de una solicitud (aprobación/rechazo).
+// Solo el dueño de la propiedad (broker) o un admin pueden hacerlo.
+router.put('/:id/status', authenticateToken, asyncHandler(async (req: AuthRequest, res) => {
+  if (!req.user) return res.status(401).json({ error: 'No autorizado' });
   const { status } = req.body; // 'approved' o 'rejected'
   const { id } = req.params;
+
+  if (status !== 'approved' && status !== 'rejected') {
+    return res.status(400).json({ error: "status debe ser 'approved' o 'rejected'" });
+  }
+
+  // Verificar permiso antes de modificar nada.
+  const existing = await prisma.leaseRequest.findUnique({
+    where: { id: Number(id) },
+    include: { property: { select: { ownerId: true } } },
+  });
+  if (!existing) return res.status(404).json({ error: 'Solicitud no encontrada' });
+  const isOwner = (existing.property as any)?.ownerId === req.user.id;
+  if (!isOwner && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'No tenés permiso para gestionar esta solicitud' });
+  }
+
+  // No se puede aprobar una solicitud sobre una propiedad ya alquilada por otro.
+  if (status === 'approved') {
+    const otherApproved = await prisma.leaseRequest.findFirst({
+      where: { propertyId: existing.propertyId, status: 'approved', NOT: { id: Number(id) } },
+      select: { id: true },
+    });
+    if (otherApproved) {
+      return res.status(409).json({ error: 'La propiedad ya tiene una solicitud aprobada' });
+    }
+  }
 
   try {
     const lease = await prisma.leaseRequest.update({
@@ -143,11 +172,15 @@ router.put('/:id/status', async (req, res) => {
       });
     }
 
+    // Aprobar/rechazar cambia la disponibilidad: refrescar listado y ficha.
+    cache.delete(CacheKeys.propertySummary(lease.propertyId));
+    cache.deleteByPrefix('properties:');
+
     res.json({ message: `Solicitud ${status}`, leaseId: lease.id });
   } catch (error) {
     res.status(400).json({ error: 'Error al actualizar el estado de la solicitud' });
   }
-});
+}));
 
 // Obtener la URL del contrato asociado a una solicitud
 router.get('/:id/contract', async (req, res) => {

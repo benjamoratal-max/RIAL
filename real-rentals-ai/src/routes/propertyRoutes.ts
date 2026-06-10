@@ -625,8 +625,12 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
         title: true,
         location: true,
         price: true,
+        bedrooms: true,
         rooms: true,
         bathrooms: true,
+        area: true,
+        propertyType: true,
+        verified: true,
         latitude: true,
         longitude: true,
         rentalMonths: true,
@@ -644,7 +648,8 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
 
   const ids = properties.map((p: any) => p.id);
 
-  const [reviewAgg, occupied] = await Promise.all([
+  const now = new Date();
+  const [reviewAgg, occupied, activeReservations] = await Promise.all([
     prisma.review.groupBy({
       by: ['propertyId'],
       where: { propertyId: { in: ids } },
@@ -655,11 +660,26 @@ router.get('/with-metrics', asyncHandler(async (req, res) => {
       where: { propertyId: { in: ids }, status: 'approved' },
       select: { propertyId: true },
     }),
+    // Una reserva con seña vigente o ya completada bloquea la propiedad para el
+    // resto de los inquilinos (es lo que hace que "alquilada" figure como tal).
+    (prisma as any).rentalReservation.findMany({
+      where: {
+        propertyId: { in: ids },
+        OR: [
+          { status: 'completed' },
+          { status: 'deposit_paid', balanceDueAt: { gt: now } },
+        ],
+      },
+      select: { propertyId: true },
+    }),
   ]);
 
   const avgMap = new Map(reviewAgg.map((r) => [r.propertyId, r._avg.rating ?? 0]));
   const countMap = new Map(reviewAgg.map((r) => [r.propertyId, r._count._all]));
-  const occupiedSet = new Set(occupied.map((o) => o.propertyId));
+  const occupiedSet = new Set<number>([
+    ...occupied.map((o) => o.propertyId),
+    ...activeReservations.map((r: any) => r.propertyId),
+  ]);
 
   const ownerIdSet = new Set<number>();
   for (const p of properties) {
@@ -893,12 +913,26 @@ router.get('/:id/summary', async (req, res) => {
   }
 
   try {
-    // 1) ¿Está alquilada? (hay LeaseRequest aprobado)
-    const approvedLease = await prisma.leaseRequest.findFirst({
-      where: { propertyId, status: 'approved' },
-      select: { id: true, createdAt: true },
-    });
-    const isAvailable = !approvedLease;
+    // 1) ¿Está alquilada? Lo está si hay un LeaseRequest aprobado (flujo legacy)
+    //    o una reserva con seña vigente / ya completada (flujo real de alquiler).
+    const now = new Date();
+    const [approvedLease, activeReservation] = await Promise.all([
+      prisma.leaseRequest.findFirst({
+        where: { propertyId, status: 'approved' },
+        select: { id: true, createdAt: true },
+      }),
+      (prisma as any).rentalReservation.findFirst({
+        where: {
+          propertyId,
+          OR: [
+            { status: 'completed' },
+            { status: 'deposit_paid', balanceDueAt: { gt: now } },
+          ],
+        },
+        select: { id: true },
+      }),
+    ]);
+    const isAvailable = !approvedLease && !activeReservation;
 
     // 2) Promedio y conteo de reviews
     const agg = await prisma.review.aggregate({

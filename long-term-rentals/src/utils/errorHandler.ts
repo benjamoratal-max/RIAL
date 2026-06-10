@@ -143,7 +143,13 @@ export async function retryWithBackoff<T>(
       return await fn();
     } catch (error: any) {
       lastError = error;
-      
+
+      // No reintentar peticiones canceladas (p. ej. el usuario cambió de filtro
+      // y abortamos la request anterior): reintentarlas dispararía llamadas zombi.
+      if (error?.name === 'AbortError') {
+        throw error;
+      }
+
       // No reintentar errores 4xx (errores del cliente)
       if (error.status && error.status >= 400 && error.status < 500) {
         throw error;

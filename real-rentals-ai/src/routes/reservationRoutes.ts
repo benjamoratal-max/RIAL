@@ -31,11 +31,34 @@ router.get(
     const list = await (prisma as any).rentalReservation.findMany({
       where: { userId: req.user.id },
       include: {
-        property: { select: { id: true, title: true, location: true, price: true } },
+        property: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            price: true,
+            bedrooms: true,
+            bathrooms: true,
+            area: true,
+            propertyType: true,
+            images: { select: { url: true }, take: 1 },
+          },
+        },
+        // Contrato PDF (si la solicitud asociada fue aprobada y generó contrato).
+        leaseRequest: { include: { leaseContract: { select: { pdfUrl: true } } } },
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json(list);
+
+    // Aplanar datos útiles para el frontend (primera imagen y URL de contrato).
+    const shaped = list.map((r: any) => ({
+      ...r,
+      property: r.property
+        ? { ...r.property, image: r.property.images?.[0]?.url ?? null }
+        : null,
+      contractUrl: r.leaseRequest?.leaseContract?.pdfUrl ?? null,
+    }));
+    res.json(shaped);
   })
 );
 

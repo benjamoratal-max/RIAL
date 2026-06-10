@@ -1,8 +1,23 @@
 import prisma from '../lib/prisma';
 import NotificationService from '../utils/notificationService';
+import { cache, CacheKeys } from '../utils/cache';
 
 export const DEPOSIT_PERCENT = 0.5;
 export const BALANCE_DEADLINE_HOURS = 48;
+
+/**
+ * Invalida los cachés que dependen de la disponibilidad de una propiedad.
+ * Se llama cuando una reserva cambia de estado (seña pagada, completada o
+ * expirada) para que el listado y la ficha reflejen "alquilada" al instante.
+ */
+function invalidatePropertyAvailabilityCaches(propertyId: number) {
+  try {
+    cache.delete(CacheKeys.propertySummary(propertyId));
+    cache.deleteByPrefix('properties:');
+  } catch {
+    /* el caché es best-effort; nunca debe romper el flujo de pago */
+  }
+}
 
 export type ReservationStatus =
   | 'pending_deposit'
@@ -51,6 +66,9 @@ export async function expireStaleReservations(): Promise<number> {
         },
       });
     }
+
+    // El hold venció: la propiedad vuelve a estar disponible para otros.
+    invalidatePropertyAvailabilityCaches(reservation.propertyId);
 
     await NotificationService.createNotification(
       reservation.userId,
@@ -168,6 +186,10 @@ export async function payDeposit(reservationId: number, userId: number, paymentM
     throw err;
   }
 
+  // Revalidar que nadie haya tomado la propiedad entre la creación de la reserva
+  // y el pago de la seña (evita doble reserva por carrera entre dos inquilinos).
+  await assertNoConflictingHold(reservation.propertyId, userId);
+
   const transactionId = `DEP_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const payment = await prisma.payment.create({
     data: {
@@ -197,6 +219,9 @@ export async function payDeposit(reservationId: number, userId: number, paymentM
       property: { select: { id: true, title: true, location: true, price: true } },
     },
   });
+
+  // La propiedad pasa a estar reservada: refrescar listado y ficha.
+  invalidatePropertyAvailabilityCaches(reservation.propertyId);
 
   await simulatePaymentCompletion(payment.id);
 
@@ -268,6 +293,9 @@ export async function payBalance(reservationId: number, userId: number, paymentM
       property: { select: { id: true, title: true, location: true, price: true } },
     },
   });
+
+  // Alquiler confirmado: la propiedad queda ocupada de forma definitiva.
+  invalidatePropertyAvailabilityCaches(reservation.propertyId);
 
   await simulatePaymentCompletion(payment.id);
 

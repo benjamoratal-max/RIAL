@@ -37,7 +37,7 @@ import {
 } from 'lucide-react'
 import { Button, Input, LoadingSpinner, classNames } from './UI'
 import { LeadApplicationReadiness } from './LeadApplicationReadiness'
-import { api } from '../utils/api'
+import { api, apiUrl } from '../utils/api'
 import { VerificationSystem } from './VerificationSystem'
 import { PhoneInput } from './PhoneInput'
 import { EmailVerification } from './EmailVerification'
@@ -89,7 +89,7 @@ interface UserProfileProps {
 
 export function UserProfile({ user, token, onUpdate, onLogout, onClose, properties = [] }: UserProfileProps) {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile' | 'activity' | 'applications' | 'settings' | 'security'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile' | 'activity' | 'applications' | 'rentals' | 'settings' | 'security'>('dashboard')
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState(user)
   const [activities, setActivities] = useState<any[]>([])
@@ -99,6 +99,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
   const [loading, setLoading] = useState(false)
   const [renterLeads, setRenterLeads] = useState<any[]>([])
   const [selectedLeadForDocs, setSelectedLeadForDocs] = useState<any | null>(null)
+  const [rentals, setRentals] = useState<any[]>([])
 
   useEffect(() => {
     // Actualizar editData cuando cambie el prop user
@@ -129,6 +130,7 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
         loadBookings(),
         loadReviews(),
         loadRenterLeads(),
+        loadRentals(),
       ])
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -149,6 +151,20 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
       console.error('Error loading renter leads:', error)
       // Evitamos mostrar toast en la carga de perfil para no interrumpir UX de Settings/Profile
       setRenterLeads([])
+    }
+  }
+
+  const loadRentals = async () => {
+    if (!token) {
+      setRentals([])
+      return
+    }
+    try {
+      const data = await api('/api/reservations/mine', { token })
+      setRentals(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Error loading rentals:', error)
+      setRentals([])
     }
   }
 
@@ -294,6 +310,9 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
     { id: 'activity', labelKey: 'profile.activity', icon: Calendar },
     user.role === 'tenant'
       ? { id: 'applications', labelKey: 'profile.applications', icon: FileText }
+      : null,
+    user.role === 'tenant'
+      ? { id: 'rentals', labelKey: 'profile.rentals', icon: Home }
       : null,
     { id: 'settings', labelKey: 'profile.settings', icon: Settings },
     { id: 'security', labelKey: 'profile.security', icon: Shield }
@@ -528,7 +547,19 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
                     )}
                   </motion.div>
                 )}
-                
+
+                {activeTab === 'rentals' && user.role === 'tenant' && (
+                  <motion.div
+                    key="rentals"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-6"
+                  >
+                    <RentalsTab rentals={rentals} loading={loading} />
+                  </motion.div>
+                )}
+
                 {activeTab === 'settings' && (
                   <motion.div
                     key="settings"
@@ -575,6 +606,126 @@ export function UserProfile({ user, token, onUpdate, onLogout, onClose, properti
         </AnimatePresence>
       </motion.div>
     </motion.div>
+  )
+}
+
+// Pestaña "Mis alquileres": muestra las reservas/alquileres del inquilino con
+// todos los detalles (estado, plazo, montos, fechas y contrato).
+function RentalsTab({ rentals, loading }: { rentals: any[]; loading: boolean }) {
+  const { t } = useTranslation()
+
+  const fmtMoney = (value: number | null | undefined, currency = 'USD') => {
+    const n = Number(value) || 0
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n)
+    } catch {
+      return `$${n.toLocaleString()}`
+    }
+  }
+  const fmtDate = (value: string | null | undefined) =>
+    value ? new Date(value).toLocaleDateString() : '—'
+
+  const statusMeta: Record<string, { label: string; cls: string }> = {
+    pending_deposit: { label: t('rentalsTab.statusPendingDeposit'), cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' },
+    deposit_paid: { label: t('rentalsTab.statusDepositPaid'), cls: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200' },
+    completed: { label: t('rentalsTab.statusCompleted'), cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' },
+    expired: { label: t('rentalsTab.statusExpired'), cls: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200' },
+    cancelled: { label: t('rentalsTab.statusCancelled'), cls: 'bg-gray-200 text-gray-700 dark:bg-slate-700 dark:text-slate-200' },
+  }
+
+  return (
+    <>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('profile.rentals')}</h2>
+      {loading ? (
+        <div className="flex justify-center py-10"><LoadingSpinner /></div>
+      ) : rentals.length === 0 ? (
+        <p className="text-sm text-gray-600 dark:text-gray-400">{t('rentalsTab.empty')}</p>
+      ) : (
+        <div className="space-y-4">
+          {rentals.map((r) => {
+            const meta = statusMeta[r.status] || { label: r.status, cls: 'bg-gray-200 text-gray-700' }
+            const currency = r.currency || 'USD'
+            return (
+              <div
+                key={r.id}
+                className="overflow-hidden rounded-2xl border border-rial-cream-dark/40 bg-white/95 dark:border-slate-600 dark:bg-slate-900/80"
+              >
+                <div className="flex flex-col gap-4 p-4 sm:flex-row">
+                  {r.property?.image && (
+                    <img
+                      src={r.property.image}
+                      alt={r.property?.title || ''}
+                      className="h-32 w-full shrink-0 rounded-xl object-cover sm:w-44"
+                      loading="lazy"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-lg font-semibold text-gray-900 dark:text-white">
+                          {r.property?.title || t('profile.untitledProperty')}
+                        </h3>
+                        <p className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{r.property?.location || t('profile.locationUnavailable')}</span>
+                        </p>
+                      </div>
+                      <span className={classNames('shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold', meta.cls)}>
+                        {meta.label}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+                      <Detail label={t('rentalsTab.monthlyRent')} value={`${fmtMoney(r.monthlyRent, currency)} ${t('rentalsTab.perMonth')}`} />
+                      <Detail label={t('rentalsTab.duration')} value={`${r.durationMonths} ${t('rentalsTab.months')}`} />
+                      <Detail label={t('rentalsTab.startDate')} value={fmtDate(r.startDate)} />
+                      <Detail label={t('rentalsTab.deposit')} value={fmtMoney(r.depositAmount, currency)} />
+                      <Detail label={t('rentalsTab.balance')} value={fmtMoney(r.balanceAmount, currency)} />
+                      <Detail label={t('rentalsTab.total')} value={fmtMoney(r.totalAmount, currency)} />
+                    </div>
+
+                    {r.status === 'deposit_paid' && r.balanceDueAt && (
+                      <p className="mt-3 flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                        <Clock className="h-3.5 w-3.5" />
+                        {t('rentalsTab.balanceDue')}: {new Date(r.balanceDueAt).toLocaleString()}
+                      </p>
+                    )}
+                    {r.status === 'completed' && r.balancePaidAt && (
+                      <p className="mt-3 text-xs text-emerald-700 dark:text-emerald-300">
+                        {t('rentalsTab.completedOn')}: {fmtDate(r.balancePaidAt)}
+                      </p>
+                    )}
+
+                    {r.contractUrl && (
+                      <div className="mt-3">
+                        <a
+                          href={apiUrl(r.contractUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-rial-navy/20 px-3 py-1.5 text-xs font-semibold text-rial-navy transition hover:bg-rial-navy/5 dark:border-rial-gold/30 dark:text-rial-gold dark:hover:bg-rial-gold/10"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {t('rentalsTab.downloadContract')}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
+}
+
+function Detail({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{label}</div>
+      <div className="truncate font-medium text-gray-900 dark:text-gray-100">{value}</div>
+    </div>
   )
 }
 

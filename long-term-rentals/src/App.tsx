@@ -455,7 +455,7 @@ function PropertyDetail({ id, onClose, token, user, initialItem }: { id: number;
                   )}
                 </div>
                 <div className="flex min-w-[200px] shrink-0 flex-col gap-2">
-                  {rentAvailable && (
+                  {rentAvailable && isAvailable && (
                     <Button
                       variant="navy"
                       icon={<CreditCard className="h-4 w-4" />}
@@ -481,6 +481,15 @@ function PropertyDetail({ id, onClose, token, user, initialItem }: { id: number;
                       }}
                     >
                       {t('propertyDetail.startRental')}
+                    </Button>
+                  )}
+                  {rentAvailable && !isAvailable && (
+                    <Button
+                      variant="navy"
+                      disabled
+                      icon={<CreditCard className="h-4 w-4" />}
+                    >
+                      {t('propertyDetail.alreadyRented')}
                     </Button>
                   )}
                   {buyAvailable && (
@@ -1053,7 +1062,10 @@ export default function App() {
 
     setPropertiesError(null)
     try {
-      const data = await api(`/api/properties/with-metrics?${cacheKey}`, { signal: ac.signal })
+      // retry: ante un cold start de Render, el proxy puede devolver 502/504
+      // mientras el servidor "despierta". Reintentamos con backoff en vez de
+      // mostrarle un error al usuario (los 4xx y los abortos no se reintentan).
+      const data = await api(`/api/properties/with-metrics?${cacheKey}`, { signal: ac.signal, retry: true })
       const apiItems = Array.isArray(data?.items) ? data.items : []
       const apiTotal = Number(data?.total) || 0
 
