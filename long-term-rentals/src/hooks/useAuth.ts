@@ -26,7 +26,10 @@ export function useAuth() {
   const [pendingLogin, setPendingLogin] = useState<{ email: string; password: string } | null>(null)
 
   const onLogin = useCallback(({ email, password, twoFactorCode, recaptchaToken }: { email: string; password: string; twoFactorCode?: string; recaptchaToken?: string }) => {
-    api('/api/auth/login', { method: 'POST', body: { email, password, twoFactorCode, recaptchaToken } })
+    // retry: durante el cold start de Render el backend puede responder 502/503
+    // mientras despierta. Reintentamos con backoff (los 4xx como credenciales
+    // inválidas NO se reintentan) para que el login no falle por el arranque.
+    return api('/api/auth/login', { method: 'POST', body: { email, password, twoFactorCode, recaptchaToken }, retry: true })
       .then((res) => {
         if (res.requires2FA) {
           setRequires2FA(true)
@@ -52,9 +55,9 @@ export function useAuth() {
   }, [])
 
   const verify2FA = useCallback((code: string) => {
-    if (!pendingLogin) return
-    
-    onLogin({ 
+    if (!pendingLogin) return Promise.resolve()
+
+    return onLogin({
       email: pendingLogin.email, 
       password: pendingLogin.password, 
       twoFactorCode: code 
@@ -62,11 +65,11 @@ export function useAuth() {
   }, [pendingLogin, onLogin])
 
   const onRegister = useCallback(({ name, email, password, role }: { name: string; email: string; password: string; role: string }) => {
-    api('/api/auth/register', { method: 'POST', body: { name, email, password, role } })
-      .then((res) => {
+    return api('/api/auth/register', { method: 'POST', body: { name, email, password, role } })
+      .then(() => {
         toast.success('Cuenta creada exitosamente. Puedes verificar tu email más tarde si lo deseas.')
         // Permitir login automático ya que la verificación es opcional
-        onLogin({ email, password })
+        return onLogin({ email, password })
       })
       .catch((err) => toast.error(getErrorMessage(err)))
   }, [onLogin])

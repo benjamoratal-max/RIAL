@@ -361,6 +361,8 @@
     "email": "Email",
     "password": "Password",
     "enter": "Sign in",
+    "signingIn": "Signing in…",
+    "creatingAccount": "Creating account…",
     "createAccount": "Create account",
     "name": "Name",
     "roleTenant": "Tenant",

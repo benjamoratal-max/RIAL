@@ -361,6 +361,8 @@
     "email": "Email",
     "password": "Password",
     "enter": "Entrar",
+    "signingIn": "Iniciando sesión…",
+    "creatingAccount": "Creando cuenta…",
     "createAccount": "Crear cuenta",
     "name": "Nombre",
     "roleTenant": "Inquilino / Renter",

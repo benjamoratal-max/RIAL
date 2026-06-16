@@ -4,6 +4,7 @@ import './i18n'
 import './index.css'
 import App from './App.tsx'
 import { APP_VERSION } from './appVersion'
+import { warmUpBackend } from './utils/api'
 
 /** Elimina SW/caché viejos (mostraban el bug "fecha del servidor" en alquiler). */
 async function purgeLegacyCaches(): Promise<boolean> {
@@ -198,6 +199,10 @@ async function bootstrap() {
   const reloaded = await purgeLegacyCaches()
   if (reloaded) return
   if (!rootElement) throw new Error('Root element not found')
+
+  // Despertar el backend de Render lo antes posible (cold start del plan free).
+  // Así, para cuando el usuario inicia sesión, el servidor ya está despierto.
+  void warmUpBackend()
 
   void registerPwa()
 

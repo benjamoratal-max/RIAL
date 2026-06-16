@@ -1272,6 +1272,7 @@ export default function App() {
         <Toaster
           position="top-center"
           containerClassName="!top-[max(0.75rem,env(safe-area-inset-top))] md:!top-4"
+          containerStyle={{ zIndex: 2147483647 }}
           toastOptions={{
             duration: 4000,
             style: {
@@ -1344,6 +1345,7 @@ export default function App() {
         containerStyle={{
           left: 'max(0.75rem, env(safe-area-inset-left))',
           right: 'max(0.75rem, env(safe-area-inset-right))',
+          zIndex: 2147483647,
         }}
         toastOptions={{
           duration: 4000,

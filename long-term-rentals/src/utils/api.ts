@@ -124,6 +124,38 @@ export async function api(
   return makeRequest();
 }
 
+/**
+ * Despierta el backend de Render (plan free se "duerme" tras inactividad).
+ * Es fire-and-forget: pega a /health para que el cold start arranque cuanto antes
+ * (p. ej. mientras el usuario mira la pantalla de inicio), así el login posterior
+ * no tiene que esperar a que el servidor despierte. Nunca lanza errores.
+ */
+let warmUpInFlight: Promise<void> | null = null;
+export function warmUpBackend(): Promise<void> {
+  if (warmUpInFlight) return warmUpInFlight;
+  warmUpInFlight = (async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60_000);
+      try {
+        await fetch(apiUrl('/health'), {
+          method: 'GET',
+          signal: controller.signal,
+          // No nos importa la respuesta ni la caché, solo despertar el servidor.
+          cache: 'no-store',
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch {
+      // Ignorar: si falla, el login/listado hará su propio retry.
+    } finally {
+      warmUpInFlight = null;
+    }
+  })();
+  return warmUpInFlight;
+}
+
 export function authHeaderForToken(token: string | null | undefined): HeadersInit {
   if (!token || !String(token).trim()) return {};
   return { Authorization: `Bearer ${normalizeBearerToken(String(token))}` };

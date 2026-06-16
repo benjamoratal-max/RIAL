@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import ReCAPTCHA from 'react-google-recaptcha'
-import { Users, Settings, LogOut, Search, Shield, Mail, Phone, ShieldAlert } from 'lucide-react'
+import { Users, Settings, LogOut, Search, Shield, Mail, Phone, ShieldAlert, Loader2 } from 'lucide-react'
 import { Button, Input } from './UI'
 import { PasswordRequirementsHint } from './PasswordRequirementsHint'
 import { validateRegisterForm, validateLoginForm, getFieldError } from '../utils/validation'
@@ -17,10 +17,10 @@ interface AuthPanelProps {
   token?: string
   requires2FA?: boolean
   twoFactorMethod?: string | null
-  onLogin: (credentials: { email: string; password: string; twoFactorCode?: string; recaptchaToken?: string }) => void
-  onVerify2FA?: (code: string) => void
+  onLogin: (credentials: { email: string; password: string; twoFactorCode?: string; recaptchaToken?: string }) => void | Promise<unknown>
+  onVerify2FA?: (code: string) => void | Promise<unknown>
   onLogout: () => void
-  onRegister: (data: { name: string; email: string; password: string; role: string }) => void
+  onRegister: (data: { name: string; email: string; password: string; role: string }) => void | Promise<unknown>
 }
 
 export function AuthPanel({ 
@@ -38,6 +38,13 @@ export function AuthPanel({
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'tenant' })
   const [twoFactorCode, setTwoFactorCode] = useState('')
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  // Mientras esperamos al backend (cold start de Render puede tardar), mostramos
+  // estado de carga para que el usuario sepa que está procesando y no reintente.
+  const [submitting, setSubmitting] = useState(false)
+  const runAuthAction = (action: void | Promise<unknown>) => {
+    setSubmitting(true)
+    Promise.resolve(action).finally(() => setSubmitting(false))
+  }
   const recaptchaRef = useRef<ReCAPTCHA>(null)
   const [showAdminRequest, setShowAdminRequest] = useState(false)
   const [adminRequest, setAdminRequest] = useState({ email: '', reason: '' })
@@ -120,28 +127,31 @@ export function AuthPanel({
               icon={twoFactorMethod === 'email' ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
               maxLength={6}
             />
-            <Button 
+            <Button
               className="w-full"
+              disabled={submitting}
+              icon={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
               onClick={() => {
                 if (twoFactorCode.length !== 6) {
                   toast.error(t('auth.codeMustBe6Digits'))
                   return
                 }
                 if (onVerify2FA) {
-                  onVerify2FA(twoFactorCode)
+                  runAuthAction(onVerify2FA(twoFactorCode))
                 } else {
-                  onLogin({ email: form.email, password: form.password, twoFactorCode })
+                  runAuthAction(onLogin({ email: form.email, password: form.password, twoFactorCode }))
                 }
               }}
             >
-              {t('auth.verifyCode')}
+              {submitting ? t('auth.signingIn') : t('auth.verifyCode')}
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
+              disabled={submitting}
               onClick={() => {
                 setTwoFactorCode('')
-                onLogin({ email: form.email, password: form.password })
+                runAuthAction(onLogin({ email: form.email, password: form.password }))
               }}
             >
               {t('auth.resendCode')}
@@ -171,7 +181,7 @@ export function AuthPanel({
                 return
               }
               setErrors({})
-              onLogin({ email: form.email, password: form.password, recaptchaToken })
+              runAuthAction(onLogin({ email: form.email, password: form.password, recaptchaToken }))
               recaptchaRef.current?.reset()
             }}
           >
@@ -198,8 +208,13 @@ export function AuthPanel({
                 />
               </div>
             )}
-            <Button type="submit" className="w-full">
-              {t('auth.enter')}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={submitting}
+              icon={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+            >
+              {submitting ? t('auth.signingIn') : t('auth.enter')}
             </Button>
           </motion.form>
         )
@@ -222,7 +237,7 @@ export function AuthPanel({
               return
             }
             setErrors({})
-            onRegister(form)
+            runAuthAction(onRegister(form))
           }}
         >
           <div>
@@ -288,8 +303,13 @@ export function AuthPanel({
               {t('auth.requestAdminAccess')}
             </button>
           </p>
-          <Button type="submit" className="w-full">
-            {t('auth.createAccount')}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={submitting}
+            icon={submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+          >
+            {submitting ? t('auth.creatingAccount') : t('auth.createAccount')}
           </Button>
         </motion.form>
       )}
