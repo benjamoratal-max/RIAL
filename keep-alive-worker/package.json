@@ -1,0 +1,15 @@
+{
+  "name": "rial-keep-alive",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker que mantiene despierto el backend de RIAL en Render (evita cold starts).",
+  "scripts": {
+    "login": "wrangler login",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

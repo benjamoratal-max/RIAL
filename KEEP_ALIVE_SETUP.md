@@ -10,10 +10,22 @@ como "tarda mucho en cargar las propiedades" en la primera carga.
 > Cuando el servidor está despierto, las propiedades cargan en ~1,6 s. El único
 > problema real es el cold start. La solución es **que el servidor nunca se duerma**.
 
-## La solución: un pinger externo cada 5 minutos
+## La solución: un ping a `/health` cada 5 minutos, 24/7
 
-Un servicio gratuito le pega a `/health` cada 5 minutos, 24 horas. Como 5 min < 15 min,
+Algo le pega a `/health` cada 5 minutos, 24 horas. Como 5 min < 15 min,
 Render **nunca llega a dormirse** → cero cold starts → la primera carga es siempre rápida.
+
+> ### ✅ Método recomendado: Cloudflare Worker (en el repo)
+> Ya está armado en [`keep-alive-worker/`](./keep-alive-worker/). Es más fiable que
+> un pinger externo (cron de Cloudflare, no se "pausa" solo) y queda versionado.
+> **Deploy una sola vez:**
+> ```bash
+> cd keep-alive-worker
+> npx wrangler login
+> npx wrangler deploy
+> ```
+> Ver [`keep-alive-worker/README.md`](./keep-alive-worker/README.md) para verificar
+> que funciona. Las opciones de pinger externo de abajo quedan como alternativa.
 
 > **Nota de cuota Render:** el plan gratuito da 750 horas/mes de instancia. Un mes
 > tiene ~730 horas, así que **un solo** servicio siempre despierto entra dentro del

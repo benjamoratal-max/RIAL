@@ -1,0 +1,25 @@
+# Cloudflare Worker que mantiene despierto el backend de Render (plan free).
+# Pega a /health cada 5 minutos, 24/7. Como 5 min < 15 min (umbral de apagado de
+# Render), el servidor NUNCA se duerme → cero cold starts → la primera carga del
+# día siempre es rápida.
+#
+# Deploy (una sola vez, gratis):
+#   cd keep-alive-worker
+#   npx wrangler login      # abre el navegador para conectar tu cuenta Cloudflare
+#   npx wrangler deploy
+#
+# Listo. El cron queda corriendo en la red de Cloudflare sin que tengas que hacer
+# nada más. Ver README.md para verificar que funciona.
+
+name = "rial-keep-alive"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Cron trigger: cada 5 minutos, todas las horas, todos los días (sin huecos nocturnos).
+[triggers]
+crons = ["*/5 * * * *"]
+
+# URL del backend a mantener despierto. Si algún día cambia el dominio de Render,
+# actualizá solo esta variable y volvé a hacer `npx wrangler deploy`.
+[vars]
+HEALTH_URL = "https://rial-zwv8.onrender.com/health"
