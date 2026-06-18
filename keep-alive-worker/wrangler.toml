@@ -15,6 +15,11 @@ name = "rial-keep-alive"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
 
+# Este Worker solo necesita el cron trigger; no expone URL pública (más seguro y
+# evita tener que registrar un subdominio workers.dev). El handler `fetch` queda
+# en el código por si algún día querés habilitar una ruta para probarlo a mano.
+workers_dev = false
+
 # Cron trigger: cada 5 minutos, todas las horas, todos los días (sin huecos nocturnos).
 [triggers]
 crons = ["*/5 * * * *"]
