@@ -91,7 +91,6 @@ export async function createCheckoutSession(params: {
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
-    payment_method_types: ['card'],
     customer_email: params.customerEmail || undefined,
     client_reference_id: String(reservation.id),
     line_items: [

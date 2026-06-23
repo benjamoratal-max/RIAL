@@ -7,6 +7,7 @@ import {
   expireStaleReservations,
   getReservationForUser,
   initiateReservationPayment,
+  confirmCheckoutSession,
   BALANCE_DEADLINE_HOURS,
   DEPOSIT_PERCENT,
 } from '../services/reservationService';
@@ -148,6 +149,26 @@ router.post(
     try {
       const result = await initiateReservationPayment(id, req.user.id, 'balance');
       res.json(result);
+    } catch (error: any) {
+      res.status(error.statusCode || 400).json({ error: error.message });
+    }
+  })
+);
+
+/** Confirma el cobro al volver de Stripe Checkout (session_id en la URL de éxito). */
+router.post(
+  '/:id/confirm-checkout',
+  authenticateToken,
+  asyncHandler(async (req: AuthRequest, res) => {
+    if (!req.user) return res.status(401).json({ error: 'No autorizado' });
+    const id = Number(req.params.id);
+    const sessionId = req.body?.sessionId;
+    if (!sessionId || typeof sessionId !== 'string') {
+      return res.status(400).json({ error: 'sessionId es requerido' });
+    }
+    try {
+      const reservation = await confirmCheckoutSession(id, req.user.id, sessionId);
+      res.json(reservation);
     } catch (error: any) {
       res.status(error.statusCode || 400).json({ error: error.message });
     }

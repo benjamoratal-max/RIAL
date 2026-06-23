@@ -886,17 +886,25 @@ export default function App() {
   }, [])
 
   // Retorno desde Stripe Checkout (?stripe=success|cancel&reservation=ID). Abrimos un
-  // modal con el estado de la reserva (el cobro se confirma vía webhook en segundos)
-  // y limpiamos la URL para que un refresh no reabra el modal.
-  const [stripeReturn, setStripeReturn] = useState<{ reservationId: number; notice: 'success' | 'cancel' } | null>(null)
+  // modal con el estado de la reserva y confirmamos el pago con session_id si está.
+  const [stripeReturn, setStripeReturn] = useState<{
+    reservationId: number
+    notice: 'success' | 'cancel'
+    sessionId?: string
+  } | null>(null)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const stripeParam = params.get('stripe')
     const reservationParam = params.get('reservation')
+    const sessionIdParam = params.get('session_id')
     if ((stripeParam === 'success' || stripeParam === 'cancel') && reservationParam) {
       const rid = parseInt(reservationParam, 10)
       if (!Number.isNaN(rid) && rid > 0) {
-        setStripeReturn({ reservationId: rid, notice: stripeParam })
+        setStripeReturn({
+          reservationId: rid,
+          notice: stripeParam,
+          sessionId: sessionIdParam || undefined,
+        })
       }
       params.delete('stripe')
       params.delete('reservation')
@@ -1904,6 +1912,7 @@ export default function App() {
                     reservationId={stripeReturn.reservationId}
                     token={token}
                     notice={stripeReturn.notice}
+                    sessionId={stripeReturn.sessionId}
                     autoRefresh
                   />
                 </Suspense>

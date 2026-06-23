@@ -1,7 +1,7 @@
 import prisma from '../lib/prisma';
 import NotificationService from '../utils/notificationService';
 import { cache, CacheKeys } from '../utils/cache';
-import { isStripeEnabled, createCheckoutSession } from './stripeService';
+import { isStripeEnabled, createCheckoutSession, getStripe } from './stripeService';
 import { logger } from '../utils/logger';
 
 export const DEPOSIT_PERCENT = 0.5;
@@ -536,4 +536,43 @@ export async function fulfillCheckoutSession(session: {
 
   await NotificationService.notifyPaymentCompleted(paymentId).catch(() => {});
   logger.info(`Cobro Stripe confirmado (${kind}) reserva=${reservationId} pago=${paymentId}`, 'Stripe');
+}
+
+/**
+ * Confirma un pago al volver de Stripe Checkout (success_url con session_id).
+ * Complementa al webhook: útil en local si stripe listen no está corriendo y
+ * mejora la UX al actualizar el estado de inmediato. Idempotente vía fulfillCheckoutSession.
+ */
+export async function confirmCheckoutSession(
+  reservationId: number,
+  userId: number,
+  sessionId: string
+) {
+  if (!isStripeEnabled()) {
+    const err = new Error('Stripe no está configurado');
+    (err as any).statusCode = 503;
+    throw err;
+  }
+
+  await getReservationForUser(reservationId, userId);
+
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  const metaReservationId = Number(session.metadata?.reservationId);
+  const metaUserId = Number(session.metadata?.userId);
+  if (metaReservationId !== reservationId || metaUserId !== userId) {
+    const err = new Error('La sesión de pago no corresponde a esta reserva');
+    (err as any).statusCode = 403;
+    throw err;
+  }
+
+  if (session.payment_status !== 'paid') {
+    const err = new Error('El pago aún no está confirmado por Stripe');
+    (err as any).statusCode = 409;
+    throw err;
+  }
+
+  await fulfillCheckoutSession(session);
+  return getReservationForUser(reservationId, userId);
 }

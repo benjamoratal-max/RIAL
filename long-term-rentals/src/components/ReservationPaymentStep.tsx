@@ -24,6 +24,8 @@ interface ReservationPaymentStepProps {
   onCompleted?: () => void
   /** Mensaje a mostrar al volver de Stripe Checkout. */
   notice?: 'success' | 'cancel' | null
+  /** session_id de Stripe Checkout (success_url); confirma el pago sin esperar al webhook. */
+  sessionId?: string | null
   /**
    * Tras volver de Stripe, el webhook puede tardar unos segundos en confirmar el
    * cobro. Con autoRefresh activado, el componente reconsulta el estado varias veces
@@ -45,7 +47,7 @@ function formatCountdown(ms: number) {
   return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-export function ReservationPaymentStep({ reservationId, token, onCompleted, notice = null, autoRefresh = false }: ReservationPaymentStepProps) {
+export function ReservationPaymentStep({ reservationId, token, onCompleted, notice = null, sessionId = null, autoRefresh = false }: ReservationPaymentStepProps) {
   const { t } = useTranslation()
   const [reservation, setReservation] = useState<ReservationRecord | null>(null)
   const [loading, setLoading] = useState(true)
@@ -90,6 +92,29 @@ export function ReservationPaymentStep({ reservationId, token, onCompleted, noti
     else if (notice === 'cancel') toast(t('reservation.paymentCancelled'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notice])
+
+  // Al volver de Stripe con session_id, confirmamos el pago de inmediato (no hace falta
+  // esperar al webhook ni tener stripe listen corriendo en otra terminal).
+  useEffect(() => {
+    if (notice !== 'success' || !sessionId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        await api(`/api/reservations/${reservationId}/confirm-checkout`, {
+          method: 'POST',
+          token,
+          body: { sessionId },
+        })
+        if (!cancelled) await load()
+      } catch {
+        // El webhook o el autoRefresh pueden confirmar después.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notice, sessionId, reservationId, token])
 
   // Tras volver de Stripe, el webhook tarda unos segundos: reconsultamos el estado
   // varias veces hasta detectar el avance (deposit_paid o completed).
