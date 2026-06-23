@@ -306,7 +306,12 @@
     "loadError": "Could not load reservation",
     "depositPaid": "Deposit recorded",
     "balancePaid": "Payment completed",
-    "payError": "Payment processing error"
+    "payError": "Payment processing error",
+    "securePayment": "Secure card payment processed by Stripe. RIAL never stores your card details.",
+    "redirecting": "Redirecting to the secure payment page…",
+    "verifyingPayment": "Confirming your payment with Stripe…",
+    "paymentSuccess": "Payment received! We're confirming the transaction.",
+    "paymentCancelled": "You cancelled the payment. You can try again anytime."
   },
   "brokerCalendar": {
     "title": "Integrations",

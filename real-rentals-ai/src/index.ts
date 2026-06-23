@@ -28,6 +28,7 @@ import aiRoutes from './routes/aiRoutes';
 import brokerRoutes from './routes/brokerRoutes';
 import complianceRoutes from './routes/complianceRoutes';
 import reservationRoutes from './routes/reservationRoutes';
+import { stripeWebhookHandler } from './routes/stripeWebhook';
 import configRoutes from './routes/configRoutes';
 import leadRoutes from './routes/leadRoutes';
 import calendarRoutes from './routes/calendarRoutes';
@@ -126,6 +127,15 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Webhook de Stripe: DEBE ir antes de express.json() y del rate limiter porque la
+// verificación de firma necesita el cuerpo crudo (Buffer). Stripe lo llama directo,
+// sin pasar por el frontend.
+app.post(
+  '/api/payments/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  stripeWebhookHandler
+);
 
 // Solo parsear JSON explícito (no tocar cuerpos binarios de /api/verification/document-raw)
 app.use(express.json({ limit: '15mb', type: 'application/json' }));

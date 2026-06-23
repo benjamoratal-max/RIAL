@@ -6,11 +6,11 @@ import {
   createReservation,
   expireStaleReservations,
   getReservationForUser,
-  payBalance,
-  payDeposit,
+  initiateReservationPayment,
   BALANCE_DEADLINE_HOURS,
   DEPOSIT_PERCENT,
 } from '../services/reservationService';
+import { isStripeEnabled } from '../services/stripeService';
 
 const router = express.Router();
 
@@ -18,6 +18,9 @@ router.get('/config', (_req, res) => {
   res.json({
     depositPercent: DEPOSIT_PERCENT,
     balanceDeadlineHours: BALANCE_DEADLINE_HOURS,
+    // true → el frontend debe esperar { checkoutUrl } y redirigir a Stripe.
+    // false → cobro simulado (sin tarjeta real).
+    stripeEnabled: isStripeEnabled(),
   });
 });
 
@@ -126,9 +129,8 @@ router.post(
   asyncHandler(async (req: AuthRequest, res) => {
     if (!req.user) return res.status(401).json({ error: 'No autorizado' });
     const id = Number(req.params.id);
-    const paymentMethod = req.body?.paymentMethod || 'stripe';
     try {
-      const result = await payDeposit(id, req.user.id, paymentMethod);
+      const result = await initiateReservationPayment(id, req.user.id, 'deposit');
       res.json(result);
     } catch (error: any) {
       res.status(error.statusCode || 400).json({ error: error.message });
@@ -143,9 +145,8 @@ router.post(
   asyncHandler(async (req: AuthRequest, res) => {
     if (!req.user) return res.status(401).json({ error: 'No autorizado' });
     const id = Number(req.params.id);
-    const paymentMethod = req.body?.paymentMethod || 'stripe';
     try {
-      const result = await payBalance(id, req.user.id, paymentMethod);
+      const result = await initiateReservationPayment(id, req.user.id, 'balance');
       res.json(result);
     } catch (error: any) {
       res.status(error.statusCode || 400).json({ error: error.message });

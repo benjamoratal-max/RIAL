@@ -66,6 +66,13 @@ export const config = {
   googleClientSecret: getEnvVarOptional('GOOGLE_CLIENT_SECRET'),
   googleRedirectUri: getEnvVarOptional('GOOGLE_REDIRECT_URI'),
 
+  // Stripe (pagos con tarjeta). Si STRIPE_SECRET_KEY no está definida, el flujo de
+  // pago cae automáticamente al modo simulado (no se cobra nada). Al pegar las claves
+  // de Stripe el cobro real se activa solo, sin tocar código.
+  stripeSecretKey: getEnvVarOptional('STRIPE_SECRET_KEY'),
+  stripeWebhookSecret: getEnvVarOptional('STRIPE_WEBHOOK_SECRET'),
+  stripePublishableKey: getEnvVarOptional('STRIPE_PUBLISHABLE_KEY'),
+
   // Entorno
   nodeEnv: getEnvVarOptional('NODE_ENV', 'development'),
   isProduction,

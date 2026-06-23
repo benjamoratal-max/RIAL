@@ -1,6 +1,8 @@
 import prisma from '../lib/prisma';
 import NotificationService from '../utils/notificationService';
 import { cache, CacheKeys } from '../utils/cache';
+import { isStripeEnabled, createCheckoutSession } from './stripeService';
+import { logger } from '../utils/logger';
 
 export const DEPOSIT_PERCENT = 0.5;
 export const BALANCE_DEADLINE_HOURS = 48;
@@ -178,6 +180,102 @@ export async function getReservationForUser(id: number, userId: number) {
   return reservation;
 }
 
+const RESERVATION_INCLUDE = {
+  property: { select: { id: true, title: true, location: true, price: true } },
+} as const;
+
+/** Email del inquilino (para el recibo de Stripe). Best-effort: nunca rompe el flujo. */
+async function getUserEmail(userId: number): Promise<string | null> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    return user?.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Transición común "seña pagada": marca la reserva como deposit_paid, arranca el
+ * plazo de 48 h, refresca cachés de disponibilidad y notifica. La comparten el modo
+ * simulado y el modo Stripe (fulfillment vía webhook).
+ */
+async function applyDepositPaid(reservation: any, paymentId: number) {
+  const depositPaidAt = new Date();
+  const balanceDueAt = addHours(depositPaidAt, BALANCE_DEADLINE_HOURS);
+
+  const updated = await (prisma as any).rentalReservation.update({
+    where: { id: reservation.id },
+    data: {
+      status: 'deposit_paid',
+      depositPaidAt,
+      balanceDueAt,
+      depositPaymentId: paymentId,
+    },
+    include: RESERVATION_INCLUDE,
+  });
+
+  // La propiedad pasa a estar reservada: refrescar listado y ficha.
+  invalidatePropertyAvailabilityCaches(reservation.propertyId);
+
+  await NotificationService.createNotification(
+    reservation.userId,
+    'Seña registrada',
+    `Tenés 48 horas (hasta ${balanceDueAt.toLocaleString('es-AR')}) para completar el pago del saldo o perdés la seña.`,
+    'success'
+  ).catch(() => {});
+
+  return updated;
+}
+
+/**
+ * Transición común "saldo pagado": marca la reserva como completed, refresca cachés
+ * y notifica. Compartida por el modo simulado y el modo Stripe.
+ */
+async function applyBalancePaid(reservation: any, paymentId: number) {
+  const updated = await (prisma as any).rentalReservation.update({
+    where: { id: reservation.id },
+    data: {
+      status: 'completed',
+      balancePaidAt: new Date(),
+      balancePaymentId: paymentId,
+    },
+    include: RESERVATION_INCLUDE,
+  });
+
+  // Alquiler confirmado: la propiedad queda ocupada de forma definitiva.
+  invalidatePropertyAvailabilityCaches(reservation.propertyId);
+
+  await NotificationService.createNotification(
+    reservation.userId,
+    'Pago completado',
+    'Completaste el pago de tu reserva. Pronto habilitaremos el acceso digital según el contrato.',
+    'success'
+  ).catch(() => {});
+
+  return updated;
+}
+
+/** Marca el saldo como vencido y la seña como perdida cuando pasó el plazo de 48 h. */
+async function markBalanceExpired(reservation: any) {
+  await (prisma as any).rentalReservation.update({
+    where: { id: reservation.id },
+    data: { status: 'expired' },
+  });
+  if (reservation.depositPaymentId) {
+    await prisma.payment.update({
+      where: { id: reservation.depositPaymentId },
+      data: { status: 'forfeited' },
+    });
+  }
+}
+
+/**
+ * MODO SIMULADO de la seña (sin Stripe configurado): crea el pago, lo da por
+ * pagado al instante y lo confirma tras un breve delay. Útil en desarrollo.
+ */
 export async function payDeposit(reservationId: number, userId: number, paymentMethod = 'stripe') {
   const reservation = await getReservationForUser(reservationId, userId);
   if (reservation.status !== 'pending_deposit') {
@@ -204,37 +302,15 @@ export async function payDeposit(reservationId: number, userId: number, paymentM
     },
   });
 
-  const depositPaidAt = new Date();
-  const balanceDueAt = addHours(depositPaidAt, BALANCE_DEADLINE_HOURS);
-
-  const updated = await (prisma as any).rentalReservation.update({
-    where: { id: reservationId },
-    data: {
-      status: 'deposit_paid',
-      depositPaidAt,
-      balanceDueAt,
-      depositPaymentId: payment.id,
-    },
-    include: {
-      property: { select: { id: true, title: true, location: true, price: true } },
-    },
-  });
-
-  // La propiedad pasa a estar reservada: refrescar listado y ficha.
-  invalidatePropertyAvailabilityCaches(reservation.propertyId);
-
+  const updated = await applyDepositPaid(reservation, payment.id);
   await simulatePaymentCompletion(payment.id);
-
-  await NotificationService.createNotification(
-    userId,
-    'Seña registrada',
-    `Tenés 48 horas (hasta ${balanceDueAt.toLocaleString('es-AR')}) para completar el pago del saldo o perdés la seña.`,
-    'success'
-  ).catch(() => {});
 
   return { reservation: updated, payment };
 }
 
+/**
+ * MODO SIMULADO del saldo (sin Stripe configurado).
+ */
 export async function payBalance(reservationId: number, userId: number, paymentMethod = 'stripe') {
   await expireStaleReservations();
   const reservation = await getReservationForUser(reservationId, userId);
@@ -253,16 +329,7 @@ export async function payBalance(reservationId: number, userId: number, paymentM
 
   const now = new Date();
   if (reservation.balanceDueAt && now > reservation.balanceDueAt) {
-    await (prisma as any).rentalReservation.update({
-      where: { id: reservationId },
-      data: { status: 'expired' },
-    });
-    if (reservation.depositPaymentId) {
-      await prisma.payment.update({
-        where: { id: reservation.depositPaymentId },
-        data: { status: 'forfeited' },
-      });
-    }
+    await markBalanceExpired(reservation);
     const err = new Error('El plazo de 48 horas venció. La seña no es reembolsable.');
     (err as any).statusCode = 410;
     throw err;
@@ -282,29 +349,191 @@ export async function payBalance(reservationId: number, userId: number, paymentM
     },
   });
 
-  const updated = await (prisma as any).rentalReservation.update({
-    where: { id: reservationId },
+  const updated = await applyBalancePaid(reservation, payment.id);
+  await simulatePaymentCompletion(payment.id);
+
+  return { reservation: updated, payment };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  MODO STRIPE (cobro real con tarjeta vía Stripe Checkout)
+//  Estas funciones crean la sesión de pago; la reserva SOLO cambia de estado
+//  cuando Stripe confirma el cobro vía webhook (fulfillCheckoutSession).
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Crea la sesión de Checkout para la SEÑA y devuelve la URL a la que redirigir. */
+export async function startDepositCheckout(reservationId: number, userId: number) {
+  const reservation = await getReservationForUser(reservationId, userId);
+  if (reservation.status !== 'pending_deposit') {
+    const err = new Error('La seña ya fue abonada o la reserva no está pendiente');
+    (err as any).statusCode = 400;
+    throw err;
+  }
+  await assertNoConflictingHold(reservation.propertyId, userId);
+
+  const payment = await prisma.payment.create({
     data: {
-      status: 'completed',
-      balancePaidAt: now,
-      balancePaymentId: payment.id,
-    },
-    include: {
-      property: { select: { id: true, title: true, location: true, price: true } },
+      userId,
+      propertyId: reservation.propertyId,
+      amount: reservation.depositAmount,
+      paymentMethod: 'stripe',
+      paymentType: 'reservation_deposit',
+      description: `Seña (50%) — ${reservation.property?.title || 'Propiedad'}`,
+      status: 'pending',
     },
   });
 
-  // Alquiler confirmado: la propiedad queda ocupada de forma definitiva.
-  invalidatePropertyAvailabilityCaches(reservation.propertyId);
+  const customerEmail = await getUserEmail(userId);
+  const session = await createCheckoutSession({
+    reservation,
+    kind: 'deposit',
+    paymentId: payment.id,
+    customerEmail,
+  });
 
-  await simulatePaymentCompletion(payment.id);
+  // Guardamos el id de sesión para trazabilidad (se sobrescribe con el
+  // payment_intent al confirmarse el cobro).
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { transactionId: session.id },
+  });
 
-  await NotificationService.createNotification(
-    userId,
-    'Pago completado',
-    'Completaste el pago de tu reserva. Pronto habilitaremos el acceso digital según el contrato.',
-    'success'
-  ).catch(() => {});
+  return { checkoutUrl: session.url, sessionId: session.id, payment };
+}
 
-  return { reservation: updated, payment };
+/** Crea la sesión de Checkout para el SALDO y devuelve la URL a la que redirigir. */
+export async function startBalanceCheckout(reservationId: number, userId: number) {
+  await expireStaleReservations();
+  const reservation = await getReservationForUser(reservationId, userId);
+
+  if (reservation.status === 'expired') {
+    const err = new Error('El plazo de 48 horas venció. La seña no es reembolsable.');
+    (err as any).statusCode = 410;
+    throw err;
+  }
+  if (reservation.status !== 'deposit_paid') {
+    const err = new Error('Primero debés abonar la seña');
+    (err as any).statusCode = 400;
+    throw err;
+  }
+
+  const now = new Date();
+  if (reservation.balanceDueAt && now > reservation.balanceDueAt) {
+    await markBalanceExpired(reservation);
+    const err = new Error('El plazo de 48 horas venció. La seña no es reembolsable.');
+    (err as any).statusCode = 410;
+    throw err;
+  }
+
+  const payment = await prisma.payment.create({
+    data: {
+      userId,
+      propertyId: reservation.propertyId,
+      amount: reservation.balanceAmount,
+      paymentMethod: 'stripe',
+      paymentType: 'reservation_balance',
+      description: `Saldo restante — ${reservation.property?.title || 'Propiedad'}`,
+      status: 'pending',
+    },
+  });
+
+  const customerEmail = await getUserEmail(userId);
+  const session = await createCheckoutSession({
+    reservation,
+    kind: 'balance',
+    paymentId: payment.id,
+    customerEmail,
+  });
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { transactionId: session.id },
+  });
+
+  return { checkoutUrl: session.url, sessionId: session.id, payment };
+}
+
+/**
+ * Inicia el pago (seña o saldo) eligiendo automáticamente el modo según haya o no
+ * claves de Stripe. Si Stripe está activo devuelve `{ checkoutUrl }` para redirigir;
+ * si no, ejecuta el cobro simulado y devuelve la reserva ya actualizada.
+ */
+export async function initiateReservationPayment(
+  reservationId: number,
+  userId: number,
+  kind: 'deposit' | 'balance'
+) {
+  if (isStripeEnabled()) {
+    const result =
+      kind === 'deposit'
+        ? await startDepositCheckout(reservationId, userId)
+        : await startBalanceCheckout(reservationId, userId);
+    return { stripe: true as const, checkoutUrl: result.checkoutUrl };
+  }
+
+  const result =
+    kind === 'deposit'
+      ? await payDeposit(reservationId, userId)
+      : await payBalance(reservationId, userId);
+  return { stripe: false as const, ...result };
+}
+
+/**
+ * Confirma un cobro de Stripe a partir de la sesión de Checkout completada.
+ * Lo invoca EXCLUSIVAMENTE el webhook (única fuente de verdad del pago). Es
+ * idempotente: si la reserva ya avanzó de estado, no hace nada.
+ */
+export async function fulfillCheckoutSession(session: {
+  metadata?: Record<string, string> | null;
+  payment_intent?: string | { id: string } | null;
+  id?: string;
+}) {
+  const reservationId = Number(session.metadata?.reservationId);
+  const kind = session.metadata?.kind as 'deposit' | 'balance' | undefined;
+  const paymentId = Number(session.metadata?.paymentId);
+
+  if (!reservationId || !kind || !paymentId) {
+    logger.warn(`Webhook Stripe sin metadata válida (session=${session.id})`, 'Stripe');
+    return;
+  }
+
+  const reservation = await (prisma as any).rentalReservation.findUnique({
+    where: { id: reservationId },
+    include: RESERVATION_INCLUDE,
+  });
+  if (!reservation) {
+    logger.warn(`Webhook Stripe: reserva ${reservationId} no encontrada`, 'Stripe');
+    return;
+  }
+
+  const paymentIntentId =
+    typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : session.payment_intent?.id;
+  const finalTxnId = paymentIntentId || session.id || undefined;
+
+  if (kind === 'deposit') {
+    if (reservation.status !== 'pending_deposit') {
+      logger.info(`Webhook deposit ya procesado (reserva=${reservationId})`, 'Stripe');
+      return; // idempotente
+    }
+    await prisma.payment.update({
+      where: { id: paymentId },
+      data: { status: 'completed', transactionId: finalTxnId },
+    });
+    await applyDepositPaid(reservation, paymentId);
+  } else {
+    if (reservation.status !== 'deposit_paid') {
+      logger.info(`Webhook balance no aplicable (reserva=${reservationId}, estado=${reservation.status})`, 'Stripe');
+      return; // idempotente / fuera de plazo ya gestionado
+    }
+    await prisma.payment.update({
+      where: { id: paymentId },
+      data: { status: 'completed', transactionId: finalTxnId },
+    });
+    await applyBalancePaid(reservation, paymentId);
+  }
+
+  await NotificationService.notifyPaymentCompleted(paymentId).catch(() => {});
+  logger.info(`Cobro Stripe confirmado (${kind}) reserva=${reservationId} pago=${paymentId}`, 'Stripe');
 }

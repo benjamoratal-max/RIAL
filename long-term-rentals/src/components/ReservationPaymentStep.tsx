@@ -22,6 +22,14 @@ interface ReservationPaymentStepProps {
   reservationId: number
   token: string
   onCompleted?: () => void
+  /** Mensaje a mostrar al volver de Stripe Checkout. */
+  notice?: 'success' | 'cancel' | null
+  /**
+   * Tras volver de Stripe, el webhook puede tardar unos segundos en confirmar el
+   * cobro. Con autoRefresh activado, el componente reconsulta el estado varias veces
+   * para reflejar el cambio sin que el usuario tenga que recargar.
+   */
+  autoRefresh?: boolean
 }
 
 function formatUsd(amount: number) {
@@ -37,19 +45,36 @@ function formatCountdown(ms: number) {
   return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-export function ReservationPaymentStep({ reservationId, token, onCompleted }: ReservationPaymentStepProps) {
+export function ReservationPaymentStep({ reservationId, token, onCompleted, notice = null, autoRefresh = false }: ReservationPaymentStepProps) {
   const { t } = useTranslation()
   const [reservation, setReservation] = useState<ReservationRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState<'deposit' | 'balance' | null>(null)
+  const [redirecting, setRedirecting] = useState(false)
+  const [stripeEnabled, setStripeEnabled] = useState(false)
   const [tick, setTick] = useState(0)
+
+  // Saber si el cobro real con Stripe está activo (cambia el texto informativo).
+  useEffect(() => {
+    let active = true
+    api('/api/reservations/config')
+      .then((cfg: any) => {
+        if (active) setStripeEnabled(Boolean(cfg?.stripeEnabled))
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
 
   const load = useCallback(async () => {
     try {
       const data = (await api(`/api/reservations/${reservationId}`, { token })) as ReservationRecord
       setReservation(data)
+      return data
     } catch (e: any) {
       toast.error(e?.message || t('reservation.loadError'))
+      return null
     } finally {
       setLoading(false)
     }
@@ -58,6 +83,30 @@ export function ReservationPaymentStep({ reservationId, token, onCompleted }: Re
   useEffect(() => {
     load()
   }, [load])
+
+  // Mensaje al volver de Stripe Checkout (la confirmación real llega por webhook).
+  useEffect(() => {
+    if (notice === 'success') toast.success(t('reservation.paymentSuccess'))
+    else if (notice === 'cancel') toast(t('reservation.paymentCancelled'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notice])
+
+  // Tras volver de Stripe, el webhook tarda unos segundos: reconsultamos el estado
+  // varias veces hasta detectar el avance (deposit_paid o completed).
+  useEffect(() => {
+    if (!autoRefresh || notice !== 'success') return
+    let attempts = 0
+    const initialStatus = reservation?.status
+    const id = window.setInterval(async () => {
+      attempts += 1
+      const data = await load()
+      if (attempts >= 10 || (data && data.status !== initialStatus && data.status !== 'pending_deposit')) {
+        window.clearInterval(id)
+      }
+    }, 3000)
+    return () => window.clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefresh, notice])
 
   useEffect(() => {
     if (reservation?.status !== 'deposit_paid') return
@@ -79,14 +128,26 @@ export function ReservationPaymentStep({ reservationId, token, onCompleted }: Re
     return Math.max(0, new Date(reservation.balanceDueAt).getTime() - Date.now())
   }, [reservation?.balanceDueAt, reservation?.msRemaining, tick])
 
+  // Si Stripe está activo, el backend responde { checkoutUrl } y redirigimos a la
+  // página de pago alojada por Stripe. Si no, es el modo simulado y volvemos a cargar.
+  const redirectToCheckout = (url: string) => {
+    setRedirecting(true)
+    toast.loading(t('reservation.redirecting'), { id: 'stripe-redirect' })
+    window.location.assign(url)
+  }
+
   const payDeposit = async () => {
     setPaying('deposit')
     try {
-      await api(`/api/reservations/${reservationId}/pay-deposit`, {
+      const res: any = await api(`/api/reservations/${reservationId}/pay-deposit`, {
         method: 'POST',
         token,
         body: { paymentMethod: 'stripe' },
       })
+      if (res?.checkoutUrl) {
+        redirectToCheckout(res.checkoutUrl)
+        return
+      }
       toast.success(t('reservation.depositPaid'))
       await load()
     } catch (e: any) {
@@ -99,11 +160,15 @@ export function ReservationPaymentStep({ reservationId, token, onCompleted }: Re
   const payBalance = async () => {
     setPaying('balance')
     try {
-      await api(`/api/reservations/${reservationId}/pay-balance`, {
+      const res: any = await api(`/api/reservations/${reservationId}/pay-balance`, {
         method: 'POST',
         token,
         body: { paymentMethod: 'stripe' },
       })
+      if (res?.checkoutUrl) {
+        redirectToCheckout(res.checkoutUrl)
+        return
+      }
       toast.success(t('reservation.balancePaid'))
       onCompleted?.()
       await load()
@@ -185,8 +250,8 @@ export function ReservationPaymentStep({ reservationId, token, onCompleted }: Re
           <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">{t('reservation.depositInstructions')}</p>
           <Button
             onClick={payDeposit}
-            disabled={paying !== null}
-            icon={paying === 'deposit' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+            disabled={paying !== null || redirecting}
+            icon={paying === 'deposit' || redirecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
             className="w-full sm:w-auto"
           >
             {t('reservation.payDeposit', { amount: formatUsd(reservation.depositAmount) })}
@@ -221,8 +286,8 @@ export function ReservationPaymentStep({ reservationId, token, onCompleted }: Re
 
           <Button
             onClick={payBalance}
-            disabled={paying !== null || msRemaining <= 0}
-            icon={paying === 'balance' ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
+            disabled={paying !== null || redirecting || msRemaining <= 0}
+            icon={paying === 'balance' || redirecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
             className="w-full sm:w-auto"
           >
             {t('reservation.payBalance', { amount: formatUsd(reservation.balanceAmount) })}
@@ -230,7 +295,9 @@ export function ReservationPaymentStep({ reservationId, token, onCompleted }: Re
         </div>
       )}
 
-      <p className="text-xs text-gray-500 dark:text-gray-400">{t('reservation.simulatedPayment')}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        {stripeEnabled ? t('reservation.securePayment') : t('reservation.simulatedPayment')}
+      </p>
     </motion.div>
   )
 }

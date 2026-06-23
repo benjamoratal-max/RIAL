@@ -44,6 +44,7 @@ const VerificationSystem = lazy(() => import('./components/VerificationSystem').
 const PropertyComparator = lazy(() => import('./components/PropertyComparator').then(m => ({ default: m.PropertyComparator })))
 const AIAssistant = lazy(() => import('./components/AIAssistant').then(m => ({ default: m.AIAssistant })))
 const PurchaseProcess = lazy(() => import('./components/PurchaseProcess').then(m => ({ default: m.PurchaseProcess })))
+const ReservationPaymentStep = lazy(() => import('./components/ReservationPaymentStep').then(m => ({ default: m.ReservationPaymentStep })))
 const CreatePropertyForm = lazy(() => import('./components/CreatePropertyForm').then(m => ({ default: m.CreatePropertyForm })))
 const NotificationPanel = lazy(() => import('./components/NotificationPanel').then(m => ({ default: m.NotificationPanel })))
 const PaymentPanel = lazy(() => import('./components/PaymentPanel').then(m => ({ default: m.PaymentPanel })))
@@ -881,6 +882,28 @@ export default function App() {
     if (idParam) {
       const id = parseInt(idParam, 10)
       if (!Number.isNaN(id) && id > 0) setOpenId(id)
+    }
+  }, [])
+
+  // Retorno desde Stripe Checkout (?stripe=success|cancel&reservation=ID). Abrimos un
+  // modal con el estado de la reserva (el cobro se confirma vía webhook en segundos)
+  // y limpiamos la URL para que un refresh no reabra el modal.
+  const [stripeReturn, setStripeReturn] = useState<{ reservationId: number; notice: 'success' | 'cancel' } | null>(null)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const stripeParam = params.get('stripe')
+    const reservationParam = params.get('reservation')
+    if ((stripeParam === 'success' || stripeParam === 'cancel') && reservationParam) {
+      const rid = parseInt(reservationParam, 10)
+      if (!Number.isNaN(rid) && rid > 0) {
+        setStripeReturn({ reservationId: rid, notice: stripeParam })
+      }
+      params.delete('stripe')
+      params.delete('reservation')
+      params.delete('kind')
+      params.delete('session_id')
+      const qs = params.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
     }
   }, [])
 
@@ -1849,6 +1872,45 @@ export default function App() {
             <PaymentPanel token={token} user={user} onClose={() => setShowPayments(false)} />
           </Suspense>
         )}
+        {/* Retorno desde Stripe Checkout: muestra el estado de la reserva tras pagar */}
+        <AnimatePresence>
+          {stripeReturn && token && (
+            <motion.div
+              className="fixed inset-0 bg-black/40 backdrop-blur flex items-center justify-center p-4 z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setStripeReturn(null)}
+            >
+              <motion.div
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-end mb-1">
+                  <button
+                    type="button"
+                    onClick={() => setStripeReturn(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                    aria-label={t('reservation.close')}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <Suspense fallback={<LoadingSpinner text={t('reservation.verifyingPayment')} />}>
+                  <ReservationPaymentStep
+                    reservationId={stripeReturn.reservationId}
+                    token={token}
+                    notice={stripeReturn.notice}
+                    autoRefresh
+                  />
+                </Suspense>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {showAlerts && (
           <Suspense fallback={<LoadingSpinner text={t('app.loadingAlerts')} />}>
             <AlertSystem token={token} user={user} onClose={() => setShowAlerts(false)} />
