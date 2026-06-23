@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
@@ -17,6 +17,21 @@ export function NotificationPanel({ token, user, onClose }: NotificationPanelPro
   const { t } = useTranslation()
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const ignoreBackdropCloseRef = useRef(true)
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      ignoreBackdropCloseRef.current = false
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
 
   useEffect(() => {
     if (token) {
@@ -64,13 +79,18 @@ export function NotificationPanel({ token, user, onClose }: NotificationPanelPro
 
   if (!user) return null
 
+  const handleBackdropClose = () => {
+    if (ignoreBackdropCloseRef.current) return
+    onClose()
+  }
+
   return (
     <motion.div
-      className="fixed inset-0 z-[70000] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[10060] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={onClose}
+      onClick={handleBackdropClose}
     >
       <motion.div
         className={classNames(

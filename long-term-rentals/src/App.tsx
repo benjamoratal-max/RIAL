@@ -31,6 +31,7 @@ import {
   classNames 
 } from './components/UI'
 import { RialBrand } from './components/RialBrand'
+import { NotificationPanel } from './components/NotificationPanel'
 const RentalProcess = lazy(() => import('./components/RentalProcess').then(m => ({ default: m.RentalProcess })))
 // Lazy loading de componentes pesados para mejorar el rendimiento inicial
 const FavoritesSystem = lazy(() => import('./components/FavoritesSystem').then(m => ({ default: m.FavoritesSystem })))
@@ -46,7 +47,6 @@ const AIAssistant = lazy(() => import('./components/AIAssistant').then(m => ({ d
 const PurchaseProcess = lazy(() => import('./components/PurchaseProcess').then(m => ({ default: m.PurchaseProcess })))
 const ReservationPaymentStep = lazy(() => import('./components/ReservationPaymentStep').then(m => ({ default: m.ReservationPaymentStep })))
 const CreatePropertyForm = lazy(() => import('./components/CreatePropertyForm').then(m => ({ default: m.CreatePropertyForm })))
-const NotificationPanel = lazy(() => import('./components/NotificationPanel').then(m => ({ default: m.NotificationPanel })))
 const PaymentPanel = lazy(() => import('./components/PaymentPanel').then(m => ({ default: m.PaymentPanel })))
 const AdminRequestsPanel = lazy(() => import('./components/AdminRequestsPanel').then(m => ({ default: m.AdminRequestsPanel })))
 const OwnerLeadsPanel = lazy(() => import('./components/OwnerLeadsPanel').then(m => ({ default: m.OwnerLeadsPanel })))
@@ -937,6 +937,13 @@ export default function App() {
   /** Mantiene el mapa montado mientras el detalle está abierto si se entró desde el mapa */
   const [mapPinnedForDetail, setMapPinnedForDetail] = useState(false)
   const [showAlerts, setShowAlerts] = useState(false)
+  const openNotifications = useCallback(() => {
+    setShowChat(false)
+    setShowPayments(false)
+    setShowUserProfile(false)
+    setShowAlerts(false)
+    setShowNotifications(true)
+  }, [])
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showOwnerLeads, setShowOwnerLeads] = useState(false)
   const [showBrokerLeads, setShowBrokerLeads] = useState(false)
@@ -1351,7 +1358,7 @@ export default function App() {
         onScrollHome={scrollToExplore}
         notificationCount={notificationCount}
         messageCount={messageCount}
-        onOpenNotifications={() => setShowNotifications(true)}
+        onOpenNotifications={openNotifications}
         onOpenChat={() => setShowChat(true)}
         onOpenPayments={() => setShowPayments(true)}
         onOpenAlerts={() => setShowAlerts(true)}
@@ -1421,10 +1428,7 @@ export default function App() {
               {user && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setMobileNavTab('profile')
-                    setShowNotifications(true)
-                  }}
+                  onClick={openNotifications}
                   className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-rial-gold/35 bg-white/90 text-rial-navy dark:border-slate-600 dark:bg-slate-800 dark:text-rial-cream"
                   aria-label={t('app.sidebar.notifications')}
                 >
@@ -1839,14 +1843,6 @@ export default function App() {
             user={user}
           />
         )}
-        {showNotifications &&
-          typeof document !== 'undefined' &&
-          createPortal(
-            <Suspense fallback={<LoadingSpinner text={t('app.loadingNotifications')} />}>
-              <NotificationPanel token={token} user={user} onClose={() => setShowNotifications(false)} />
-            </Suspense>,
-            document.body
-          )}
         {showChat && (
         <Suspense fallback={<LoadingSpinner text={t('app.loadingAssistant')} />}>
           <AIAssistant 
@@ -2046,6 +2042,21 @@ export default function App() {
           </Suspense>
         )}
       </AnimatePresence>
+
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {showNotifications && (
+              <NotificationPanel
+                key="notification-panel"
+                token={token}
+                user={user}
+                onClose={() => setShowNotifications(false)}
+              />
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   )
 }
