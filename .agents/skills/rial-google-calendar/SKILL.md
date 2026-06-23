@@ -130,13 +130,20 @@ Nav broker tiene tab `calendar` en `RoleNavStrip`; verificar que renderice `Brok
 6. **i18n** — agregar strings en `long-term-rentals/src/locales/es.json` y `en.json` (`brokerCalendar`, `scheduleVisit`).
 7. **CORS / FRONTEND_URL** — el callback redirige al frontend; sin `FRONTEND_URL` cae a `localhost:5173`.
 
+## Ya implementado (visitas)
+
+- **Anti-doble-reserva**: `schedulePropertyVisit` rechaza (409) si el broker ya tiene un showing activo a < 1 h del nuevo turno (`VISIT_DURATION_MS`).
+- **Aviso al broker**: al agendar, notificación in-app + Web Push al owner (`notifyBrokerOfNewVisit`).
+- **Calendario para ambos**: además del evento en el calendario del broker (inquilino como attendee), se devuelve `addToCalendarUrl` (enlace `render?action=TEMPLATE`) que el inquilino puede guardar en su propio Google Calendar (`buildGoogleCalendarLink`). El frontend lo muestra como botón tras agendar.
+- **Recordatorios 24 h y 1 h antes**: `visitReminderService.processVisitReminders()` corre cada 5 min desde un `setInterval` en `index.ts`; notifica a inquilino y broker. Campos `Showing.reminder24hSentAt` / `reminder1hSentAt` evitan reenvíos (se pre-sellan al crear si el umbral ya pasó). Requiere keep-alive para que el server no duerma.
+
 ## Gaps habituales (mejoras seguras)
 
 - Vista **Calendario** del nav broker (`brokerNav === 'calendar'`) aún puede no mostrar UI; enlazar a `BrokerCalendarSettings` o listado de `Showing`.
 - **Desconectar** calendario (borrar refresh token en `BrokerProfile`).
-- **Reagendar / cancelar** → sync con Google vía `googleEventId`.
+- **Reagendar / cancelar** → sync con Google vía `googleEventId` (y limpiar/re-sellar recordatorios).
 - **Free/busy** antes de ofrecer slots al inquilino (`calendar.freebusy.query`).
-- **Recordatorios / Meet link** para `video_call` (`conferenceData` en `events.insert`).
+- **Meet link** para `video_call` (`conferenceData` en `events.insert`).
 
 ## Checklist deploy
 

@@ -563,6 +563,11 @@ model Showing {
   feedback     String?
   googleEventId   String?
   googleHtmlLink  String?
+  // Recordatorios automáticos de la visita (in-app + push) a inquilino y broker.
+  // Se sellan cuando ya se enviaron (o al crear la visita si el umbral ya pasó),
+  // para que el sweep periódico no los reenvíe.
+  reminder24hSentAt DateTime?
+  reminder1hSentAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

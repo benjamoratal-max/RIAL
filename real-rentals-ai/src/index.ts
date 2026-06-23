@@ -34,6 +34,7 @@ import configRoutes from './routes/configRoutes';
 import leadRoutes from './routes/leadRoutes';
 import calendarRoutes from './routes/calendarRoutes';
 import healthRoutes from './routes/healthRoutes';
+import { processVisitReminders } from './services/visitReminderService';
 
 const app = express();
 
@@ -256,4 +257,13 @@ app.listen(config.port, '0.0.0.0', () => {
   logger.info(`API endpoints available at http://${localIP}:${config.port}/api`, 'Server');
   logger.info(`Environment: ${config.nodeEnv}`, 'Server');
   logger.info(`CORS: Permitting local network access in development`, 'Server');
+
+  // Recordatorios de visitas (24 h y 1 h antes): sweep periódico. El worker keep-alive
+  // mantiene el servidor despierto en Render free, así que el intervalo corre de forma
+  // continua. Cada 5 min basta para la precisión requerida.
+  const VISIT_REMINDER_INTERVAL_MS = 5 * 60 * 1000;
+  processVisitReminders().catch(() => {});
+  setInterval(() => {
+    processVisitReminders().catch(() => {});
+  }, VISIT_REMINDER_INTERVAL_MS).unref();
 });

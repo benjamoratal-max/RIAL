@@ -1,11 +1,33 @@
 import prisma from '../lib/prisma';
 import {
   addOneHour,
+  buildGoogleCalendarLink,
   createCalendarEvent,
   isGoogleCalendarConfigured,
   miamiWallClockToDate,
 } from './calendarService';
+import NotificationService from '../utils/notificationService';
+import { sendPushToUser } from './pushService';
 import { logger } from '../utils/logger';
+
+/** Duración aproximada de una visita: 1 hora. Define la ventana de no solapamiento. */
+const VISIT_DURATION_MS = 60 * 60 * 1000;
+
+/** Estados de showing que ocupan la agenda del broker (bloquean nuevos turnos). */
+const ACTIVE_SHOWING_STATUSES = ['proposed', 'scheduled'];
+
+/** Formatea un instante en hora local de Miami para los mensajes de notificación. */
+function formatMiami(dt: Date): string {
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/New_York',
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(dt);
+}
 
 export interface ScheduleVisitInput {
   date: string;
@@ -24,6 +46,8 @@ export interface ScheduleVisitResult {
   scheduledAt: string;
   calendarConnected: boolean;
   googleEventLink?: string;
+  /** Enlace universal "Agregar a Google Calendar" para que el inquilino lo guarde en su propio calendario. */
+  addToCalendarUrl: string;
 }
 
 export async function schedulePropertyVisit(
@@ -85,6 +109,32 @@ export async function schedulePropertyVisit(
   const scheduledAt = miamiWallClockToDate(input.date, input.time);
   const notes = input.message?.trim() || null;
 
+  // No permitir dos visitas solapadas para el mismo broker: una visita dura ~1 hora,
+  // así que cualquier turno activo a menos de 60 min del nuevo se considera conflicto.
+  // (brokerId = property.ownerId, por lo que esto también cubre la misma propiedad.)
+  const conflict = await prisma.showing.findFirst({
+    where: {
+      brokerId,
+      status: { in: ACTIVE_SHOWING_STATUSES },
+      scheduledAt: {
+        gt: new Date(scheduledAt.getTime() - VISIT_DURATION_MS),
+        lt: new Date(scheduledAt.getTime() + VISIT_DURATION_MS),
+      },
+    },
+    select: { id: true },
+  });
+  if (conflict) {
+    throw Object.assign(
+      new Error('Ese horario ya está reservado para una visita. Por favor elegí otro horario.'),
+      { statusCode: 409 }
+    );
+  }
+
+  // Pre-sellar los recordatorios cuyo umbral ya pasó al momento de agendar
+  // (p. ej. una visita para dentro de 2 h no debe disparar el recordatorio de 24 h).
+  const msToVisit = scheduledAt.getTime() - Date.now();
+  const now = new Date();
+
   const showing = await prisma.showing.create({
     data: {
       propertyId,
@@ -94,6 +144,8 @@ export async function schedulePropertyVisit(
       status: 'scheduled',
       visitType: visitTypeDb,
       notes,
+      reminder24hSentAt: msToVisit <= 24 * 60 * 60 * 1000 ? now : null,
+      reminder1hSentAt: msToVisit <= 60 * 60 * 1000 ? now : null,
     },
   });
 
@@ -132,6 +184,32 @@ export async function schedulePropertyVisit(
     }
   }
 
+  // Enlace universal para que ambas partes guarden la visita en su propio Google
+  // Calendar (no depende de que el broker haya conectado OAuth).
+  const addToCalendarUrl = buildGoogleCalendarLink({
+    propertyTitle: property.title,
+    location:
+      input.visitType === 'video_call'
+        ? 'Videollamada — RIAL (Miami-Dade)'
+        : property.location ?? 'Miami-Dade, FL',
+    start: scheduledAt,
+    end: new Date(scheduledAt.getTime() + VISIT_DURATION_MS),
+    details: notes
+      ? `Visita agendada desde RIAL.\nMensaje: ${notes}`
+      : 'Visita agendada desde RIAL.',
+  });
+
+  // Avisar al broker dueño de la propiedad que un inquilino agendó una visita
+  // (in-app + Web Push). Best-effort: nunca debe romper el agendamiento.
+  await notifyBrokerOfNewVisit({
+    brokerId,
+    renterName: renter.name?.trim() || 'Un inquilino',
+    propertyTitle: property.title,
+    scheduledAt,
+    visitTypeDb,
+    showingId: showing.id,
+  }).catch(() => {});
+
   return {
     id: showing.id,
     propertyId,
@@ -142,5 +220,34 @@ export async function schedulePropertyVisit(
     scheduledAt: scheduledAt.toISOString(),
     calendarConnected: Boolean(refreshToken && brokerProfile?.googleCalendarConnectedAt),
     googleEventLink,
+    addToCalendarUrl,
   };
+}
+
+/**
+ * Notifica al broker (in-app + Web Push) que un inquilino agendó una visita a su
+ * propiedad. Best-effort: cualquier fallo se ignora para no romper el agendamiento.
+ */
+async function notifyBrokerOfNewVisit(params: {
+  brokerId: number;
+  renterName: string;
+  propertyTitle: string;
+  scheduledAt: Date;
+  visitTypeDb: string;
+  showingId: number;
+}): Promise<void> {
+  const when = formatMiami(params.scheduledAt);
+  const modalidad = params.visitTypeDb === 'virtual' ? 'videollamada' : 'visita presencial';
+  const title = 'Nueva visita agendada';
+  const message = `${params.renterName} agendó una ${modalidad} para "${params.propertyTitle}" el ${when} (hora de Miami).`;
+
+  await NotificationService.createNotification(params.brokerId, title, message, 'info').catch(
+    () => {}
+  );
+  await sendPushToUser(params.brokerId, {
+    title,
+    body: message,
+    url: '/?brokerView=listings',
+    tag: `visit-${params.showingId}-new`,
+  }).catch(() => {});
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { Calendar, Clock, Video, MapPin, X, Send } from 'lucide-react'
+import { Calendar, Clock, Video, MapPin, X, Send, CalendarPlus, CheckCircle2 } from 'lucide-react'
 import { Button, Input, classNames } from './UI'
 import { api } from '../utils/api'
 import { getErrorMessage } from '../utils/errorHandler'
@@ -50,6 +50,7 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
   const [visitType, setVisitType] = useState<'in_person' | 'video_call'>('in_person')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [addToCalendarUrl, setAddToCalendarUrl] = useState<string | null>(null)
 
   const canSubmit = date && timeSlot && (token != null)
 
@@ -70,6 +71,7 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
       })) as {
         googleEventLink?: string
         calendarConnected?: boolean
+        addToCalendarUrl?: string
       }
       if (result.googleEventLink) {
         toast.success(t('scheduleVisit.successWithCalendar'))
@@ -79,7 +81,13 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
         toast.success(t('scheduleVisit.success'))
       }
       onSuccess?.()
-      onClose()
+      // Mostrar pantalla de confirmación con el botón "Agregar a Google Calendar"
+      // para que el inquilino guarde la visita en su propio calendario.
+      if (result.addToCalendarUrl) {
+        setAddToCalendarUrl(result.addToCalendarUrl)
+      } else {
+        onClose()
+      }
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -126,7 +134,29 @@ export function ScheduleVisit({ property, token, user, onClose, onSuccess }: Sch
             <Button variant="ghost" size="sm" onClick={onClose} icon={<X className="w-4 h-4" />} />
           </div>
 
-          {!user || !token ? (
+          {addToCalendarUrl ? (
+            <div className="py-4 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+                <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <p className="mb-1 font-semibold text-gray-900 dark:text-white">
+                {t('scheduleVisit.confirmedTitle')}
+              </p>
+              <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
+                {t('scheduleVisit.addToCalendarHint')}
+              </p>
+              <div className="flex flex-col gap-3">
+                <a href={addToCalendarUrl} target="_blank" rel="noopener noreferrer">
+                  <Button className="w-full" icon={<CalendarPlus className="h-4 w-4" />}>
+                    {t('scheduleVisit.addToCalendar')}
+                  </Button>
+                </a>
+                <Button variant="outline" className="w-full" onClick={onClose}>
+                  {t('scheduleVisit.done')}
+                </Button>
+              </div>
+            </div>
+          ) : !user || !token ? (
             <div className="py-6 text-center">
               <p className="text-gray-600 dark:text-gray-400 mb-4">{t('scheduleVisit.loginRequired')}</p>
               <Button onClick={onClose}>{t('common.close')}</Button>

@@ -101,6 +101,32 @@ export async function createCalendarEvent(
   return response.data;
 }
 
+/**
+ * Construye un enlace "Agregar a Google Calendar" (acción TEMPLATE) que cualquiera
+ * de las dos partes puede abrir para guardar la visita en SU propio calendario, sin
+ * necesidad de conectar OAuth. Sirve como respaldo universal del evento que se crea
+ * en el calendario del broker conectado.
+ */
+export function buildGoogleCalendarLink(params: {
+  propertyTitle: string;
+  location: string;
+  start: Date;
+  end: Date;
+  details?: string;
+}): string {
+  const toGoogleUtc = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  const qs = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Visita: ${params.propertyTitle}`,
+    dates: `${toGoogleUtc(params.start)}/${toGoogleUtc(params.end)}`,
+    location: params.location,
+    details: params.details ?? 'Visita agendada desde RIAL.',
+    ctz: MIAMI_TIMEZONE,
+  });
+  return `https://calendar.google.com/calendar/render?${qs.toString()}`;
+}
+
 /** Suma una hora a date + time (formato YYYY-MM-DD y HH:mm). */
 export function addOneHour(date: string, time: string): string {
   const [h, m] = time.split(':').map(Number);
