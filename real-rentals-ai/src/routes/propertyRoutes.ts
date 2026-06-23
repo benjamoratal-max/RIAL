@@ -530,6 +530,108 @@ router.post('/', auth, createLimiter, validateBody(createPropertySchema), asyncH
 // Listado con métricas: disponibilidad + promedio y cantidad de reviews + paginación (con caché)
 const WITH_METRICS_CACHE_TTL = 2 * 60 * 1000; // 2 minutos
 
+/**
+ * Listados del broker autenticado con su estado de alquiler (seguimiento).
+ * Devuelve cada propiedad publicada por el broker con: estado (disponible / reservada
+ * / alquilada), reserva activa (inquilino, fechas, montos, plazo) y métricas básicas.
+ */
+router.get('/mine', auth, asyncHandler(async (req: AuthRequest, res) => {
+  if (!req.user) return res.status(401).json({ error: 'No autorizado' });
+
+  const properties = await (prisma as any).property.findMany({
+    where: { ownerId: req.user.id },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      location: true,
+      price: true,
+      propertyType: true,
+      bedrooms: true,
+      bathrooms: true,
+      area: true,
+      available: true,
+      verified: true,
+      createdAt: true,
+      images: { select: { url: true }, take: 1 },
+      _count: { select: { views: true, leads: true, leaseRequests: true } },
+      rentalReservations: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          durationMonths: true,
+          startDate: true,
+          totalAmount: true,
+          depositAmount: true,
+          balanceAmount: true,
+          depositPaidAt: true,
+          balanceDueAt: true,
+          balancePaidAt: true,
+          createdAt: true,
+          user: { select: { id: true, name: true } },
+        },
+      },
+    },
+  });
+
+  const shaped = properties.map((p: any) => {
+    const reservations = p.rentalReservations || [];
+    // La reserva "activa" determina el estado: alquilada (completed) tiene prioridad,
+    // luego reservada (deposit_paid). El resto del historial se ignora para el estado.
+    const rented = reservations.find((r: any) => r.status === 'completed');
+    const reserved = reservations.find((r: any) => r.status === 'deposit_paid');
+    const active = rented || reserved || null;
+
+    const rentalStatus = rented ? 'rented' : reserved ? 'reserved' : 'available';
+
+    return {
+      id: p.id,
+      title: p.title,
+      location: p.location,
+      price: p.price,
+      propertyType: p.propertyType,
+      bedrooms: p.bedrooms,
+      bathrooms: p.bathrooms,
+      area: p.area,
+      available: p.available,
+      verified: p.verified,
+      createdAt: p.createdAt,
+      image: p.images?.[0]?.url ?? null,
+      rentalStatus,
+      views: p._count?.views ?? 0,
+      leadsCount: p._count?.leads ?? 0,
+      requestsCount: p._count?.leaseRequests ?? 0,
+      reservationsCount: reservations.length,
+      activeReservation: active
+        ? {
+            id: active.id,
+            status: active.status,
+            tenantName: active.user?.name ?? null,
+            durationMonths: active.durationMonths,
+            startDate: active.startDate,
+            totalAmount: active.totalAmount,
+            depositAmount: active.depositAmount,
+            balanceAmount: active.balanceAmount,
+            depositPaidAt: active.depositPaidAt,
+            balanceDueAt: active.balanceDueAt,
+            balancePaidAt: active.balancePaidAt,
+          }
+        : null,
+    };
+  });
+
+  // Resumen para tarjetas del dashboard.
+  const summary = {
+    total: shaped.length,
+    available: shaped.filter((p: any) => p.rentalStatus === 'available').length,
+    reserved: shaped.filter((p: any) => p.rentalStatus === 'reserved').length,
+    rented: shaped.filter((p: any) => p.rentalStatus === 'rented').length,
+  };
+
+  res.json({ summary, properties: shaped });
+}));
+
 router.get('/with-metrics', asyncHandler(async (req, res) => {
   const { location, minPrice, maxPrice, sort, page = '1', pageSize = '12', query, bedrooms, rooms, bathrooms, amenities, propertyType, verified } = req.query as any;
 

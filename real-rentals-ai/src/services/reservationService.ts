@@ -2,6 +2,7 @@ import prisma from '../lib/prisma';
 import NotificationService from '../utils/notificationService';
 import { cache, CacheKeys } from '../utils/cache';
 import { isStripeEnabled, createCheckoutSession, getStripe } from './stripeService';
+import { sendPushToUser } from './pushService';
 import { logger } from '../utils/logger';
 
 export const DEPOSIT_PERCENT = 0.5;
@@ -181,7 +182,7 @@ export async function getReservationForUser(id: number, userId: number) {
 }
 
 const RESERVATION_INCLUDE = {
-  property: { select: { id: true, title: true, location: true, price: true } },
+  property: { select: { id: true, title: true, location: true, price: true, ownerId: true } },
 } as const;
 
 /** Email del inquilino (para el recibo de Stripe). Best-effort: nunca rompe el flujo. */
@@ -194,6 +195,52 @@ async function getUserEmail(userId: number): Promise<string | null> {
     return user?.email ?? null;
   } catch {
     return null;
+  }
+}
+
+/** Nombre del usuario (para mensajes legibles). Best-effort. */
+async function getUserName(userId: number): Promise<string> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    return user?.name?.trim() || 'Un inquilino';
+  } catch {
+    return 'Un inquilino';
+  }
+}
+
+/**
+ * Avisa al broker dueño de la propiedad sobre el avance de una reserva: notificación
+ * in-app (campanita) + Web Push al dispositivo. Best-effort: nunca rompe el flujo de pago.
+ * - 'reserved': un inquilino pagó la seña y bloqueó la propiedad 48 h.
+ * - 'rented':   un inquilino completó el pago; la propiedad quedó alquilada.
+ */
+async function notifyBrokerOfReservation(reservation: any, kind: 'reserved' | 'rented') {
+  try {
+    const brokerId: number | null = reservation.property?.ownerId ?? null;
+    if (!brokerId) return;
+
+    const propertyTitle = reservation.property?.title || 'tu propiedad';
+    const tenantName = await getUserName(reservation.userId);
+
+    const title = kind === 'reserved' ? 'Propiedad reservada' : '¡Propiedad alquilada!';
+    const message =
+      kind === 'reserved'
+        ? `${tenantName} pagó la seña de "${propertyTitle}". La propiedad quedó reservada mientras completa el saldo.`
+        : `${tenantName} completó el pago de "${propertyTitle}". La adquisición está confirmada.`;
+    const type = kind === 'rented' ? 'success' : 'info';
+
+    await NotificationService.createNotification(brokerId, title, message, type).catch(() => {});
+    await sendPushToUser(brokerId, {
+      title,
+      body: message,
+      url: '/?brokerView=listings',
+      tag: `reservation-${reservation.id}-${kind}`,
+    }).catch(() => {});
+  } catch {
+    /* nunca debe romper el flujo de pago */
   }
 }
 
@@ -227,6 +274,9 @@ async function applyDepositPaid(reservation: any, paymentId: number) {
     'success'
   ).catch(() => {});
 
+  // Avisar al broker dueño de la propiedad (in-app + push al dispositivo).
+  await notifyBrokerOfReservation(updated, 'reserved');
+
   return updated;
 }
 
@@ -254,6 +304,9 @@ async function applyBalancePaid(reservation: any, paymentId: number) {
     'Completaste el pago de tu reserva. Pronto habilitaremos el acceso digital según el contrato.',
     'success'
   ).catch(() => {});
+
+  // Avisar al broker dueño de la propiedad que se concretó la adquisición.
+  await notifyBrokerOfReservation(updated, 'rented');
 
   return updated;
 }

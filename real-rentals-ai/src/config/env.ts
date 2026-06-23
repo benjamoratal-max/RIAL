@@ -73,6 +73,12 @@ export const config = {
   stripeWebhookSecret: getEnvVarOptional('STRIPE_WEBHOOK_SECRET'),
   stripePublishableKey: getEnvVarOptional('STRIPE_PUBLISHABLE_KEY'),
 
+  // Web Push (notificaciones al dispositivo, p. ej. al broker). Si las claves VAPID
+  // no están, el push queda desactivado (las notificaciones in-app siguen funcionando).
+  vapidPublicKey: getEnvVarOptional('VAPID_PUBLIC_KEY'),
+  vapidPrivateKey: getEnvVarOptional('VAPID_PRIVATE_KEY'),
+  vapidSubject: getEnvVarOptional('VAPID_SUBJECT', 'mailto:soporte@rial.com'),
+
   // Entorno
   nodeEnv: getEnvVarOptional('NODE_ENV', 'development'),
   isProduction,

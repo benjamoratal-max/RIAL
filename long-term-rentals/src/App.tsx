@@ -50,6 +50,7 @@ const NotificationPanel = lazy(() => import('./components/NotificationPanel').th
 const PaymentPanel = lazy(() => import('./components/PaymentPanel').then(m => ({ default: m.PaymentPanel })))
 const AdminRequestsPanel = lazy(() => import('./components/AdminRequestsPanel').then(m => ({ default: m.AdminRequestsPanel })))
 const OwnerLeadsPanel = lazy(() => import('./components/OwnerLeadsPanel').then(m => ({ default: m.OwnerLeadsPanel })))
+const BrokerListingsPanel = lazy(() => import('./components/BrokerListingsPanel').then(m => ({ default: m.BrokerListingsPanel })))
 const BrokerLeadsDashboard = lazy(() => import('./components/BrokerLeadsDashboard').then(m => ({ default: m.BrokerLeadsDashboard })))
 const ComplianceBrokerVerificationsPanel = lazy(() => import('./components/ComplianceBrokerVerificationsPanel').then(m => ({ default: m.ComplianceBrokerVerificationsPanel })))
 const ComplianceListingsReviewPanel = lazy(() => import('./components/ComplianceListingsReviewPanel').then(m => ({ default: m.ComplianceListingsReviewPanel })))
@@ -915,6 +916,17 @@ export default function App() {
     }
   }, [])
 
+  // Apertura por click en una notificación push (?brokerView=listings → panel de seguimiento).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('brokerView') === 'listings') {
+      setShowBrokerListings(true)
+      params.delete('brokerView')
+      const qs = params.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
+    }
+  }, [])
+
   // Nuevos estados para las funcionalidades
   const [showNotifications, setShowNotifications] = useState(false)
   const [showChat, setShowChat] = useState(false)
@@ -928,6 +940,7 @@ export default function App() {
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showOwnerLeads, setShowOwnerLeads] = useState(false)
   const [showBrokerLeads, setShowBrokerLeads] = useState(false)
+  const [showBrokerListings, setShowBrokerListings] = useState(false)
   const [showAdminRequests, setShowAdminRequests] = useState(false)
   const [showCompliancePanel, setShowCompliancePanel] = useState(false)
   const [showComplianceListings, setShowComplianceListings] = useState(false)
@@ -1520,7 +1533,7 @@ export default function App() {
                 if (k === 'leads') {
                   setShowBrokerLeads(true)
                 } else if (k === 'listings') {
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                  setShowBrokerListings(true)
                 } else if (k === 'brokerMessages') {
                   setShowChat(true)
                 } else if (k === 'analytics') {
@@ -1938,6 +1951,11 @@ export default function App() {
         {showBrokerLeads && token && (
           <Suspense fallback={<LoadingSpinner text={t('app.loadingBrokerLeadsPipeline')} />}>
             <BrokerLeadsDashboard token={token} user={user} onClose={() => setShowBrokerLeads(false)} />
+          </Suspense>
+        )}
+        {showBrokerListings && token && (
+          <Suspense fallback={<LoadingSpinner text={t('brokerListings.loading')} />}>
+            <BrokerListingsPanel token={token} onClose={() => setShowBrokerListings(false)} />
           </Suspense>
         )}
         {showCompliancePanel && token && (

@@ -49,6 +49,7 @@ model User {
   receivedMessages Message[] @relation("ReceivedMessages")
   payments Payment[]
   rentalReservations RentalReservation[]
+  pushSubscriptions PushSubscription[]
   alerts    Alert[]
   verification Verification?
   searches  PropertySearch[]
@@ -261,12 +262,28 @@ model Notification {
   type      String   @default("info") // info, success, warning, error
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
-  
+
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([userId, read])
   @@index([createdAt])
+}
+
+// Suscripción Web Push de un dispositivo del usuario (PWA). Permite enviar
+// notificaciones del sistema operativo aunque la app esté cerrada.
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  endpoint  String   @unique
+  p256dh    String   // clave pública del cliente (para cifrar el payload)
+  auth      String   // secreto de autenticación del cliente
+  userAgent String?  // referencia del dispositivo/navegador
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model Message {

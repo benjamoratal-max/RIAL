@@ -46,6 +46,8 @@ export default defineConfig(({ mode }) => {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
         navigateFallback: '/index.html',
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // Inyecta los handlers de Web Push (push / notificationclick) en el SW generado.
+        importScripts: ['push-sw.js'],
       },
       devOptions: {
         enabled: false,

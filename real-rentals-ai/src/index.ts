@@ -29,6 +29,7 @@ import brokerRoutes from './routes/brokerRoutes';
 import complianceRoutes from './routes/complianceRoutes';
 import reservationRoutes from './routes/reservationRoutes';
 import { stripeWebhookHandler } from './routes/stripeWebhook';
+import pushRoutes from './routes/pushRoutes';
 import configRoutes from './routes/configRoutes';
 import leadRoutes from './routes/leadRoutes';
 import calendarRoutes from './routes/calendarRoutes';
@@ -221,6 +222,7 @@ app.use('/api/leads', leadRoutes);
 app.use('/api/brokers', brokerRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/health', healthRoutes);
 

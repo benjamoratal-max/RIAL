@@ -22,6 +22,7 @@
     "stripe": "^22.2.3",
     "tesseract.js": "^7.0.0",
     "validator": "^13.15.26",
+    "web-push": "^3.6.7",
     "zod": "^4.1.13"
   },
   "scripts": {
@@ -67,6 +68,7 @@
     "@types/pdfkit": "^0.17.3",
     "@types/pngjs": "^6.0.5",
     "@types/validator": "^13.15.10",
+    "@types/web-push": "^3.6.4",
     "jest": "^30.2.0",
     "pngjs": "^7.0.0",
     "prisma": "^5.0.0",
