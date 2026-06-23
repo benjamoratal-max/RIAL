@@ -188,6 +188,18 @@ if (import.meta.env.DEV) {
 async function registerPwa() {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
   try {
+    // Cuando se publica una versión nueva, el service worker nuevo toma control y
+    // recargamos UNA vez para aplicar el bundle fresco. Así, tras un deploy, la
+    // pestaña abierta no se queda con código viejo (causa de "el botón no hace nada").
+    // No recargamos en la primera instalación (cuando aún no había controller).
+    let refreshing = false
+    const hadController = Boolean(navigator.serviceWorker.controller)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing || !hadController) return
+      refreshing = true
+      window.location.reload()
+    })
+
     const { registerSW } = await import('virtual:pwa-register')
     registerSW({ immediate: true })
   } catch {
