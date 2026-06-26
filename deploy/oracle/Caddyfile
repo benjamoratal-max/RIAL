@@ -1,0 +1,13 @@
+# Caddy saca y renueva el certificado TLS solo (Let's Encrypt) en cuanto:
+#   1) el A record de api.rialstateai.com apunte a la IP pública de la VM, y
+#   2) los puertos 80 y 443 estén abiertos (Security List de Oracle + iptables del SO).
+#
+# Si querés probar sin romper el rate-limit de Let's Encrypt, descomentá la línea `tls`
+# de staging mientras validás, y volvé a comentarla para emitir el cert real.
+
+api.rialstateai.com {
+	encode zstd gzip
+	reverse_proxy api:3000
+
+	# tls { ca https://acme-staging-v02.api.letsencrypt.org/directory }  # solo para pruebas
+}

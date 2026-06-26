@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.env.*
+contracts
+*.log
+*.traineddata
+prisma/dev.db
+prisma/*.db
+.git
+.vscode
+coverage
+test-server.js

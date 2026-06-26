@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Archivos que corren en Linux/Docker: forzar LF siempre (CRLF los rompe)
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker-entrypoint.sh text eol=lf
+Caddyfile text eol=lf

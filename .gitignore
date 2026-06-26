@@ -31,3 +31,7 @@ Thumbs.db
 # Prisma
 *.db
 *.db-journal
+
+# Production env (vive solo en el servidor, nunca en el repo)
+.env.production
+deploy/oracle/.env.production

@@ -1,5 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" para tu Windows/dev local; el target arm64 es el que necesita la VM
+  // Ampere A1 (ARM) de Oracle con Debian/Ubuntu (OpenSSL 3.x). Sin esto, Prisma no
+  // encuentra el query engine al arrancar en el contenedor y el backend no levanta.
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {

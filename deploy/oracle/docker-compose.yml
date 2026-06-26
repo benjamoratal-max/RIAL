@@ -1,0 +1,60 @@
+name: rial
+
+# Stack completo del backend RIAL en la VM Ampere A1 (ARM) de Oracle:
+#   - db    : Postgres 16 (datos en volumen persistente, NO expuesto al exterior)
+#   - api   : backend Express+Prisma (corre migraciones al arrancar)
+#   - caddy : reverse proxy con HTTPS automático (Let's Encrypt) para api.rialstateai.com
+#
+# Las variables salen de ./.env.production (ver .env.production.example).
+# Levantar con:  ./deploy.sh   (o:  docker compose --env-file .env.production up -d --build)
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    # Sin `ports:` a propósito: la base solo es accesible dentro de la red de compose.
+    # Para conectarte desde el host (psql/pg_dump), usá:  docker compose exec db psql ...
+
+  api:
+    build:
+      context: ../../real-rentals-ai
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - contracts:/app/contracts   # PDFs de contratos persistentes entre reinicios
+    expose:
+      - "3000"                      # visible solo para caddy, no publicado al host
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data            # certificados TLS (¡no borrar!)
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  contracts:
+  caddy_data:
+  caddy_config:

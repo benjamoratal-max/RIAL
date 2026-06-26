@@ -38,6 +38,11 @@ import { processVisitReminders } from './services/visitReminderService';
 
 const app = express();
 
+// Detrás de un reverse proxy (Caddy en Oracle / Vercel rewrites): confiar en el primer
+// proxy para leer X-Forwarded-For (IP real para rate-limit), X-Forwarded-Proto (https)
+// y para que las cookies "secure" funcionen. 1 = un único proxy de confianza al frente.
+app.set('trust proxy', 1);
+
 // Security headers (helmet)
 app.use(helmet({
   contentSecurityPolicy: config.isProduction ? undefined : false, // Desactivar en desarrollo para facilitar debugging
